@@ -76,125 +76,133 @@
    "tests/property/test_table_alternatives_mutant_table.py": "reads the ways' names (`INSIDE`, `KEPT_OR_SET_ASIDE`, `REFUSES`) to hold the README's table of S4d's mutants; it draws nothing"
   },
   "cuts": {
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::changed::st.sampled_from(others) :: drop 'bulk'": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/alternatives_strategies.py::changed::st.sampled_from(others) :: drop 'bulk'": {
     "result": "not held",
-    "reason": "a gap: S4a's `changed` draws, for an alternative beside the table set aside at step 10, the measurement-geometry token the request does not accept; S4d's checks need neither token"
+    "reason": "a gap: S4a's `changed` draws, for an alternative beside the table that S4a's way sets aside as `not_accepted`, the measurement-geometry token the request does not accept; S4d's checks need neither token"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::changed::st.sampled_from(others) :: drop 'gap'": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/alternatives_strategies.py::changed::st.sampled_from(others) :: drop 'gap'": {
     "result": "not held",
-    "reason": "a gap: S4a's `changed` draws, for an alternative beside the table set aside at step 10, the measurement-geometry token the request does not accept; S4d's checks need neither token"
+    "reason": "a gap: S4a's `changed` draws, for an alternative beside the table that S4a's way sets aside as `not_accepted`, the measurement-geometry token the request does not accept; S4d's checks need neither token"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 1) :: pin to the high end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, table, 'not_accepted', request, FIELD) > tests/property/alternatives_strategies.py::changed::st.sampled_from(others) :: drop 'bulk'": {
     "result": "not held",
-    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+    "reason": "a gap: S4a's `changed` draws, for the table set aside at step 10 (`no_operating_value_set_aside`), the measurement-geometry token the request does not accept; S4d's checks need neither token"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 1) :: pin to the low end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, table, 'not_accepted', request, FIELD) > tests/property/alternatives_strategies.py::changed::st.sampled_from(others) :: drop 'gap'": {
     "result": "not held",
-    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+    "reason": "a gap: S4a's `changed` draws, for the table set aside at step 10 (`no_operating_value_set_aside`), the measurement-geometry token the request does not accept; S4d's checks need neither token"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 1)#2 :: pin to the high end": {
-    "result": "not held",
-    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
-   },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 1)#2 :: pin to the low end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(0, 1) :: pin to the high end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2) :: keep off the high end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(0, 1) :: pin to the low end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2) :: keep off the low end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(0, 1)#2 :: pin to the high end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2) :: pin to the high end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(0, 1)#2 :: pin to the low end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2) :: pin to the low end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(0, 2) :: keep off the high end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2)#2 :: keep off the high end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(0, 2) :: keep off the low end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2)#2 :: keep off the low end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(0, 2) :: pin to the high end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2)#2 :: pin to the high end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(0, 2) :: pin to the low end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2)#2 :: pin to the low end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(0, 2)#2 :: keep off the high end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(1, 2) :: pin to the high end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(0, 2)#2 :: keep off the low end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(1, 2) :: pin to the low end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(0, 2)#2 :: pin to the high end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(1, 3) :: keep off the high end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(0, 2)#2 :: pin to the low end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(1, 3) :: keep off the low end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(1, 2) :: pin to the high end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(1, 3) :: pin to the high end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(1, 2) :: pin to the low end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(1, 3) :: pin to the low end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(1, 3) :: keep off the high end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(2, 3) :: pin to the high end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(1, 3) :: keep off the low end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(2, 3) :: pin to the low end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(1, 3) :: pin to the high end": {
     "result": "not held",
     "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::want_for::st.sampled_from(WANTS) :: drop 'bounds'": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(1, 3) :: pin to the low end": {
     "result": "not held",
-    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::want_for::st.sampled_from(WANTS) :: drop 'components'": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(2, 3) :: pin to the high end": {
     "result": "not held",
-    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::want_for::st.sampled_from(WANTS) :: drop 'evidence'": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > counts(draw, outcome) > tests/property/alternatives_strategies.py::counts::st.integers(2, 3) :: pin to the low end": {
     "result": "not held",
-    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::want_for::st.sampled_from(WANTS) :: drop 'value'": {
-    "result": "not held",
-    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
-   },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::want_for::st.sampled_from([want for want in WANTS if want not in given]) :: drop 'components'": {
-    "result": "not held",
-    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
-   },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::want_for::st.sampled_from([want for want in WANTS if want not in given]) :: drop 'evidence'": {
-    "result": "not held",
-    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
-   },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/tables.py::above::st.floats(min_value=number, exclude_min=True, allow_nan=False, allow_in… :: keep off the low end": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > operating(way, place, draw) > tests/property/tables.py::above::st.floats(min_value=number, exclude_min=True, allow_nan=False, allow_in… :: keep off the low end": {
     "result": "not held",
     "reason": "equivalent: the `one_of`'s other option, `just(math.nextafter(number, math.inf))`, draws the very double this keeps the `floats` off, so every value drawn before is drawn still"
    },
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/tables.py::above::st.one_of(st.just(math.nextafter(number, math.inf)), st.floats(min_valu… :: drop st.just(math.nextafter(number, math.inf))": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > operating(way, place, draw) > tests/property/tables.py::above::st.one_of(st.just(math.nextafter(number, math.inf)), st.floats(min_valu… :: drop st.just(math.nextafter(number, math.inf))": {
     "result": "not held",
     "reason": "a gap: no test needs an operating range one double wide (`[at, the double above]`), which this option draws in half the operating ranges; the `floats` option draws that double about once in 2,000 (measured, 1 of 2,000 derandomized draws above 0.37). A fault that reads so narrow a range as the value at its lower end would show there"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > want_for(draw, outcome, form, FIELD) > tests/property/alternatives_strategies.py::want_for::st.sampled_from(WANTS) :: drop 'bounds'": {
+    "result": "not held",
+    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > want_for(draw, outcome, form, FIELD) > tests/property/alternatives_strategies.py::want_for::st.sampled_from(WANTS) :: drop 'components'": {
+    "result": "not held",
+    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > want_for(draw, outcome, form, FIELD) > tests/property/alternatives_strategies.py::want_for::st.sampled_from(WANTS) :: drop 'evidence'": {
+    "result": "not held",
+    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > want_for(draw, outcome, form, FIELD) > tests/property/alternatives_strategies.py::want_for::st.sampled_from(WANTS) :: drop 'value'": {
+    "result": "not held",
+    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > want_for(draw, outcome, form, FIELD) > tests/property/alternatives_strategies.py::want_for::st.sampled_from([want for want in WANTS if want not in given]) :: drop 'components'": {
+    "result": "not held",
+    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > want_for(draw, outcome, form, FIELD) > tests/property/alternatives_strategies.py::want_for::st.sampled_from([want for want in WANTS if want not in given]) :: drop 'evidence'": {
+    "result": "not held",
+    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
    },
    "tests/property/table_alternatives_strategies.py::table_alternatives::st.integers(0, len(stored)) :: keep off the high end": {
     "result": "not held",
@@ -254,7 +262,8 @@
    }
   },
   "uncut": {
-   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::changed::st.text('abcdefgh', min_size=1, max_size=6)": "the name, after `x_`, of a condition no document names, which S4a's `unknown_name` way gives an alternative beside the table; any such name is read alike, and HP39's oracle compares the read's reasons, which name it"
+   "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/alternatives_strategies.py::changed::st.text('abcdefgh', min_size=1, max_size=6)": "the name, after `x_`, of a condition no document names, which S4a's `unknown_name` way gives an alternative beside the table; any such name is read alike, and HP39's oracle compares the read's reasons, which name it",
+   "tests/property/table_alternatives_strategies.py::table_alternatives > operating(way, place, draw) > tests/property/tables.py::above::st.floats(min_value=number, exclude_min=True, allow_nan=False, allow_in…": "the operating range's upper end drawn above the double above the value (`tables.above`), whose upper side has no bound by design: any double above is an upper end alike for the read, which compares the range with the table's readable range at its ends; its lower end is cut"
   }
  },
  "extrapolation": {
@@ -285,11 +294,27 @@
     "result": "not held",
     "reason": "equivalent: an object given as a `law` or an ignored member is no text whatever its size; `an_object_taken_as_a_law` shows at any, and the other kinds still draw values a read judging by truth would take"
    },
+   "tests/property/extrapolation_strategies.py::<module>::st.dictionaries(st.text(max_size=4), st.text(max_size=4), max_size=2) :: keep off the greatest size": {
+    "result": "not held",
+    "reason": "equivalent: an object given as a `law` or an ignored member is no text whatever its size; `an_object_taken_as_a_law` shows at any, and the other kinds still draw values a read judging by truth would take"
+   },
+   "tests/property/extrapolation_strategies.py::<module>::st.dictionaries(st.text(max_size=4), st.text(max_size=4), max_size=2) :: keep off the least size": {
+    "result": "not held",
+    "reason": "equivalent: an object given as a `law` or an ignored member is no text whatever its size; `an_object_taken_as_a_law` shows at any, and the other kinds still draw values a read judging by truth would take"
+   },
    "tests/property/extrapolation_strategies.py::<module>::st.lists(st.text(max_size=4), max_size=2) :: hold to the greatest size": {
     "result": "not held",
     "reason": "equivalent: a list given as a `law` or an ignored member is no text whatever its length; `a_list_taken_as_a_law` shows at any, and the other kinds still draw values a read judging by truth would take"
    },
    "tests/property/extrapolation_strategies.py::<module>::st.lists(st.text(max_size=4), max_size=2) :: hold to the least size": {
+    "result": "not held",
+    "reason": "equivalent: a list given as a `law` or an ignored member is no text whatever its length; `a_list_taken_as_a_law` shows at any, and the other kinds still draw values a read judging by truth would take"
+   },
+   "tests/property/extrapolation_strategies.py::<module>::st.lists(st.text(max_size=4), max_size=2) :: keep off the greatest size": {
+    "result": "not held",
+    "reason": "equivalent: a list given as a `law` or an ignored member is no text whatever its length; `a_list_taken_as_a_law` shows at any, and the other kinds still draw values a read judging by truth would take"
+   },
+   "tests/property/extrapolation_strategies.py::<module>::st.lists(st.text(max_size=4), max_size=2) :: keep off the least size": {
     "result": "not held",
     "reason": "equivalent: a list given as a `law` or an ignored member is no text whatever its length; `a_list_taken_as_a_law` shows at any, and the other kinds still draw values a read judging by truth would take"
    },
