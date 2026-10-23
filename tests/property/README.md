@@ -1987,27 +1987,34 @@ tells a rare failure from a frequent one.
 ## Every draw is held
 
 A strategy's draw is held where some test fails once it stops being drawn: a value no test needs can go, and
-every test pass. The rule was shown by hand until 2026-10-23 (S3c's review found five draws inside its ways
+every test pass. The check below judges the draws a cut takes away (each value or option, a range's ends, a
+collection's least and greatest size, the order given); a range's interior and a collection's middle sizes no
+cut takes away, so it cannot judge those. The rule was shown by hand until 2026-10-23 (S3c's review found five draws inside its ways
 that nothing held; S4d's builder cut 27 by hand, and the first round left two passing).
 `scripts/input_coverage.py` shows it by cutting each draw in turn (maintainer, 2026-10-23):
 
     uv run --frozen python scripts/input_coverage.py run table_alternatives --report REPORT.json --parallel 4 --workers 2
 
 A cut is one change to one site's draws: each value of `sampled_from` and `booleans`, and each option of
-`one_of` and `|`, dropped in turn; each bounded end of `integers` and `floats` pinned, and kept off; a list,
-set or dictionary held to its least size and, where it has one, its greatest; a permutation held to the order
-given. A site is a call of a constructor written under `tests/`, named by its module, the functions around it
-and its own text, so that it keeps its name when lines around it move; a draw a helper makes inside a
-composite strategy is named after that composite (`owner > place`) and cut there alone. The plugin
+`one_of` and `|`, dropped in turn (values named alike, as two objects with no `repr` of their own, are told
+apart by their places in the call); each bounded end of `integers` and `floats` pinned, and kept off; a list,
+set or dictionary held to its least size and kept off it, and, where it has one, held to its greatest and
+kept off it; a permutation held to the order given. A site is a call of a constructor written under `tests/`,
+named by its module, the functions around it and its own text, so that it keeps its name when lines around it
+move; a draw a helper makes inside a composite strategy is named after that composite and the call it makes
+into the helper (`owner > call > place`), so that two calls of one helper are two sites, and cut there alone.
+A composite drawn by another composite is named after itself, not its caller: a selection holds its draws only
+where the selection's patterns name that composite's module. The plugin
 (`input_coverage.py`, loaded only with `-p`) wraps the constructors; loaded with no cut, every draw is the one
 drawn without it (`tests/unit/test_input_coverage.py` compares them). Each cut runs the selection's tests as a
 pytest process of its own, at `ci`, derandomized and with no example database, until the first test fails:
 `held` names that test and its message; `not held` none failed; `invalid` where only invalid draws failed (no
 valid example, a health check, the draws' rejection audit); `empty` where it would have left a call nothing to
 draw. What it cannot cut is listed by site for a person to read, never counted as held: `text`, `characters`,
-`binary`, `randoms`, `builds`, `recursive`, `from_type` and the like, plain `random`, a range with no bound,
-and a site of more than 24 values across its calls (a list computed from the draw, whose values differ at
-every call). A cut changes every draw after it, not one value alone (a list one value shorter is drawn by other
+`binary`, `randoms`, `builds`, `recursive`, `from_type` and the like, plain `random`, a range's unbounded
+side, the optional keys of `fixed_dictionaries`, and a site of more than 24 values across its calls (meant for
+a list computed from the draw, whose values differ at every call; the 24 is declared, and no site of the two
+selections below has more than nine). A cut changes every draw after it, not one value alone (a list one value shorter is drawn by other
 choices), so its run is a new derandomized sample: a `held` rests on one run, at a test whose message the
 report keeps, and a `not held` says that no test needed the value in that run.
 
@@ -2022,11 +2029,15 @@ held by hand mutants of it (CONTRIBUTING, "The draws reach what the mutants need
 `input_coverage_baseline.json` names each selection: the tests it runs and the sites (`fnmatch` patterns) they
 are to hold, then every cut not held, with its result and a reason that begins "a gap: " or "equivalent: ",
 and every draw it cannot cut, with a person's note. The check fails on a cut not held, or an uncut draw, that
-the baseline does not list, and on an entry whose cut is now held or no longer made, so the baseline only
-shrinks; nothing turns it off. A selection holds every test that draws its sites: S4d's (`table_alternatives`)
-holds HP12's part over tables among alternatives and its searches, since HP12's mutant
-`a_range_across_the_readable_end_outside` holds the operating range's upper end. Two selections are checked so
-far, run locally (2026-10-24, on two workers a cut, four cuts at once):
+the baseline does not list, and on an entry whose cut is now held or no longer made: an entry cannot outlive
+its gap, and nothing turns the check off. A selection holds every test that draws its sites: S4d's
+(`table_alternatives`) holds HP12's part over tables among alternatives, its searches and the planned
+searches of `test_model_mutant_table.py` over it, since HP12's mutant `a_range_across_the_readable_end_outside`
+holds the operating range's upper end. Each test module that imports a module whose sites a selection holds
+is named by the selection (whole or in part) or excused with a reason under `excused`
+(`tests/unit/test_input_coverage.py` fails on one that is neither); a test that draws the sites through
+another module is not found so. Two selections are checked so far, run locally (2026-10-23, on two workers a
+cut, four cuts at once, before the sites gained the owner's call and the sizes their kept-off cuts):
 
 | Selection | Sites | Cuts | Held | Not held: gaps, equivalents | Empty | Uncut | A cut, nothing holding it | A cut held |
 |---|---|---|---|---|---|---|---|---|
