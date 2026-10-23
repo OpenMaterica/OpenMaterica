@@ -183,7 +183,9 @@ The rest only you can decide. Read your change once as the reviewer will:
 - **A guard or control can fail.** Break what it guards, one fault at a time, and see it fail; then try the faults
   it was not written for: a neighbouring spelling, another locale, a newline in a value, a `continue-on-error`.
 - **The draws reach what the mutants need.** Take a variety out of a strategy and see whether a mutant then
-  survives. A rule pinned in most runs by chance is not pinned.
+  survives. A rule pinned in most runs by chance is not pinned. `scripts/input_coverage.py run NAME` takes
+  out each, one at a time, for a selection of `tests/property/input_coverage_baseline.json`, and fails on a
+  cut no test notices that the baseline does not list (`tests/property/README.md`, "Every draw is held").
 - **A number declared is a number measured.** A least share, a chance, a timeout and a rate each rest on runs
   you can name, at the profile and on the machine they apply to. Three local runs do not show 1e-6, and a local
   rate is not CI's: ask for the repeat workflow (`tests/README.md`).
