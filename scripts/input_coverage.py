@@ -34,6 +34,7 @@ values"): a person checks it. No cut judges a range's interior or a list's middl
 """
 
 import argparse
+import ast
 import fnmatch
 import json
 import os
@@ -388,6 +389,38 @@ def write(path: Path, report: Json) -> None:
     partial = path.with_name(path.name + ".partial")
     partial.write_text(json.dumps(report, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     partial.replace(path)
+
+
+def imported(path: Path, root: Path) -> set[str]:
+    """The modules a Python file imports, and the names it imports from them, as paths under the root
+    (`a/b.py` for `a.b`)."""
+    package = path.relative_to(root).with_suffix("").parts[:-1]
+    found: set[str] = set()
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if isinstance(node, ast.Import):
+            found.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom):
+            base = ".".join([*package[: len(package) - node.level + 1], node.module or ""]).strip(".")
+            if node.level == 0:
+                base = node.module or ""
+            found.add(base)
+            found.update(f"{base}.{alias.name}" for alias in node.names)
+    return {name.replace(".", "/") + ".py" for name in found}
+
+
+def importers_not_listed(root: Path, entry: Json) -> list[str]:
+    """The test modules under `tests/` importing a module whose sites a selection holds (by the path of its
+    `sites` patterns) that the selection neither names (the module, or a test in it) nor excuses."""
+    modules = {pattern.partition("::")[0] for pattern in entry["sites"]}
+    listed = {test.partition("::")[0] for test in entry["tests"]} | set(entry.get("excused", {}))
+    found: list[str] = []
+    for path in sorted((root / "tests").rglob("test_*.py")):
+        name = path.relative_to(root).as_posix()
+        if name not in listed and any(
+            fnmatch.fnmatchcase(module, pattern) for module in imported(path, root) for pattern in modules
+        ):
+            found.append(name)
+    return found
 
 
 def selection_of(args: argparse.Namespace) -> tuple[Json, Json]:
