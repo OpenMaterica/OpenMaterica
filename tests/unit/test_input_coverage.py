@@ -79,7 +79,11 @@ def everything(draw):
         draw(st.lists(st.integers(0, 3), min_size=1, max_size=4)),
         draw(st.lists(st.booleans())),
         draw(st.sets(st.integers(0, 9), max_size=3)),
+        draw(st.frozensets(st.integers(0, 9), min_size=1, max_size=3)),
         draw(st.dictionaries(st.sampled_from("xy"), st.booleans(), max_size=2)),
+        draw(st.fixed_dictionaries({"a": st.just(1)}, optional={"b": st.just(2)})),
+        draw(st.fixed_dictionaries({"c": st.just(3)})),
+        draw(st.integers(2, 2)),
         draw(st.permutations([1, 2, 3])),
         draw(st.tuples(st.just(0), st.integers(0, 1))),
         helper(draw),
@@ -101,7 +105,10 @@ def test_everything(example, again):
 """
 )
 
+EVERY = "tests/test_everything.py::everything::"
 UNCUT = {
+    EVERY + "st.floats(min_value=0.0, exclude_min=True, allow_infinity=False)": "unbounded above",
+    EVERY + "st.fixed_dictionaries({'a': st.just(1)}, optional={'b': st.just(2)})": "optional keys",
     "tests/test_everything.py::everything::st.text(max_size=3)": "text",
     "tests/test_everything.py::everything::st.randoms(use_true_random=False)": "randoms",
     "tests/test_everything.py::everything::random.Random(1)": "random",
@@ -231,7 +238,7 @@ def test_the_plugin_loaded_with_no_cut_changes_no_draw(tmp_path: Path) -> None:
     recorded = json.loads(next((root / "recorded").glob("sites-*.json")).read_text(encoding="utf-8"))["sites"]
     kinds = {seen["kind"] for seen in recorded.values()}
     assert kinds >= {"sampled_from", "one_of", "|", "booleans", "integers", "floats", "lists", "sets"}
-    assert kinds >= {"dictionaries", "permutations", "text", "randoms"}
+    assert kinds >= {"frozensets", "dictionaries", "permutations", "text", "randoms", "fixed_dictionaries"}
     site = "tests/test_everything.py::everything::sampled_from(['a', 'b', 'c'])"
     assert site in recorded
     elsewhere = json.dumps({"site_id": site, "change": "drop", "key": "'z'"})
@@ -294,9 +301,11 @@ def test_every_cut_made_is_applied_and_a_draw_it_cannot_cut_is_listed_uncut_neve
     assert changes == {"drop", *input_coverage.DESCRIBED}
     helper = "tests/test_everything.py::helper::st.sampled_from(['p', 'q'])"
     assert {
-        f"tests/test_everything.py::everything > {helper}",
-        f"tests/test_everything.py::other > {helper}",
+        f"tests/test_everything.py::everything > helper(draw) > {helper}",
+        f"tests/test_everything.py::other > helper(draw) > {helper}",
     } <= set(report["sites"])
+    # A range of one value has no end to move, and a dictionary with no optional key draws nothing of its own.
+    assert not [name for name in report["cuts"] if "st.integers(2, 2)" in name or "{'c'" in name]
     # Two integers: keeping off an end is pinning to the other, so pins alone.
     pair = "tests/test_everything.py::everything::st.integers(0, 1)"
     assert sorted(name for name in report["cuts"] if name.startswith(pair + " ::")) == [
@@ -370,6 +379,11 @@ def seen(kind: str, **tables: dict[str, int]) -> dict[str, Any]:
         ),
         (seen("one_of", keys={f"#{n}": 1 for n in range(25)}), [], "computed values: 25 across its calls"),
         (
+            seen("one_of", keys={f"#{n}": 1 for n in range(24)}),
+            [("drop", key, False) for key in sorted(f"#{n}" for n in range(24))],
+            None,
+        ),
+        (
             seen("integers", ends={"low": 2, "high": 2, "pair": 2}),
             [("pin_low", None, False), ("pin_high", None, False)],
             None,
@@ -384,18 +398,38 @@ def seen(kind: str, **tables: dict[str, int]) -> dict[str, Any]:
             ],
             None,
         ),
-        (seen("floats", ends={"low": 1}), [("pin_low", None, False), ("off_low", None, False)], None),
+        (
+            seen("floats", ends={"low": 1, "no high": 1}),
+            [("pin_low", None, False), ("off_low", None, False)],
+            "unbounded above",
+        ),
+        (
+            seen("integers", ends={"high": 1, "no low": 1, "unbounded": 1}),
+            [("pin_high", None, False), ("off_high", None, False)],
+            "unbounded below and above",
+        ),
         (seen("floats", ends={"unbounded": 1}), [], "unbounded"),
         (seen("integers"), [], None),
-        (seen("lists", sizes={"least": 1}), [("least_size", None, False)], None),
+        (seen("lists", sizes={"least": 1}), [("least_size", None, False), ("off_least", None, False)], None),
         (
             seen("dictionaries", sizes={"least": 1, "greatest": 1}),
+            [
+                ("least_size", None, False),
+                ("off_least", None, False),
+                ("greatest_size", None, False),
+                ("off_greatest", None, False),
+            ],
+            None,
+        ),
+        (
+            seen("sets", sizes={"least": 2, "greatest": 2, "pair": 2}),
             [("least_size", None, False), ("greatest_size", None, False)],
             None,
         ),
         (seen("permutations", keys={"order": 1}), [("identity_order", None, False)], None),
         (seen("permutations"), [], None),
         (seen("builds"), [], "builds"),
+        (seen("fixed_dictionaries"), [], "optional keys"),
     ],
 )
 def test_the_cuts_of_a_site(
@@ -406,31 +440,38 @@ def test_the_cuts_of_a_site(
     assert why == uncut
 
 
-EFFECTS = {"applied": 3, "unchanged": 1, "empty": 0}
-FAILED = {"test": "t", "message": "AssertionError: no", "invalid": False}
-INVALID = {"test": "u", "message": "Unsatisfiable", "invalid": True}
+EFFECTS = {
+    "gw0": {"applied": 3, "unchanged": 1, "empty": 0},
+    "gw1": {"applied": 0, "unchanged": 2, "empty": 0},
+}
+FAILED = {"test": "t", "message": "AssertionError: no", "invalid": False, "process": "gw0"}
+ELSEWHERE = {**FAILED, "process": "gw1"}
+INVALID = {"test": "u", "message": "Unsatisfiable", "invalid": True, "process": "gw0"}
+NONE_APPLIED = {"gw0": {"applied": 0, "unchanged": 4, "empty": 0}}
 
 
 @pytest.mark.parametrize(
     ("outcome", "effects", "timed_out", "result"),
     [
         ({"finished": False, "failures": [INVALID, FAILED]}, EFFECTS, False, "held"),
-        ({"finished": True, "failures": [FAILED]}, {**EFFECTS, "applied": 0}, False, "error"),
+        ({"finished": True, "failures": [FAILED]}, NONE_APPLIED, False, "error"),
+        # A failure in a worker that never applied the cut is not the cut's.
+        ({"finished": False, "failures": [ELSEWHERE]}, EFFECTS, False, "error"),
         ({"finished": True, "failures": []}, EFFECTS, False, "not held"),
         ({"finished": True, "failures": [INVALID]}, EFFECTS, False, "invalid"),
-        ({"finished": True, "failures": []}, {"applied": 0, "unchanged": 4, "empty": 2}, False, "empty"),
         (
             {"finished": True, "failures": []},
-            {"applied": 0, "unchanged": 4, "empty": 0},
+            {"gw0": {"applied": 0, "unchanged": 4, "empty": 2}},
             False,
-            "not applied",
+            "empty",
         ),
+        ({"finished": True, "failures": []}, NONE_APPLIED, False, "not applied"),
         ({"finished": True, "failures": []}, EFFECTS, True, "error"),
         (None, EFFECTS, False, "error"),
     ],
 )
 def test_a_cuts_result(
-    outcome: dict[str, Any] | None, effects: dict[str, int], timed_out: bool, result: str
+    outcome: dict[str, Any] | None, effects: dict[str, dict[str, int]], timed_out: bool, result: str
 ) -> None:
     assert result_of(outcome, effects, timed_out)["result"] == result
 
@@ -477,6 +518,11 @@ AGREED = {
             AGREED,
             ["not run: s :: b"],
         ),
+        (
+            a_report(a="held", b="not held"),
+            {**AGREED, "uncut": {"u": " "}},
+            ["an uncut site needs a person's note: u"],
+        ),
     ],
 )
 def test_the_baseline_lists_every_cut_not_held_and_only_shrinks(
@@ -499,3 +545,239 @@ def test_the_baseline_names_tests_that_exist_and_gives_each_entry_its_reason() -
             assert entry["reason"].startswith(input_coverage.REASONS), cut
         for site, note in selection["uncut"].items():
             assert note.strip(), site
+
+
+# Each value a cut takes away is needed by one test alone, so that each cut is held at the test that needs
+# what it removes: a cut that removes another value, or none, fails elsewhere or nowhere.
+KILLS = (
+    HEADER
+    + """
+import math
+
+FIND = settings(derandomize=True, database=None, max_examples=200, deadline=None)
+NEAR_ZERO = math.nextafter(0.0, math.inf)
+NEAR_ONE = math.nextafter(1.0, -math.inf)
+
+
+class Way:
+    def __init__(self, number):
+        self.number = number
+
+
+# Two values whose names, without an address, are alike.
+WAYS = [Way(1), Way(2), "plain"]
+
+
+@st.composite
+def number(draw):
+    return draw(st.integers(0, 3))
+
+
+@st.composite
+def truth(draw):
+    return draw(st.booleans())
+
+
+@st.composite
+def order(draw):
+    return draw(st.permutations([1, 2, 3]))
+
+
+@st.composite
+def items(draw):
+    return draw(st.lists(st.just("a"), max_size=3))
+
+
+@st.composite
+def fraction(draw):
+    return draw(st.floats(0.0, 1.0, exclude_min=True, exclude_max=True))
+
+
+@st.composite
+def way(draw):
+    return draw(st.sampled_from(WAYS))
+
+
+def flag(draw):
+    return draw(st.sampled_from(["on", "off"]))
+
+
+@st.composite
+def left(draw):
+    return flag(draw)
+
+
+@st.composite
+def right(draw):
+    return flag(draw)
+
+
+@st.composite
+def pair(draw):
+    return flag(draw), flag(draw)
+
+
+@DERANDOMIZED
+@given(number(), truth(), order(), items(), fraction(), way(), left(), right(), pair())
+def test_drawn(a, b, c, d, e, f, g, h, i):
+    pass
+
+
+def test_number_zero():
+    find(number(), lambda example: example == 0, settings=FIND)
+
+
+def test_number_three():
+    find(number(), lambda example: example == 3, settings=FIND)
+
+
+def test_truth_true():
+    find(truth(), lambda example: example is True, settings=FIND)
+
+
+def test_truth_false():
+    find(truth(), lambda example: example is False, settings=FIND)
+
+
+def test_another_order():
+    find(order(), lambda example: example != [1, 2, 3], settings=FIND)
+
+
+def test_no_items():
+    find(items(), lambda example: len(example) == 0, settings=FIND)
+
+
+def test_three_items():
+    find(items(), lambda example: len(example) == 3, settings=FIND)
+
+
+def test_fraction_near_zero():
+    find(fraction(), lambda example: example == NEAR_ZERO, settings=FIND)
+
+
+def test_fraction_near_one():
+    find(fraction(), lambda example: example == NEAR_ONE, settings=FIND)
+
+
+def test_way_two():
+    find(way(), lambda example: isinstance(example, Way) and example.number == 2, settings=FIND)
+
+
+def test_right_off():
+    find(right(), lambda example: example == "off", settings=FIND)
+
+
+def test_second_off():
+    find(pair(), lambda example: example[1] == "off", settings=FIND)
+"""
+)
+FLAG = "tests/test_kills.py::flag::st.sampled_from(['on', 'off'])"
+FRACTION = "fraction::st.floats(0.0, 1.0, exclude_min=True, exclude_max=True)"
+# Each cut, after `tests/test_kills.py::`, and the test that holds it (None: no test does).
+KILLED_AT = {
+    "number::st.integers(0, 3) :: pin to the low end": "test_number_three",
+    "number::st.integers(0, 3) :: keep off the low end": "test_number_zero",
+    "number::st.integers(0, 3) :: pin to the high end": "test_number_zero",
+    "number::st.integers(0, 3) :: keep off the high end": "test_number_three",
+    "truth::st.booleans() :: drop True": "test_truth_true",
+    "truth::st.booleans() :: drop False": "test_truth_false",
+    "order::st.permutations([1, 2, 3]) :: hold to the order given": "test_another_order",
+    "items::st.lists(st.just('a'), max_size=3) :: hold to the least size": "test_three_items",
+    "items::st.lists(st.just('a'), max_size=3) :: keep off the least size": "test_no_items",
+    "items::st.lists(st.just('a'), max_size=3) :: hold to the greatest size": "test_no_items",
+    "items::st.lists(st.just('a'), max_size=3) :: keep off the greatest size": "test_three_items",
+    # The excluded ends' neighbours are the range's ends.
+    f"{FRACTION} :: pin to the low end": "test_fraction_near_one",
+    f"{FRACTION} :: keep off the low end": "test_fraction_near_zero",
+    f"{FRACTION} :: pin to the high end": "test_fraction_near_zero",
+    f"{FRACTION} :: keep off the high end": "test_fraction_near_one",
+    # Two values named alike are told apart by their places, and cut one at a time.
+    "way::st.sampled_from(WAYS) :: drop <tests.test_kills.Way object> #0": None,
+    "way::st.sampled_from(WAYS) :: drop <tests.test_kills.Way object> #1": "test_way_two",
+    "way::st.sampled_from(WAYS) :: drop 'plain'": None,
+    # One helper's draw, cut for one owner alone, and for one of two calls from one owner alone.
+    f"left > flag(draw) > {FLAG} :: drop 'on'": None,
+    f"left > flag(draw) > {FLAG} :: drop 'off'": None,
+    f"right > flag(draw) > {FLAG} :: drop 'on'": None,
+    f"right > flag(draw) > {FLAG} :: drop 'off'": "test_right_off",
+    f"pair > flag(draw) > {FLAG} :: drop 'on'": None,
+    f"pair > flag(draw) > {FLAG} :: drop 'off'": None,
+    f"pair > flag(draw)#2 > {FLAG} :: drop 'on'": None,
+    f"pair > flag(draw)#2 > {FLAG} :: drop 'off'": "test_second_off",
+}
+
+
+def test_each_cut_takes_away_what_it_names_and_is_held_by_the_test_that_needs_that(tmp_path: Path) -> None:
+    root = tree(tmp_path, {"test_kills.py": KILLS})
+    _, report, output = check(root, "run", "test_kills.py")
+    found = {
+        name.removeprefix("tests/test_kills.py::"): (
+            cut["result"],
+            cut.get("test", "").removeprefix("tests/test_kills.py::") or None,
+        )
+        for name, cut in report["cuts"].items()
+    }
+    expected = {
+        name: ("not held", None) if test is None else ("held", test) for name, test in KILLED_AT.items()
+    }
+    assert found == expected, output
+
+
+FAILS_WITH_NO_CUT = (
+    HEADER
+    + """
+
+@st.composite
+def drawn(draw):
+    return draw(st.sampled_from(["a", "b"]))
+
+
+@DERANDOMIZED
+@given(drawn())
+def test_drawn(example):
+    pass
+
+
+def test_always_fails():
+    assert False, "fails with no cut"
+"""
+)
+
+
+@pytest.mark.parametrize("command", ["list", "run"])
+def test_a_selection_that_fails_with_no_cut_is_refused_and_its_failure_printed(
+    tmp_path: Path, command: str
+) -> None:
+    root = tree(tmp_path, {"test_fails.py": FAILS_WITH_NO_CUT})
+    with pytest.raises(FileNotFoundError):
+        check(root, command, "test_fails.py")
+    completed = subprocess.run(
+        [
+            *(sys.executable, str(REPOSITORY / "scripts" / "input_coverage.py"), command, "fixture"),
+            *("--baseline", str(root / "baseline.json"), "--root", str(root), "--workers", "0"),
+            *("--report", str(root / "again.json"), "--timeout", "120"),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=root,
+        env=fixture_environment(),
+        timeout=600,
+        check=False,
+    )
+    assert completed.returncode == 1, completed.stdout
+    assert "the selection fails with no cut" in completed.stdout
+    assert "failed: tests/test_fails.py::test_always_fails (call): AssertionError: fails with no cut" in (
+        completed.stdout
+    )
+    assert not (root / "again.json").exists()
+
+
+def test_a_report_of_another_selection_or_profile_is_refused(tmp_path: Path) -> None:
+    report = tmp_path / "report.json"
+    given = {"name": None, "tests": ["tests/a.py"], "sites": ["*"]}
+    report.write_text(json.dumps({"selection": given, "profile": "dev"}), encoding="utf-8")
+    arguments = ["check", "--tests", "tests/a.py", "--sites", "*", "--report", str(report)]
+    with pytest.raises(SystemExit, match="another selection or profile"):
+        input_coverage.main(arguments)
+    with pytest.raises(SystemExit, match="another selection or profile"):
+        input_coverage.main(["check", "--tests", "tests/a.py", "--sites", "tests/*", "--report", str(report)])

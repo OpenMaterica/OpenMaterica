@@ -13,8 +13,9 @@ module, the functions around the call (as Python's `__qualname__` names them), a
 (`ast.unparse`, cut at `LABEL_LENGTH`), with `#2`, `#3`... for a later call of the same text in the same
 function. So a site keeps its name when lines around it move, and changes it when its own call changes.
 Where the call runs in a plain function called from another, the site is named after the outermost of that
-chain of calls written under `tests/` (`owner > place`): a helper's draw made for a composite strategy is that
-composite's draw, and a cut changes it there alone.
+chain of calls written under `tests/`, the owner, and the call the owner makes into the chain (`owner > call >
+place`): a helper's draw made for a composite strategy is that composite's draw, two calls of one helper are
+two draws, and a cut changes each there alone.
 
 - `--input-coverage-out DIR` runs the tests derandomized, with no example database, and records into `DIR`:
   from each process, what the calls at each site drew from (`sites-*.json`: the values, options, ends and
@@ -37,6 +38,7 @@ import math
 import os
 import re
 import sys
+from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -66,13 +68,14 @@ CHANGES = {
     "pin_high": RANGES,
     "off_high": RANGES,
     "least_size": SIZES,
+    "off_least": SIZES,
     "greatest_size": SIZES,
+    "off_greatest": SIZES,
     "identity_order": ORDERS,
 }
-# Constructors that draw nothing of their own: a constant, or what the strategies given them draw.
-DRAW_NOTHING = frozenset(
-    {"just", "none", "nothing", "tuples", "fixed_dictionaries", "data", "deferred", "shared", "runner"}
-)
+# Constructors that draw nothing of their own: a constant, or what the strategies given them draw. A
+# `fixed_dictionaries` draws whether each `optional` key is present, so one given any is listed uncut.
+DRAW_NOTHING = frozenset({"just", "none", "nothing", "tuples", "data", "deferred", "shared", "runner"})
 # Names of `hypothesis.strategies` that construct no strategy. Every other public name is a constructor; one
 # neither cuttable nor drawing nothing (`text`, `builds`, `randoms`, `recursive`, `from_type`...) is recorded
 # and listed, uncut.
@@ -178,18 +181,22 @@ def place_at(code: CodeType, offset: int) -> Place:
     return found or Place(f"{relative(code.co_filename)}::{code.co_qualname}::line {line}", None)
 
 
-def owner_of(frame: FrameType) -> str:
-    """The outermost function of the chain of calls written under `tests/` that `frame` runs in."""
-    outermost = frame
-    caller = frame.f_back
-    while caller is not None and under_tests(caller.f_code.co_filename):
-        outermost, caller = caller, caller.f_back
-    return f"{relative(outermost.f_code.co_filename)}::{outermost.f_code.co_qualname}"
+def owner_of(frame: FrameType) -> FrameType:
+    """The outermost frame of the chain of calls written under `tests/` that `frame` runs in."""
+    while frame.f_back is not None and under_tests(frame.f_back.f_code.co_filename):
+        frame = frame.f_back
+    return frame
 
 
 def site_name(place: Place, frame: FrameType) -> str:
-    owner = owner_of(frame)
-    return place.name if place.name.startswith(owner + "::") else f"{owner} > {place.name}"
+    """The place's name where its owner wrote it, and otherwise the owner and the call it is in, which tells
+    two calls of one helper from one owner apart."""
+    owner_frame = owner_of(frame)
+    owner = f"{relative(owner_frame.f_code.co_filename)}::{owner_frame.f_code.co_qualname}"
+    if place.name.startswith(owner + "::"):
+        return place.name
+    call = place_at(owner_frame.f_code, owner_frame.f_lasti).name
+    return f"{owner} > {call.removeprefix(owner + '::')} > {place.name}"
 
 
 def key_of(value: object) -> str:
@@ -204,19 +211,25 @@ def key_of(value: object) -> str:
     return f"{text[: KEY_LENGTH - 12]}…{hashlib.sha256(text.encode()).hexdigest()[:10]}"
 
 
+def unique(keys: list[str]) -> list[str]:
+    """Keys that name two values alike told apart by the values' places in the call."""
+    counts = Counter(keys)
+    return [f"{key} #{index}" if counts[key] > 1 else key for index, key in enumerate(keys)]
+
+
 def option_keys(count: int, texts: tuple[str, ...] | None) -> list[str]:
     labels = (
         list(texts) if texts is not None and len(texts) == count else [f"#{index}" for index in range(count)]
     )
-    labels = [shortened(label, KEY_LENGTH) for label in labels]
-    return [f"{label} #{index}" if labels.count(label) > 1 else label for index, label in enumerate(labels)]
+    return unique([shortened(label, KEY_LENGTH) for label in labels])
 
 
 @dataclass
 class Seen:
     """What the calls at one site drew from: `keys` counts the calls drawing each value or option beside
     others and `lone` those drawing it alone; `ends` the calls with each end of a range bounded and the range
-    wider than a point; `sizes` the calls whose size can move off each end."""
+    wider than a point, and those with an end unbounded (`no low`, `no high`); `sizes` the calls whose size
+    can move off each end, and those of two sizes alone (`pair`)."""
 
     kind: str
     contexts: set[str] = field(default_factory=set[str])
@@ -267,7 +280,7 @@ class Call:
         if self.kind == "booleans":
             return ["True", "False"]
         if self.kind == "sampled_from":
-            return [key_of(value) for value in self.arguments["elements"]]
+            return unique([key_of(value) for value in self.arguments["elements"]])
         return option_keys(len(self.args), self.options)
 
     def ends(self) -> tuple[Any, Any]:
@@ -316,8 +329,7 @@ def record(site: str, call: Call) -> None:
             counted(seen.ends, "unbounded")
         elif low is None or high is None or low < high:
             for end, value in (("low", low), ("high", high)):
-                if value is not None:
-                    counted(seen.ends, end)
+                counted(seen.ends, end if value is not None else f"no {end}")
             if kind == "integers" and low is not None and high is not None and high - low == 1:
                 # Two values: keeping off one end is pinning to the other.
                 counted(seen.ends, "pair")
@@ -327,6 +339,9 @@ def record(site: str, call: Call) -> None:
             counted(seen.sizes, "least")
             if greatest is not None:
                 counted(seen.sizes, "greatest")
+                if greatest - least == 1:
+                    # Two sizes: keeping off one is holding to the other.
+                    counted(seen.sizes, "pair")
     elif kind in ORDERS and len(list(call.arguments["values"])) > 1:
         counted(seen.keys, "order")
 
@@ -366,9 +381,16 @@ def cut_strategy(call: Call, cut: Cut, original: Callable[..., Strategy]) -> tup
         return original(**kept_off), "applied"
     if kind in SIZES:
         least, greatest = call.sizes()
-        size = least if change == "least_size" else greatest
-        if size is None or (greatest is not None and least >= greatest):
+        lower = change in ("least_size", "off_least")
+        size = least if lower else greatest
+        if size is None:
             return None, "unchanged"
+        moved_off = change.startswith("off")
+        if greatest is not None and least >= greatest:
+            return None, "empty" if moved_off else "unchanged"
+        if moved_off:
+            bound = {"min_size": least + 1} if lower else {"max_size": size - 1}
+            return original(**{**call.arguments, **bound}), "applied"
         return original(**{**call.arguments, "min_size": size, "max_size": size}), "applied"
     values = list(call.arguments["values"])
     if len(values) < 2:
@@ -418,6 +440,8 @@ def wrapped(name: str, original: Callable[..., Strategy]) -> Callable[..., Strat
     def wrapper(*args: Any, **kwargs: Any) -> Strategy:
         if State.out is None or name in DRAW_NOTHING:
             return original(*args, **kwargs)
+        if name == "fixed_dictionaries" and not kwargs.get("optional"):
+            return original(*args, **kwargs)
         return constructed(name, sys._getframe(1), args, kwargs)  # pyright: ignore[reportPrivateUsage]
 
     return wrapper
@@ -457,8 +481,23 @@ def random_calls(module: object) -> list[str]:
     return [place.name for place in places(filename).values() if place.random]
 
 
+def worker() -> str:
+    return os.environ.get("PYTEST_XDIST_WORKER", "main")
+
+
 def process_name() -> str:
-    return f"{os.environ.get('PYTEST_XDIST_WORKER', 'main')}-{os.getpid()}"
+    return f"{worker()}-{os.getpid()}"
+
+
+def worker_of(report: pytest.TestReport | pytest.CollectReport) -> str:
+    """The worker that ran a report's test: xdist's controller names it on the report it receives."""
+    node = getattr(report, "node", None)
+    workerinput: object = getattr(node, "workerinput", None)
+    if isinstance(workerinput, dict):
+        name = cast(dict[str, object], workerinput).get("workerid")
+        if isinstance(name, str):
+            return name
+    return worker()
 
 
 def write(name: str, content: object) -> None:
@@ -518,11 +557,17 @@ def reporting() -> bool:
     return State.out is not None and State.config is not None and not hasattr(State.config, "workerinput")
 
 
-def failed(test: str, when: str, text: str, message: str) -> None:
+def failed(test: str, when: str, text: str, message: str, process: str) -> None:
     assert State.out is not None
     invalid = INVALID.search(text) is not None
     State.reported.append(
-        {"test": test, "when": when, "message": shortened(message, 2000), "invalid": invalid}
+        {
+            "test": test,
+            "when": when,
+            "message": shortened(message, 2000),
+            "invalid": invalid,
+            "process": process,
+        }
     )
     write("outcome.json", {"finished": False, "failures": State.reported})
     if not invalid and not State.held:
@@ -548,13 +593,14 @@ def pytest_runtest_logreport(report: pytest.TestReport) -> None:
     if reporting() and report.failed:
         crash = getattr(report.longrepr, "reprcrash", None)
         message = getattr(crash, "message", None) or (report.longreprtext.strip().splitlines() or [""])[-1]
-        failed(report.nodeid, report.when, report.longreprtext, message)
+        failed(report.nodeid, report.when, report.longreprtext, message, worker_of(report))
 
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_collectreport(report: pytest.CollectReport) -> None:
     if reporting() and report.failed:
-        failed(report.nodeid or "collection", "collect", report.longreprtext, report.longreprtext)
+        text = report.longreprtext
+        failed(report.nodeid or "collection", "collect", text, text, worker_of(report))
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
