@@ -236,6 +236,19 @@ every family entry goes in `families/CHANGELOG.md`.
   request (**Schema**, above), so HP12's agreement check, which fuzz target 5 also runs over every acceptance
   of the case files, finds that neither decides, as on a pick. 1180 of 1522 case files pass, and 307 are not
   yet runnable.
+- `scripts/input_coverage.py` and its pytest plugin, `tests/property/input_coverage.py` (maintainer,
+  2026-10-23): whether the tests hold every draw a strategy makes, which the property README's rule "every draw
+  is held" asked and reviews had shown by hand. Each cut of a selection's draws (a value or option
+  dropped, a range's end pinned or kept off, a collection held to its least or greatest size, a permutation to
+  the order given) runs the selection's tests as a pytest process of its own at `ci`, derandomized, until the
+  first failure; `tests/property/input_coverage_baseline.json` lists every cut no test holds with its reason,
+  and every draw the plugin cannot cut, and the check fails on one it does not list and on an entry whose cut
+  is now held. Two selections, run locally: S4d's table alternatives (61 cuts: 17 held, 42 not held that are
+  gaps, 39 of them S4a's draws S4d's strategy makes for the other alternatives, 1 equivalent, 1 empty) and
+  S3c's extrapolation (80 cuts: 47 held, 13 gaps, 20 equivalents); none is fixed here. On the trees before
+  S3c's fix round and at S4d's first round it reports not held the draws those rounds' reviews and builder
+  found unheld by hand. The plugin loaded with no cut draws what is drawn without it, every choice compared
+  (`tests/unit/test_input_coverage.py`, on a tree of every kind of draw it cuts).
 
 ## [0.1.0.dev3] - 2026-10-22
 

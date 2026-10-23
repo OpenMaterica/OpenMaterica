@@ -1984,6 +1984,67 @@ this). To tell chance from a fault, dispatch `repeat.yml` on the failing test at
 most runs. It cannot measure rates this small, since 200 runs without a failure bound the rate at 1.5%; it
 tells a rare failure from a frequent one.
 
+## Every draw is held
+
+A strategy's draw is held where some test fails once it stops being drawn: a value no test needs can go, and
+every test pass. The rule was shown by hand until 2026-10-23 (S3c's review found five draws inside its ways
+that nothing held; S4d's builder cut 27 by hand, and the first round left two passing).
+`scripts/input_coverage.py` shows it by cutting each draw in turn (maintainer, 2026-10-23):
+
+    uv run --frozen python scripts/input_coverage.py run table_alternatives --report REPORT.json --parallel 4 --workers 2
+
+A cut is one change to one site's draws: each value of `sampled_from` and `booleans`, and each option of
+`one_of` and `|`, dropped in turn; each bounded end of `integers` and `floats` pinned, and kept off; a list,
+set or dictionary held to its least size and, where it has one, its greatest; a permutation held to the order
+given. A site is a call of a constructor written under `tests/`, named by its module, the functions around it
+and its own text, so that it keeps its name when lines around it move; a draw a helper makes inside a
+composite strategy is named after that composite (`owner > place`) and cut there alone. The plugin
+(`input_coverage.py`, loaded only with `-p`) wraps the constructors; loaded with no cut, every draw is the one
+drawn without it (`tests/unit/test_input_coverage.py` compares them). Each cut runs the selection's tests as a
+pytest process of its own, at `ci`, derandomized and with no example database, until the first test fails:
+`held` names that test and its message; `not held` none failed; `invalid` where only invalid draws failed (no
+valid example, a health check, the draws' rejection audit); `empty` where it would have left a call nothing to
+draw. What it cannot cut is listed by site for a person to read, never counted as held: `text`, `characters`,
+`binary`, `randoms`, `builds`, `recursive`, `from_type` and the like, plain `random`, a range with no bound,
+and a site of more than 24 values across its calls (a list computed from the draw, whose values differ at
+every call). A cut changes every draw after it, not one value alone (a list one value shorter is drawn by other
+choices), so its run is a new derandomized sample: a `held` rests on one run, at a test whose message the
+report keeps, and a `not held` says that no test needed the value in that run.
+
+"Drop each value" is finer than the hand rule's "cut the list to one value": two values of one kind, each
+held by the kind's mutant, pass a drop each, where a cut to one value fails. The baseline calls such a pair
+"equivalent" where no list or comparison in the code tells them apart, and "a gap" where one could: S3c's
+slips are held by kind of name, but the read lists the names one by one (`read._EXTRAPOLATION_MEMBERS`), so a
+list that lost one would pass. Of the hand rule's other reading, "a draw within a way" (the kept table's
+origin, its label, a fallback list), a cut of a draw reaches nothing: those are edits of the strategy's code,
+held by hand mutants of it (CONTRIBUTING, "The draws reach what the mutants need").
+
+`input_coverage_baseline.json` names each selection: the tests it runs and the sites (`fnmatch` patterns) they
+are to hold, then every cut not held, with its result and a reason that begins "a gap: " or "equivalent: ",
+and every draw it cannot cut, with a person's note. The check fails on a cut not held, or an uncut draw, that
+the baseline does not list, and on an entry whose cut is now held or no longer made, so the baseline only
+shrinks; nothing turns it off. A selection holds every test that draws its sites: S4d's (`table_alternatives`)
+holds HP12's part over tables among alternatives and its searches, since HP12's mutant
+`a_range_across_the_readable_end_outside` holds the operating range's upper end. Two selections are checked so
+far, run locally (2026-10-24, on two workers a cut, four cuts at once):
+
+| Selection | Sites | Cuts | Held | Not held: gaps, equivalents | Empty | Uncut | A cut, nothing holding it | A cut held |
+|---|---|---|---|---|---|---|---|---|
+| `table_alternatives` (S4d) | 19 | 61 | 17 | 42, 1 | 1 | 1 | 208 to 373 s | 111 to 238 s |
+| `extrapolation` (S3c) | 21 | 80 | 47 | 13, 20 | 0 | 6 | 90 to 130 s | 16 to 107 s |
+
+Of S4d's 42 gaps, 39 are S4a's ways, counts and `want` that S4d's composite draws for the alternatives beside
+the table, which S4a's properties hold where S4a's own strategy draws them and no S4d test needs; three are
+S4d's own (the table never stored first, never stored last, and no operating range one double wide). Running
+every property module waits for CI's measurement matrix.
+
+Two historical runs show the check finding what reviews found by hand, each on a past tree with this branch's
+plugin and runner: before S3c's fix round (`a4c1b281`), every cut of the five draws S3c's review found unheld
+(the methods that are no token, the laws of white space, the laws that are no text, a slip's name and its
+place: 32 cuts) is not held; at S4d's first round (`cad00df0`), the table always stored last is not held, as
+S4d's builder found by hand, and so is the operating range's upper end held to the double above, which
+S4d's review found. Both are held at the head.
+
 ## Adding a property
 
 Write the check as a function of the implementation and the example, and the property as a `test_...` function
