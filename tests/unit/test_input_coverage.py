@@ -154,6 +154,7 @@ def check(
         capture_output=True,
         text=True,
         cwd=root,
+        env=fixture_environment(),
         timeout=600,
         check=False,
     )
@@ -181,12 +182,19 @@ def test_a_draw_no_test_holds_is_reported_not_held_and_held_once_a_test_holds_it
     assert status == 0, output
 
 
+def fixture_environment() -> dict[str, str]:
+    """This process's environment without `CI`: a fixture tree has no conftest, and where `CI` is set
+    Hypothesis loads its own `ci` profile there (derandomized, no example database), which the controls
+    must not rest on."""
+    return {name: value for name, value in os.environ.items() if name != "CI"}
+
+
 def pytest_in(root: Path, module: str, *options: str) -> tuple[Path, "subprocess.CompletedProcess[str]"]:
     """pytest run on one module of the tree, Hypothesis's storage (its example database among it) in a
     directory of its own, which it returns, with every test case observed there."""
     storage = root / f"storage-{len(list(root.glob('storage-*')))}"
     environment = {
-        **os.environ,
+        **fixture_environment(),
         "HYPOTHESIS_EXPERIMENTAL_OBSERVABILITY": "1",
         "HYPOTHESIS_EXPERIMENTAL_OBSERVABILITY_NOCOVER": "1",
         "HYPOTHESIS_EXPERIMENTAL_OBSERVABILITY_CHOICES": "1",
