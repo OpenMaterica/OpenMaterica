@@ -51,11 +51,30 @@
    "tests/property/test_model_mutants.py::test_the_models_seeded_mutant_is_killed_by_the_agreement[over_a_range_entry_unlabelled-small]",
    "tests/property/test_model_mutants.py::test_the_models_seeded_mutant_is_killed_by_the_agreement[over_a_range_entry_unlabelled-original]",
    "tests/property/test_model_mutants.py::test_the_models_seeded_mutant_is_killed_by_the_agreement[kept_for_an_extrapolation_under_any_want-small]",
-   "tests/property/test_model_mutants.py::test_the_models_seeded_mutant_is_killed_by_the_agreement[kept_for_an_extrapolation_under_any_want-original]"
+   "tests/property/test_model_mutants.py::test_the_models_seeded_mutant_is_killed_by_the_agreement[kept_for_an_extrapolation_under_any_want-original]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, outside-small]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, outside-original]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, over_an_operating_range-small]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, over_an_operating_range-original]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, kept-small]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, kept-original]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, kept_under_bounds-small]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, kept_under_bounds-original]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, at_an_edge_inside-small]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, at_an_edge_inside-original]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, at_an_edge_outside-small]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, at_an_edge_outside-original]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, no_operating_value-small]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, no_operating_value-original]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, no_operating_value_set_aside-small]",
+   "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, no_operating_value_set_aside-original]"
   ],
   "sites": [
    "tests/property/table_alternatives_strategies.py::*"
   ],
+  "excused": {
+   "tests/property/test_table_alternatives_mutant_table.py": "reads the ways' names (`INSIDE`, `KEPT_OR_SET_ASIDE`, `REFUSES`) to hold the README's table of S4d's mutants; it draws nothing"
+  },
   "cuts": {
    "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::changed::st.sampled_from(others) :: drop 'bulk'": {
     "result": "not held",
@@ -246,6 +265,9 @@
   "sites": [
    "tests/property/extrapolation_strategies.py::*"
   ],
+  "excused": {
+   "tests/property/test_extrapolation_mutant_table.py": "reads the ways' names to hold the README's table of S3c's mutants; it draws nothing"
+  },
   "cuts": {
    "tests/property/extrapolation_strategies.py::<module>::st.booleans() :: drop False": {
     "result": "not held",

@@ -535,11 +535,13 @@ def test_the_baseline_names_tests_that_exist_and_gives_each_entry_its_reason() -
     baseline = json.loads(input_coverage.BASELINE.read_text(encoding="utf-8"))
     assert baseline
     for name, selection in baseline.items():
-        assert set(selection) == {"tests", "sites", "cuts", "uncut"}, name
+        assert set(selection) == {"tests", "sites", "excused", "cuts", "uncut"}, name
         assert selection["tests"], name
         assert selection["sites"], name
-        for test in selection["tests"]:
+        for test in [*selection["tests"], *selection["excused"]]:
             assert (REPOSITORY / test.partition("::")[0]).is_file(), test
+        for test, note in selection["excused"].items():
+            assert note.strip(), test
         for cut, entry in selection["cuts"].items():
             assert entry["result"] in input_coverage.RESULTS[1:], cut
             assert entry["reason"].startswith(input_coverage.REASONS), cut
@@ -781,3 +783,36 @@ def test_a_report_of_another_selection_or_profile_is_refused(tmp_path: Path) -> 
         input_coverage.main(arguments)
     with pytest.raises(SystemExit, match="another selection or profile"):
         input_coverage.main(["check", "--tests", "tests/a.py", "--sites", "tests/*", "--report", str(report)])
+
+
+def test_every_test_module_importing_a_selections_strategies_is_named_or_excused() -> None:
+    baseline = json.loads(input_coverage.BASELINE.read_text(encoding="utf-8"))
+    for name, selection in baseline.items():
+        assert input_coverage.importers_not_listed(REPOSITORY, selection) == [], name
+
+
+def test_a_module_importing_the_strategies_that_a_selection_does_not_list_is_found(tmp_path: Path) -> None:
+    (tmp_path / "tests" / "property").mkdir(parents=True)
+    modules = {
+        "drawn_strategies.py": "import hypothesis\n",
+        "test_named.py": "from tests.property.drawn_strategies import WAYS\n",
+        "test_by_module.py": "from tests.property import drawn_strategies\n",
+        "test_relative.py": "from .drawn_strategies import WAYS\n",
+        "test_dotted.py": "import tests.property.drawn_strategies as drawn\n",
+        "test_unrelated.py": "from tests.property import other_strategies\n",
+    }
+    for module, source in modules.items():
+        (tmp_path / "tests" / "property" / module).write_text(source, encoding="utf-8")
+    selection = {
+        "tests": ["tests/property/test_named.py::test_one"],
+        "sites": ["tests/property/drawn_strategies.py::*"],
+    }
+    assert input_coverage.importers_not_listed(tmp_path, selection) == [
+        "tests/property/test_by_module.py",
+        "tests/property/test_dotted.py",
+        "tests/property/test_relative.py",
+    ]
+    excused = dict.fromkeys(
+        (f"tests/property/test_{name}.py" for name in ("by_module", "dotted", "relative")), "draws nothing"
+    )
+    assert input_coverage.importers_not_listed(tmp_path, {**selection, "excused": excused}) == []
