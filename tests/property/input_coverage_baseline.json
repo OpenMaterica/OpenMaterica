@@ -56,8 +56,187 @@
   "sites": [
    "tests/property/table_alternatives_strategies.py::*"
   ],
-  "cuts": {},
-  "uncut": {}
+  "cuts": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::changed::st.sampled_from(others) :: drop 'bulk'": {
+    "result": "not held",
+    "reason": "a gap: S4a's `changed` draws, for an alternative beside the table set aside at step 10, the measurement-geometry token the request does not accept; S4d's checks need neither token"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::changed::st.sampled_from(others) :: drop 'gap'": {
+    "result": "not held",
+    "reason": "a gap: S4a's `changed` draws, for an alternative beside the table set aside at step 10, the measurement-geometry token the request does not accept; S4d's checks need neither token"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 1) :: pin to the high end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 1) :: pin to the low end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 1)#2 :: pin to the high end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 1)#2 :: pin to the low end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2) :: keep off the high end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2) :: keep off the low end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2) :: pin to the high end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2) :: pin to the low end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2)#2 :: keep off the high end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2)#2 :: keep off the low end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2)#2 :: pin to the high end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(0, 2)#2 :: pin to the low end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(1, 2) :: pin to the high end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(1, 2) :: pin to the low end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(1, 3) :: keep off the high end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(1, 3) :: keep off the low end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(1, 3) :: pin to the high end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(1, 3) :: pin to the low end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(2, 3) :: pin to the high end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::counts::st.integers(2, 3) :: pin to the low end": {
+    "result": "not held",
+    "reason": "a gap: S4a's count of alternatives refusing, set aside or staying for the others' outcome, drawn by S4a's `counts` inside S4d's composite; no S4d check needs either end"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::want_for::st.sampled_from(WANTS) :: drop 'bounds'": {
+    "result": "not held",
+    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::want_for::st.sampled_from(WANTS) :: drop 'components'": {
+    "result": "not held",
+    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::want_for::st.sampled_from(WANTS) :: drop 'evidence'": {
+    "result": "not held",
+    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::want_for::st.sampled_from(WANTS) :: drop 'value'": {
+    "result": "not held",
+    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::want_for::st.sampled_from([want for want in WANTS if want not in given]) :: drop 'components'": {
+    "result": "not held",
+    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::want_for::st.sampled_from([want for want in WANTS if want not in given]) :: drop 'evidence'": {
+    "result": "not held",
+    "reason": "a gap: S4a's `want_for` draws the request's `want` for the others' outcome where the table's way names none; S4d's checks need no one of them"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/tables.py::above::st.floats(min_value=number, exclude_min=True, allow_nan=False, allow_in… :: keep off the low end": {
+    "result": "not held",
+    "reason": "equivalent: the `one_of`'s other option, `just(math.nextafter(number, math.inf))`, draws the very double this keeps the `floats` off, so every value drawn before is drawn still"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/tables.py::above::st.one_of(st.just(math.nextafter(number, math.inf)), st.floats(min_valu… :: drop st.just(math.nextafter(number, math.inf))": {
+    "result": "not held",
+    "reason": "a gap: no test needs an operating range one double wide (`[at, the double above]`), which this option draws in half the operating ranges; the `floats` option draws that double about once in 2,000 (measured, 1 of 2,000 derandomized draws above 0.37). A fault that reads so narrow a range as the value at its lower end would show there"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives::st.integers(0, len(stored)) :: keep off the high end": {
+    "result": "not held",
+    "reason": "a gap: no test needs the table stored last, after every other alternative; a fault that shows there alone, such as one that reads the alternative after the table, would pass. Its pins are held, as above"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives::st.integers(0, len(stored)) :: keep off the low end": {
+    "result": "not held",
+    "reason": "a gap: no test needs the table stored first, ahead of every other alternative; a fault that shows there alone, such as an index of 0 read as no index (`if index:`), would pass. Its pins are held: stored first or last alone, `entry_labels_of_the_first_alternative` or `_last_` survives"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives::st.permutations(others) :: hold to the order given": {
+    "result": "not held",
+    "reason": "a gap: the others' order, which S4a's rules read (its `no_pick` keeps its first staying alternative in the base form); S4d's checks pass with the others always refusing, then set aside, then staying"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives::st.sampled_from(REFUSING) :: drop 'form_token'": {
+    "result": "not held",
+    "reason": "a gap: S4a's way of refusing, drawn for an alternative beside the table; S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and need none of the four; S4a's properties hold them where S4a's own strategy draws them, not here"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives::st.sampled_from(REFUSING) :: drop 'member_missing'": {
+    "result": "not held",
+    "reason": "a gap: S4a's way of refusing, drawn for an alternative beside the table; S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and need none of the four; S4a's properties hold them where S4a's own strategy draws them, not here"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives::st.sampled_from(REFUSING) :: drop 'request_fault'": {
+    "result": "not held",
+    "reason": "a gap: S4a's way of refusing, drawn for an alternative beside the table; S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and need none of the four; S4a's properties hold them where S4a's own strategy draws them, not here"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives::st.sampled_from(REFUSING) :: drop 'unit'": {
+    "result": "not held",
+    "reason": "a gap: S4a's way of refusing, drawn for an alternative beside the table; S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and need none of the four; S4a's properties hold them where S4a's own strategy draws them, not here"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives::st.sampled_from(set_aside_ways(form)) :: drop 'not_accepted'": {
+    "result": "not held",
+    "reason": "a gap: S4a's way of setting aside an alternative beside the table; S4d's checks need neither, as for `REFUSING`"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives::st.sampled_from(set_aside_ways(form)) :: drop 'outside'": {
+    "result": "not held",
+    "reason": "a gap: S4a's way of setting aside an alternative beside the table; S4d's checks need neither, as for `REFUSING`"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives::st.sampled_from(staying_ways(form, FIELD, giving=none_giving or keeping… :: drop 'met'": {
+    "result": "not held",
+    "reason": "a gap: S4a's way of staying, drawn for an alternative beside the table; S4d's checks need none, as for `REFUSING`"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives::st.sampled_from(staying_ways(form, FIELD, giving=none_giving or keeping… :: drop 'other_form'": {
+    "result": "not held",
+    "reason": "a gap: S4a's way of staying, drawn for an alternative beside the table; S4d's checks need none, as for `REFUSING`"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives::st.sampled_from(staying_ways(form, FIELD, giving=none_giving or keeping… :: drop 'unknown_name'": {
+    "result": "not held",
+    "reason": "a gap: S4a's way of staying, drawn for an alternative beside the table; S4d's checks need none, as for `REFUSING`"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives::st.sampled_from(staying_ways(form, FIELD, giving=none_giving or keeping… :: drop 'without_origin'": {
+    "result": "not held",
+    "reason": "a gap: S4a's way of staying, drawn for an alternative beside the table; S4d's checks need none, as for `REFUSING`"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives::st.sampled_from(ways) :: drop 'inside'": {
+    "result": "empty",
+    "reason": "equivalent: HP40's strategy draws its one way, `inside`, alone, so a drop leaves that call nothing to draw (`empty`) and no other call holds the value; HP40 is the test of that way"
+   }
+  },
+  "uncut": {
+   "tests/property/table_alternatives_strategies.py::table_alternatives > tests/property/alternatives_strategies.py::changed::st.text('abcdefgh', min_size=1, max_size=6)": "the name, after `x_`, of a condition no document names, which S4a's `unknown_name` way gives an alternative beside the table; any such name is read alike, and HP39's oracle compares the read's reasons, which name it"
+  }
  },
  "extrapolation": {
   "tests": [
@@ -67,7 +246,147 @@
   "sites": [
    "tests/property/extrapolation_strategies.py::*"
   ],
-  "cuts": {},
-  "uncut": {}
+  "cuts": {
+   "tests/property/extrapolation_strategies.py::<module>::st.booleans() :: drop False": {
+    "result": "not held",
+    "reason": "equivalent: a `law` or an ignored member that is `true` or `false` is no text, refused or ignored alike; `a_boolean_law_taken` shows at either, and a read judging a law by its truth would still meet true values of the other kinds `NOT_TEXT` draws"
+   },
+   "tests/property/extrapolation_strategies.py::<module>::st.booleans() :: drop True": {
+    "result": "not held",
+    "reason": "equivalent: a `law` or an ignored member that is `true` or `false` is no text, refused or ignored alike; `a_boolean_law_taken` shows at either, and a read judging a law by its truth would still meet true values of the other kinds `NOT_TEXT` draws"
+   },
+   "tests/property/extrapolation_strategies.py::<module>::st.dictionaries(st.text(max_size=4), st.text(max_size=4), max_size=2) :: hold to the greatest size": {
+    "result": "not held",
+    "reason": "equivalent: an object given as a `law` or an ignored member is no text whatever its size; `an_object_taken_as_a_law` shows at any, and the other kinds still draw values a read judging by truth would take"
+   },
+   "tests/property/extrapolation_strategies.py::<module>::st.dictionaries(st.text(max_size=4), st.text(max_size=4), max_size=2) :: hold to the least size": {
+    "result": "not held",
+    "reason": "equivalent: an object given as a `law` or an ignored member is no text whatever its size; `an_object_taken_as_a_law` shows at any, and the other kinds still draw values a read judging by truth would take"
+   },
+   "tests/property/extrapolation_strategies.py::<module>::st.lists(st.text(max_size=4), max_size=2) :: hold to the greatest size": {
+    "result": "not held",
+    "reason": "equivalent: a list given as a `law` or an ignored member is no text whatever its length; `a_list_taken_as_a_law` shows at any, and the other kinds still draw values a read judging by truth would take"
+   },
+   "tests/property/extrapolation_strategies.py::<module>::st.lists(st.text(max_size=4), max_size=2) :: hold to the least size": {
+    "result": "not held",
+    "reason": "equivalent: a list given as a `law` or an ignored member is no text whatever its length; `a_list_taken_as_a_law` shows at any, and the other kinds still draw values a read judging by truth would take"
+   },
+   "tests/property/extrapolation_strategies.py::<module>::st.one_of(NOT_TEXT, st.text(max_size=8)) :: drop st.text(max_size=8)": {
+    "result": "not held",
+    "reason": "a gap: with it, a member a read ignores (`basis`, `reason`, an unknown or slipped one) never holds a string, the usual form; a read that refused a `basis` string it did not know, taking it for a condition's `basis` token, would pass"
+   },
+   "tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop False": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation drawn carries `basis` and `reason`, so no test reads one without them; a read that refused one lacking them, taking the build's rule (`declarations.md` section 1 item 4, \"Every acceptance MUST carry a `reason`\") for the read's, would pass"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds::st.sampled_from(METHODS) :: drop 'constant'": {
+    "result": "not held",
+    "reason": "equivalent: the monotonicity property compares statuses alone, and each method takes the end value (`declarations.md` section 4.1), so no status depends on which; each method is held where HP24 draws it (`extrapolations`, both cuts held)"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds::st.sampled_from(METHODS) :: drop 'consumer_law'": {
+    "result": "not held",
+    "reason": "equivalent: the monotonicity property compares statuses alone, and each method takes the end value (`declarations.md` section 4.1), so no status depends on which; each method is held where HP24 draws it (`extrapolations`, both cuts held)"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied::st.sampled_from(OTHER_WANTS) :: drop 'components'": {
+    "result": "not held",
+    "reason": "equivalent: the read applies an extrapolation under `want: value` alone (`read_side_contract.md` section 5, \"Under any other `want`\"), one comparison that `components` and `evidence` fail alike; `applied_under_every_want_but_bounds` shows at either, and `bounds` is held apart"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied::st.sampled_from(OTHER_WANTS) :: drop 'evidence'": {
+    "result": "not held",
+    "reason": "equivalent: the read applies an extrapolation under `want: value` alone (`read_side_contract.md` section 5, \"Under any other `want`\"), one comparison that `components` and `evidence` fail alike; `applied_under_every_want_but_bounds` shows at either, and `bounds` is held apart"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(NAMED) :: drop 'acceptance'": {
+    "result": "not held",
+    "reason": "a gap: a slip of this one name is drawn nowhere else, so a read whose list of an extrapolation's names (`read._EXTRAPOLATION_MEMBERS`, or `_LOCATION_MEMBERS` for a location) lacked it would pass; the mutants hold each kind of name (`a_slip_of_the_kind_or_field_ignored` and its three siblings), each showing at any name of its kind, not each name"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(NAMED) :: drop 'basis'": {
+    "result": "not held",
+    "reason": "a gap: a slip of this one name is drawn nowhere else, so a read whose list of an extrapolation's names (`read._EXTRAPOLATION_MEMBERS`, or `_LOCATION_MEMBERS` for a location) lacked it would pass; the mutants hold each kind of name (`a_slip_of_the_kind_or_field_ignored` and its three siblings), each showing at any name of its kind, not each name"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(NAMED) :: drop 'field'": {
+    "result": "not held",
+    "reason": "a gap: a slip of this one name is drawn nowhere else, so a read whose list of an extrapolation's names (`read._EXTRAPOLATION_MEMBERS`, or `_LOCATION_MEMBERS` for a location) lacked it would pass; the mutants hold each kind of name (`a_slip_of_the_kind_or_field_ignored` and its three siblings), each showing at any name of its kind, not each name"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(NAMED) :: drop 'interval'": {
+    "result": "not held",
+    "reason": "a gap: a slip of this one name is drawn nowhere else, so a read whose list of an extrapolation's names (`read._EXTRAPOLATION_MEMBERS`, or `_LOCATION_MEMBERS` for a location) lacked it would pass; the mutants hold each kind of name (`a_slip_of_the_kind_or_field_ignored` and its three siblings), each showing at any name of its kind, not each name"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(NAMED) :: drop 'law'": {
+    "result": "not held",
+    "reason": "a gap: a slip of this one name is drawn nowhere else, so a read whose list of an extrapolation's names (`read._EXTRAPOLATION_MEMBERS`, or `_LOCATION_MEMBERS` for a location) lacked it would pass; the mutants hold each kind of name (`a_slip_of_the_kind_or_field_ignored` and its three siblings), each showing at any name of its kind, not each name"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(NAMED) :: drop 'method'": {
+    "result": "not held",
+    "reason": "a gap: a slip of this one name is drawn nowhere else, so a read whose list of an extrapolation's names (`read._EXTRAPOLATION_MEMBERS`, or `_LOCATION_MEMBERS` for a location) lacked it would pass; the mutants hold each kind of name (`a_slip_of_the_kind_or_field_ignored` and its three siblings), each showing at any name of its kind, not each name"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(NAMED) :: drop 'reason'": {
+    "result": "not held",
+    "reason": "a gap: a slip of this one name is drawn nowhere else, so a read whose list of an extrapolation's names (`read._EXTRAPOLATION_MEMBERS`, or `_LOCATION_MEMBERS` for a location) lacked it would pass; the mutants hold each kind of name (`a_slip_of_the_kind_or_field_ignored` and its three siblings), each showing at any name of its kind, not each name"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(NAMED) :: drop 'record'": {
+    "result": "not held",
+    "reason": "a gap: a slip of this one name is drawn nowhere else, so a read whose list of an extrapolation's names (`read._EXTRAPOLATION_MEMBERS`, or `_LOCATION_MEMBERS` for a location) lacked it would pass; the mutants hold each kind of name (`a_slip_of_the_kind_or_field_ignored` and its three siblings), each showing at any name of its kind, not each name"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(NAMED) :: drop 'region'": {
+    "result": "not held",
+    "reason": "a gap: a slip of this one name is drawn nowhere else, so a read whose list of an extrapolation's names (`read._EXTRAPOLATION_MEMBERS`, or `_LOCATION_MEMBERS` for a location) lacked it would pass; the mutants hold each kind of name (`a_slip_of_the_kind_or_field_ignored` and its three siblings), each showing at any name of its kind, not each name"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(WHITE_SPACE) :: drop '   '": {
+    "result": "not held",
+    "reason": "equivalent: the other value of its kind stays drawn (one space and three; tab and newline; the no-break and the ideographic space), and every list of white space a reader might take (`str.isspace`, `string.whitespace`, JSON's, Unicode's White_Space) holds both of a kind or neither; each kind is held by its mutant"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(WHITE_SPACE) :: drop ' '": {
+    "result": "not held",
+    "reason": "equivalent: the other value of its kind stays drawn (one space and three; tab and newline; the no-break and the ideographic space), and every list of white space a reader might take (`str.isspace`, `string.whitespace`, JSON's, Unicode's White_Space) holds both of a kind or neither; each kind is held by its mutant"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(WHITE_SPACE) :: drop '\\n'": {
+    "result": "not held",
+    "reason": "equivalent: the other value of its kind stays drawn (one space and three; tab and newline; the no-break and the ideographic space), and every list of white space a reader might take (`str.isspace`, `string.whitespace`, JSON's, Unicode's White_Space) holds both of a kind or neither; each kind is held by its mutant"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(WHITE_SPACE) :: drop '\\t'": {
+    "result": "not held",
+    "reason": "equivalent: the other value of its kind stays drawn (one space and three; tab and newline; the no-break and the ideographic space), and every list of white space a reader might take (`str.isspace`, `string.whitespace`, JSON's, Unicode's White_Space) holds both of a kind or neither; each kind is held by its mutant"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(WHITE_SPACE) :: drop '\\u3000'": {
+    "result": "not held",
+    "reason": "equivalent: the other value of its kind stays drawn (one space and three; tab and newline; the no-break and the ideographic space), and every list of white space a reader might take (`str.isspace`, `string.whitespace`, JSON's, Unicode's White_Space) holds both of a kind or neither; each kind is held by its mutant"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(WHITE_SPACE) :: drop '\\xa0'": {
+    "result": "not held",
+    "reason": "equivalent: the other value of its kind stays drawn (one space and three; tab and newline; the no-break and the ideographic space), and every list of white space a reader might take (`str.isspace`, `string.whitespace`, JSON's, Unicode's White_Space) holds both of a kind or neither; each kind is held by its mutant"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes::st.booleans() :: drop False": {
+    "result": "not held",
+    "reason": "a gap: no test draws a refused shape located at the read, only with no location; a read that checked the shape of an extrapolation only where it applies elsewhere, the converse of `shape_unchecked_off_a_record`, would pass"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes::st.sampled_from(NOT_METHODS) :: drop 'clamp'": {
+    "result": "not held",
+    "reason": "equivalent: `clamp` and `linear` are each a lower-case word of a token's pattern and no token; the read compares a method with the token list alone, and `a_method_checked_by_its_pattern` shows at either"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes::st.sampled_from(NOT_METHODS) :: drop 'linear'": {
+    "result": "not held",
+    "reason": "equivalent: as `clamp`, which stays drawn"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes::st.sampled_from(NOT_METHODS) :: drop 1.0": {
+    "result": "not held",
+    "reason": "equivalent: a method that is no string fails the token comparison as `null` does; `a_method_of_another_type_taken` shows at either"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes::st.sampled_from(NOT_METHODS) :: drop None": {
+    "result": "not held",
+    "reason": "equivalent: a `null` method reads as a missing one (`entry.get`), which the way `method_missing` draws, and fails the token comparison as a number does"
+   },
+   "tests/property/extrapolation_strategies.py::two::st.booleans() :: drop True": {
+    "result": "not held",
+    "reason": "a gap: with it, the extrapolation that applies (`each_its_own_field`) is always stored second, so no test needs it first; a read whose `applied` held the last acceptance's index, the mirror of `applied_at_the_first_index`, would pass"
+   }
+  },
+  "uncut": {
+   "tests/property/extrapolation_strategies.py::<module>::st.floats(allow_nan=False, allow_infinity=False)": "a number given as a `law` or an ignored member, inside `NOT_TEXT`: any double is no text alike; the kind is held by `a_number_taken_as_a_law` (the option dropped: held)",
+   "tests/property/extrapolation_strategies.py::<module>::st.text(max_size=4)": "the strings inside a list or an object given as a `law` or an ignored member (`NOT_TEXT`); no rule reads them, and the kinds are held by `a_list_taken_as_a_law` and `an_object_taken_as_a_law`",
+   "tests/property/extrapolation_strategies.py::<module>::st.text(max_size=4)#2": "the strings inside a list or an object given as a `law` or an ignored member (`NOT_TEXT`); no rule reads them, and the kinds are held by `a_list_taken_as_a_law` and `an_object_taken_as_a_law`",
+   "tests/property/extrapolation_strategies.py::<module>::st.text(max_size=4)#3": "the strings inside a list or an object given as a `law` or an ignored member (`NOT_TEXT`); no rule reads them, and the kinds are held by `a_list_taken_as_a_law` and `an_object_taken_as_a_law`",
+   "tests/property/extrapolation_strategies.py::<module>::st.text(max_size=8)": "a string as the value of a member a read ignores (`IGNORED`: `basis`, `reason`, an unknown or slipped member), read alike whatever it holds (HP26's `basis_and_reason_any`)",
+   "tests/property/extrapolation_strategies.py::<module>::st.text(min_size=1, max_size=12)": "the `law`, text of at least one character that a reader does not judge (`declarations.md` section 4.1); its draws outside ASCII are held by `a_law_outside_ascii_refused`, and white space alone is drawn apart (`WHITE_SPACE`)"
+  }
  }
 }
