@@ -304,6 +304,13 @@ DATA_RULES = (
         readers=("scripts/check_claims.py",),
     ),
     DataRule(
+        "the input coverage's baseline",
+        r"tests/property/input_coverage_baseline\.json",
+        "the checker reads its selections and compares a run with it; its tests hold its form",
+        tests=("tests/unit/test_input_coverage.py",),
+        readers=("scripts/input_coverage.py",),
+    ),
+    DataRule(
         "the confidential digests and the hook that runs the scan",
         r"scripts/confidential_digests\.txt|scripts/pre-push",
         "the digests are read by the scan, whose tests run it on them, and its tests run the hook",
@@ -359,6 +366,11 @@ TREE_READERS = (
         ("tests/spec_sync/test_name_overlaps.py",),
     ),
     TreeReader(
+        r"tests/property/input_coverage\.py",
+        "the input coverage's tests copy the plugin into trees of their own and run it there",
+        ("tests/unit/test_input_coverage.py",),
+    ),
+    TreeReader(
         r"tests/.+\.py",
         "the agreement shard compares the source of every test file with what it lists",
         ("tests/property/test_validators_agree.py",),
@@ -373,6 +385,8 @@ LOCATES_NO_RULED_DATA = {
     "scripts/check_anomalies.py": "reads the anomaly registry and the package's version; the fast stage "
     "runs it on every change, as CI's gate does",
     "scripts/gen_vocabulary.py": "reads the specification's tables; the specification rule runs its tests",
+    "tests/property/input_coverage.py": "names each site by its path under the tree it lies in, and reads "
+    "the modules' source for the names; it opens no data file",
     "scripts/mutant_runs.py": "names its own copy for the mutant job's import check, and reads where each "
     "module it imports came from; it opens no data file",
     "scripts/pre_review.py": "reads the tree through git and `ast`; its own tests read it again and hold it",

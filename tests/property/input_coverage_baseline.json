@@ -1,0 +1,73 @@
+{
+ "table_alternatives": {
+  "tests": [
+   "tests/property/test_table_alternatives_properties.py",
+   "tests/property/test_table_alternatives_mutants.py",
+   "tests/property/test_model_properties.py::test_the_read_agrees_with_the_model_on_tables_among_alternatives",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[an_edge_sets_aside-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[an_edge_sets_aside-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[an_edge_outside_the_range_sets_aside-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[an_edge_outside_the_range_sets_aside-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[set_aside_under_a_covering_extrapolation-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[set_aside_under_a_covering_extrapolation-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[kept_without_an_extrapolation-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[kept_without_an_extrapolation-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[kept_under_any_want-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[kept_under_any_want-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[kept_refuses-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[kept_refuses-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[over_a_range_sets_aside-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[over_a_range_sets_aside-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[over_a_range_refuses-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[over_a_range_refuses-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[over_a_range_gives-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[over_a_range_gives-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[request_fault_at_step_11_sets_aside-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[request_fault_at_step_11_sets_aside-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[request_fault_at_step_11_tagged-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[request_fault_at_step_11_tagged-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[set_aside_at_step_10_reaches_step_11-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[set_aside_at_step_10_reaches_step_11-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[kept_entry_its_read-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[kept_entry_its_read-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[over_a_range_entry_without_step_12_labels-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[over_a_range_entry_without_step_12_labels-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[entry_labels_of_the_first_alternative-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[entry_labels_of_the_first_alternative-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[entry_labels_of_the_last_alternative-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[entry_labels_of_the_last_alternative-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[kept_unknown_dropped_beside_two_or_more-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[kept_unknown_dropped_beside_two_or_more-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[outside_range_refuses-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[outside_range_refuses-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[narrowed_alternative_kept-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[narrowed_alternative_kept-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[set_aside_by_its_range_beside_the_one_left-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[set_aside_by_its_range_beside_the_one_left-original]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[a_range_across_the_readable_end_outside-small]",
+   "tests/property/test_model_mutants.py::test_the_implementations_mutant_is_killed_by_the_agreement[a_range_across_the_readable_end_outside-original]",
+   "tests/property/test_model_mutants.py::test_the_models_seeded_mutant_is_killed_by_the_agreement[set_aside_alternative_reaches_step_11-small]",
+   "tests/property/test_model_mutants.py::test_the_models_seeded_mutant_is_killed_by_the_agreement[set_aside_alternative_reaches_step_11-original]",
+   "tests/property/test_model_mutants.py::test_the_models_seeded_mutant_is_killed_by_the_agreement[over_a_range_entry_unlabelled-small]",
+   "tests/property/test_model_mutants.py::test_the_models_seeded_mutant_is_killed_by_the_agreement[over_a_range_entry_unlabelled-original]",
+   "tests/property/test_model_mutants.py::test_the_models_seeded_mutant_is_killed_by_the_agreement[kept_for_an_extrapolation_under_any_want-small]",
+   "tests/property/test_model_mutants.py::test_the_models_seeded_mutant_is_killed_by_the_agreement[kept_for_an_extrapolation_under_any_want-original]"
+  ],
+  "sites": [
+   "tests/property/table_alternatives_strategies.py::*"
+  ],
+  "cuts": {},
+  "uncut": {}
+ },
+ "extrapolation": {
+  "tests": [
+   "tests/property/test_extrapolation_properties.py",
+   "tests/property/test_extrapolation_mutants.py"
+  ],
+  "sites": [
+   "tests/property/extrapolation_strategies.py::*"
+  ],
+  "cuts": {},
+  "uncut": {}
+ }
+}
