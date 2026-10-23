@@ -5,7 +5,8 @@ cuts no test holds compared with the baseline (`tests/property/README.md`, "Ever
 A selection is a set of tests and the sites whose draws they are to hold: a name in the baseline
 (`tests/property/input_coverage_baseline.json`), or `--tests` and `--sites` given here. The tests run with
 the plugin `tests/property/input_coverage.py` (`-p`), at the profile given (`ci` unless `--profile`),
-derandomized, with `PYTHONHASHSEED=0`, `-n WORKERS --dist worksteal`.
+derandomized, with `PYTHONHASHSEED=0`, `-n WORKERS --dist worksteal` a cut, and the run with no cut on every
+worker the cuts share.
 
 - `list` runs the selection once with no cut, recording the sites it reaches; that run must pass. It prints
   each site the `--sites` patterns match (`fnmatch` on its name) with its cuts, and each draw it cannot cut.
@@ -233,7 +234,8 @@ def recorded(args: argparse.Namespace, selection: Json, report: Json) -> bool:
     """The run with no cut, recorded into the report: False where it failed."""
     with tempfile.TemporaryDirectory(prefix="input-coverage-") as directory:
         out = Path(directory)
-        command = pytest_command(selection["tests"], out, args.workers, None)
+        # No cut runs beside it: every worker the cuts would share.
+        command = pytest_command(selection["tests"], out, args.workers * args.parallel, None)
         outcome, seconds = run_pytest(command, out, args.profile, args.timeout, args.root)
         if outcome is None or outcome["failures"] or outcome.get("exit") != 0:
             print((out / "pytest.log").read_text(encoding="utf-8")[-4000:])
