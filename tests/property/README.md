@@ -2036,18 +2036,25 @@ searches of `test_model_mutant_table.py` over it, since HP12's mutant `a_range_a
 holds the operating range's upper end. Each test module that imports a module whose sites a selection holds
 is named by the selection (whole or in part) or excused with a reason under `excused`
 (`tests/unit/test_input_coverage.py` fails on one that is neither); a test that draws the sites through
-another module is not found so. Two selections are checked so far, run locally (2026-10-23, on two workers a
-cut, four cuts at once, before the sites gained the owner's call and the sizes their kept-off cuts):
+another module is not found so. Two selections are checked so far, run locally on 2026-10-23 (on two workers
+a cut, four cuts at once):
 
 | Selection | Sites | Cuts | Held | Not held: gaps, equivalents | Empty | Uncut | A cut, nothing holding it | A cut held |
 |---|---|---|---|---|---|---|---|---|
-| `table_alternatives` (S4d) | 19 | 61 | 17 | 42, 1 | 1 | 1 | 208 to 373 s | 111 to 238 s |
-| `extrapolation` (S3c) | 21 | 80 | 47 | 13, 20 | 0 | 6 | 90 to 130 s | 16 to 107 s |
+| `table_alternatives` (S4d) | 20 | 63 | 17 | 44, 1 | 1 | 2 | 208 to 373 s | 111 to 238 s |
+| `extrapolation` (S3c) | 21 | 84 | 47 | 13, 24 | 0 | 6 | 90 to 130 s | 16 to 107 s |
 
-Of S4d's 42 gaps, 39 are S4a's ways, counts and `want` that S4d's composite draws for the alternatives beside
-the table, which S4a's properties hold where S4a's own strategy draws them and no S4d test needs; three are
-S4d's own (the table never stored first, never stored last, and no operating range one double wide). Running
-every property module waits for CI's measurement matrix.
+Most cuts ran before the sites reached through a helper gained the helper's call (a rename alone where the
+owner calls the helper once) and before S4d's selection gained the planned searches; the cuts these changes
+made new ran after them: S3c's four collections kept off a size, and S4d's `changed`, which S4d's strategy
+calls from two places and so is now two sites. A cut held before stays held with more tests, but 41 of
+S4d's 45 not-held cuts have not yet run again with the planned searches, so their entries rest on the earlier
+run.
+Of S4d's 44 gaps, 41 are S4a's ways, counts, tokens and `want` that S4d's composite draws for the
+alternatives beside the table and for the table set aside at step 10, which S4a's properties hold where
+S4a's own strategy draws them and no S4d test needs; three are S4d's own (the table never stored first, never
+stored last, and no operating range one double wide). Running every property module waits for CI's
+measurement matrix.
 
 Two historical runs show the check finding what reviews found by hand, each on a past tree with this branch's
 plugin and runner: before S3c's fix round (`a4c1b281`), every cut of the five draws S3c's review found unheld

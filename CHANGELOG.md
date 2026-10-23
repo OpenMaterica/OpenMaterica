@@ -244,10 +244,11 @@ every family entry goes in `families/CHANGELOG.md`.
   derandomized, until the first failure; `tests/property/input_coverage_baseline.json` lists every cut no
   test holds with its reason, and every draw the plugin cannot cut, and the check fails on one it does not
   list and on an entry whose cut is now held. A fixture with one test for each value a cut takes away holds
-  each cut at that test. Two selections, run locally before the sites reached through a helper gained the
-  helper's call and the collections their kept-off cuts: S4d's table alternatives (61 cuts: 17 held, 42 not
-  held that are gaps, 39 of them S4a's draws S4d's strategy makes for the other alternatives, 1 equivalent,
-  1 empty) and S3c's extrapolation (80 cuts: 47 held, 13 gaps, 20 equivalents); none is fixed here. On the
+  each cut at that test. Two selections, run locally: S4d's table alternatives (63 cuts: 17 held, 44 not held
+  that are gaps, 41 of them S4a's draws S4d's strategy makes for the other alternatives and the table set
+  aside, 1 equivalent, 1 empty; 41 of the cuts not held rest on a run before the selection gained the planned
+  searches of `test_model_mutant_table.py`) and S3c's extrapolation (84 cuts: 47 held, 13 gaps, 24
+  equivalents); none is fixed here. On the
   trees before S3c's fix round and at S4d's first round it reports not held the draws those rounds' reviews
   and builder found unheld by hand. The plugin loaded with no cut draws what is drawn without it, every
   choice compared (`tests/unit/test_input_coverage.py`, on a tree of every kind of draw it cuts).
