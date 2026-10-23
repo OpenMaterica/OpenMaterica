@@ -21,14 +21,16 @@ worker the cuts share.
   while cuts are left.
 - `check` compares a finished report with the baseline: it exits 1, naming each, on a cut not held that the
   baseline does not list with that result, a cut the baseline lists that is now held or no longer made, a
-  draw it cannot cut that the baseline does not list, and a baseline entry for one no longer drawn. `run`
-  ends with the same check once every cut has run.
+  draw it cannot cut that the baseline does not list, and a baseline entry for one no longer drawn: an entry
+  cannot outlive its gap. `run` ends with the same check once every cut has run.
 
 The cuts of a site (`cuts_of`): each value of `sampled_from` and `booleans`, and each option of `one_of` and
-`|`, dropped in turn; a range of `integers` or `floats` pinned to each bounded end and kept off it; a list,
-set or dictionary held to its least size and to its greatest, where it has one; a permutation held to the
-order given. A value only ever drawn alone at its calls makes a cut that is `empty` without a run. A site of
-more than `MOST_VALUES` values or options is listed as uncut ("computed values"): a person checks it.
+`|`, dropped in turn (a value's key is unique within its call); a range of `integers` or `floats` pinned to
+each bounded end and kept off it, and listed uncut where an end is unbounded; a list, set or dictionary held
+to its least size and to its greatest, where it has one, and kept off each; a permutation held to the order
+given. A value only ever drawn alone at its calls makes a cut that is `empty` without a run. A site of more
+than `MOST_VALUES` values or options (a number declared, not measured) is listed as uncut ("computed
+values"): a person checks it. No cut judges a range's interior or a list's middle sizes.
 """
 
 import argparse
@@ -51,6 +53,8 @@ PLUGIN = "tests.property.input_coverage"
 PROFILE_VARIABLE = "MATERICA_HYPOTHESIS_PROFILE"
 MOST_VALUES = 24
 RESULTS = ("held", "not held", "invalid", "empty", "not applied", "error")
+# Why a kind of draw is uncut, where its name alone does not say.
+UNCUT_REASONS = {"fixed_dictionaries": "optional keys"}
 # What a baseline entry's reason begins with: a gap a test should hold, or a cut no test can tell apart from
 # the draw it cut.
 REASONS = ("a gap: ", "equivalent: ")
@@ -60,7 +64,9 @@ DESCRIBED = {
     "pin_high": "pin to the high end",
     "off_high": "keep off the high end",
     "least_size": "hold to the least size",
+    "off_least": "keep off the least size",
     "greatest_size": "hold to the greatest size",
+    "off_greatest": "keep off the greatest size",
     "identity_order": "hold to the order given",
 }
 Json = dict[str, Any]
@@ -71,10 +77,11 @@ def cut_name(site: str, change: str, key: str | None) -> str:
 
 
 def cuts_of(site: str, seen: Json) -> tuple[list[Json], str | None]:
-    """The cuts of a site from what its calls drew from, or the reason it is uncut."""
+    """The cuts of a site from what its calls drew from, and the reason it, or a side of it, is uncut."""
     kind = seen["kind"]
     keys, lone, ends, sizes = seen["keys"], seen["lone"], seen["ends"], seen["sizes"]
     cuts: list[Json] = []
+    why: str | None = None
     if kind in ("sampled_from", "booleans", "one_of", "|"):
         values = sorted(set(keys) | set(lone))
         if len(values) > MOST_VALUES:
@@ -93,20 +100,29 @@ def cuts_of(site: str, seen: Json) -> tuple[list[Json], str | None]:
         for end in ("low", "high"):
             if end in ends:
                 cuts += [{"site_id": site, "change": f"{way}_{end}", "key": None} for way in ways]
-    elif kind in ("lists", "sets", "frozensets", "dictionaries"):
-        cuts += [
-            {"site_id": site, "change": f"{end}_size", "key": None}
-            for end in ("least", "greatest")
-            if end in sizes
+        unbounded = [
+            side
+            for side, end in (("below", "low"), ("above", "high"))
+            if f"no {end}" in ends or "unbounded" in ends
         ]
+        if unbounded:
+            why = "unbounded " + " and ".join(unbounded)
+    elif kind in ("lists", "sets", "frozensets", "dictionaries"):
+        # Where every call draws one of two sizes, keeping off one is holding to the other.
+        both = sizes.get("pair", 0) == sizes.get("least", 0) == sizes.get("greatest", 0)
+        for end in ("least", "greatest"):
+            if end in sizes:
+                cuts.append({"site_id": site, "change": f"{end}_size", "key": None})
+                if not both:
+                    cuts.append({"site_id": site, "change": f"off_{end}", "key": None})
     elif kind == "permutations":
         if keys:
             cuts.append({"site_id": site, "change": "identity_order", "key": None})
     else:
-        return [], kind
+        return [], UNCUT_REASONS.get(kind, kind)
     for cut in cuts:
         cut["name"] = cut_name(site, cut["change"], cut["key"])
-    return cuts, None
+    return cuts, why
 
 
 def merged(out: Path) -> tuple[dict[str, Json], list[str]]:
@@ -200,33 +216,49 @@ def end_group(process: "subprocess.Popen[bytes]") -> None:
         process.wait()
 
 
-def effects_of(out: Path) -> dict[str, int]:
-    effects = {"applied": 0, "unchanged": 0, "empty": 0}
+Effects = dict[str, dict[str, int]]
+
+
+def effects_of(out: Path) -> Effects:
+    """What the cut did in each worker of the run (`main` without xdist), its processes summed."""
+    effects: Effects = {}
     for path in out.glob("effects-*.json"):
+        worker = path.name.removeprefix("effects-").rpartition("-")[0]
+        into = effects.setdefault(worker, {"applied": 0, "unchanged": 0, "empty": 0})
         for key, count in json.loads(path.read_text(encoding="utf-8")).items():
-            effects[key] += count
+            into[key] += count
     return effects
 
 
-def result_of(outcome: Json | None, effects: dict[str, int], timed_out: bool) -> Json:
-    """A cut's result from its run's outcome and the effects its processes recorded."""
+def total(effects: Effects) -> dict[str, int]:
+    summed = {"applied": 0, "unchanged": 0, "empty": 0}
+    for counts in effects.values():
+        for key, count in counts.items():
+            summed[key] += count
+    return summed
+
+
+def result_of(outcome: Json | None, effects: Effects, timed_out: bool) -> Json:
+    """A cut's result from its run's outcome and the effects each of its workers recorded: a failure holds
+    the cut only where the worker that ran the failing test applied it."""
     failures: list[Json] = [] if outcome is None else outcome["failures"]
     holding = [failure for failure in failures if not failure["invalid"]]
+    summed = total(effects)
     if holding:
         first = holding[0]
-        if effects["applied"] == 0:
+        if effects.get(first.get("process", "main"), {}).get("applied", 0) == 0:
             return {
                 "result": "error",
                 "test": first["test"],
-                "message": "failed, though the cut changed no call: " + first["message"],
+                "message": "failed where the cut changed no call: " + first["message"],
             }
         return {"result": "held", "test": first["test"], "message": first["message"]}
     if outcome is None or not outcome.get("finished") or timed_out:
         return {"result": "error", "message": "timed out" if timed_out else "the run ended with no outcome"}
     if failures:
         return {"result": "invalid", "test": failures[0]["test"], "message": failures[0]["message"]}
-    if effects["applied"] == 0:
-        return {"result": "empty" if effects["empty"] else "not applied"}
+    if summed["applied"] == 0:
+        return {"result": "empty" if summed["empty"] else "not applied"}
     return {"result": "not held"}
 
 
@@ -239,6 +271,11 @@ def recorded(args: argparse.Namespace, selection: Json, report: Json) -> bool:
         outcome, seconds = run_pytest(command, out, args.profile, args.timeout, args.root)
         if outcome is None or outcome["failures"] or outcome.get("exit") != 0:
             print((out / "pytest.log").read_text(encoding="utf-8")[-4000:])
+            if outcome is None:
+                print("input coverage: the run with no cut ended with no outcome")
+            failures: list[Json] = [] if outcome is None else outcome["failures"]
+            for failure in failures:
+                print(f"failed: {failure['test']} ({failure['when']}): {failure['message']}")
             print("input coverage: the selection fails with no cut; nothing to compare a cut with")
             return False
         sites, randoms = merged(out)
@@ -278,7 +315,7 @@ def run_cut(args: argparse.Namespace, selection: Json, cut: Json) -> Json:
     return {
         **result_of(outcome, effects, seconds > args.timeout),
         "seconds": round(seconds, 1),
-        "effects": effects,
+        "effects": total(effects),
     }
 
 
