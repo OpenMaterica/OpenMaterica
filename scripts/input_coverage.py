@@ -11,6 +11,8 @@ worker the cuts share.
 - `list` runs the selection once with no cut, recording the sites it reaches; that run must pass. It prints
   each site the `--sites` patterns take with its cuts, and each draw it cannot cut: a pattern is `fnmatch` on
   a site's name, one beginning with `!` leaves out what it matches, and the last pattern that matches decides.
+  It ends with the count of the sites, cuts and uncut draws that the `!` patterns left out of what an earlier
+  pattern took.
 - `run` does the same, then runs each cut as its own process, `--parallel` at a time, stopping at the first
   test that fails (the plugin stops pytest; this script ends the process group at once), and records each
   cut's result in the report (`--report`, JSON, written after each cut): `held` (the first test that failed,
@@ -23,7 +25,9 @@ worker the cuts share.
 - `check` compares a finished report with the baseline: it exits 1, naming each, on a cut not held that the
   baseline does not list with that result, a cut the baseline lists that is now held or no longer made, a
   draw it cannot cut that the baseline does not list, and a baseline entry for one no longer drawn: an entry
-  cannot outlive its gap. `run` ends with the same check once every cut has run.
+  cannot outlive its gap. It exits 1 too where the counts of what the `!` patterns leave out differ from the
+  baseline's `left_out`, so that a draw added to what a selection leaves out is not dropped unseen. `run` ends
+  with the same check once every cut has run.
 
 The cuts of a site (`cuts_of`): each value of `sampled_from` and `booleans`, and each option of `one_of` and
 `|`, dropped in turn (a value's key is unique within its call); a range of `integers` or `floats` pinned to
@@ -62,6 +66,9 @@ REASONS = ("a gap: ", "equivalent: ")
 # The results a baseline lists: a cut that ran and no test needed, or one with nothing to change. A cut that
 # errored, was not applied or drew nothing valid says nothing about the tests.
 BASELINED = ("not held", "empty")
+# What a selection's `!` patterns leave out of what the others took, counted: sites with a cut, cuts and
+# uncut draws.
+LEFT_OUT = ("sites", "cuts", "uncut")
 DESCRIBED = {
     "pin_low": "pin to the low end",
     "off_low": "keep off the low end",
@@ -129,16 +136,21 @@ def cuts_of(site: str, seen: Json) -> tuple[list[Json], str | None]:
     return cuts, why
 
 
-def taken(site: str, patterns: Sequence[str]) -> bool:
-    """Whether a selection's `sites` patterns take a site: the last pattern that matches it decides, and one
-    beginning with `!` leaves out what it matches."""
-    chosen = False
+TAKEN, LEFT_OUT_BY_A_PATTERN, NOT_SELECTED = "taken", "left out", "not selected"
+
+
+def judged(site: str, patterns: Sequence[str]) -> str:
+    """What a selection's `sites` patterns make of a site: the last pattern that matches it decides, and one
+    beginning with `!` leaves out what it matches, if an earlier pattern took it (`left out`; one that no
+    pattern took stays `not selected`)."""
+    judgment = NOT_SELECTED
     for pattern in patterns:
         if pattern.startswith("!"):
-            chosen = chosen and not fnmatch.fnmatchcase(site, pattern[1:])
+            if judgment == TAKEN and fnmatch.fnmatchcase(site, pattern[1:]):
+                judgment = LEFT_OUT_BY_A_PATTERN
         elif fnmatch.fnmatchcase(site, pattern):
-            chosen = True
-    return chosen
+            judgment = TAKEN
+    return judgment
 
 
 def merged(out: Path) -> tuple[dict[str, Json], list[str]]:
@@ -297,10 +309,16 @@ def recorded(args: argparse.Namespace, selection: Json, report: Json) -> bool:
         sites, randoms = merged(out)
     report["record_seconds"] = round(seconds, 1)
     report["sites"], report["uncut"], report["cuts"] = {}, {}, {}
+    left_out = report["left_out"] = dict.fromkeys(LEFT_OUT, 0)
     for site, seen in sorted(sites.items()):
-        if not taken(site, selection["sites"]):
-            continue
         cuts, uncut = cuts_of(site, seen)
+        judgment = judged(site, selection["sites"])
+        if judgment == LEFT_OUT_BY_A_PATTERN:
+            left_out["sites"] += bool(cuts)
+            left_out["cuts"] += len(cuts)
+            left_out["uncut"] += uncut is not None
+        if judgment != TAKEN:
+            continue
         if uncut is not None:
             report["uncut"][site] = uncut
         if cuts:
@@ -312,8 +330,10 @@ def recorded(args: argparse.Namespace, selection: Json, report: Json) -> bool:
         for cut in cuts:
             report["cuts"][cut.pop("name")] = cut
     for call in randoms:
-        if taken(call, selection["sites"]):
+        judgment = judged(call, selection["sites"])
+        if judgment == TAKEN:
             report["uncut"][call] = "random"
+        left_out["uncut"] += judgment == LEFT_OUT_BY_A_PATTERN
     made: dict[str, Json] = report["cuts"]
     for cut in made.values():
         if cut.pop("empty", False):
@@ -396,6 +416,18 @@ def problems(report: Json, entry: Json) -> list[str]:
                 f"a baseline entry needs a result of {BASELINED} and a reason beginning {REASONS} "
                 f"with text after it: {name}"
             )
+    counted: dict[str, int] | None = report.get("left_out")
+    recorded_left: Json = entry.get("left_out", {})
+    if counted is None:
+        found.append("the report counts nothing left out: record the selection again")
+    else:
+        agreed = {key: recorded_left.get(key, 0) for key in LEFT_OUT}
+        if counted != agreed:
+            found.append(
+                f"left out by the `!` patterns: {left_text(counted)}, the baseline says {left_text(agreed)}"
+            )
+        if any(counted.values()) and not str(recorded_left.get("reason", "")).strip():
+            found.append("what the `!` patterns leave out needs a reason in the baseline's `left_out`")
     uncut: dict[str, str] = entry.get("uncut", {})
     for site, why in report["uncut"].items():
         if site not in uncut:
@@ -462,15 +494,22 @@ def selection_of(args: argparse.Namespace) -> tuple[Json, Json]:
     return {"name": None, "tests": args.tests, "sites": args.sites}, {}
 
 
+def left_text(counts: dict[str, int]) -> str:
+    return f"{counts['sites']} sites, {counts['cuts']} cuts, {counts['uncut']} uncut"
+
+
 def summary(report: Json) -> str:
     counts: dict[str, int] = {}
     for cut in report["cuts"].values():
         counts[cut.get("result", "not run")] = counts.get(cut.get("result", "not run"), 0) + 1
-    return (
+    text = (
         f"{len(report['sites'])} sites, {len(report['cuts'])} cuts ("
         + ", ".join(f"{result} {count}" for result, count in sorted(counts.items()))
         + f"), {len(report['uncut'])} uncut"
     )
+    if "left_out" in report:
+        text += f"; left out by the `!` patterns: {left_text(report['left_out'])}"
+    return text
 
 
 def main(argv: Sequence[str] | None = None) -> int:

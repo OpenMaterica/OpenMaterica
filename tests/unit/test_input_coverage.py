@@ -371,7 +371,7 @@ def test_a_pattern_beginning_with_an_exclamation_mark_leaves_out_what_it_matches
     root = tree(tmp_path, {"test_everything.py": EVERYTHING})
     helper = "tests/test_everything.py::helper::st.sampled_from(['p', 'q'])"
     everything, other = (f"tests/test_everything.py::{owner} > helper(draw) > {helper}" for owner in OWNERS)
-    _, report, _ = check(root, "list", "test_everything.py")
+    _, report, listed_output = check(root, "list", "test_everything.py")
     # The control: both owners' draws of the helper are taken by the selection's pattern alone.
     assert {everything, other} <= set(report["sites"])
     sites = ["tests/test_everything.py::*", "!* > tests/test_everything.py::helper::*", "*::other > *"]
@@ -381,6 +381,11 @@ def test_a_pattern_beginning_with_an_exclamation_mark_leaves_out_what_it_matches
     assert not [name for name in narrowed["cuts"] if name.startswith(everything)]
     assert set(narrowed["sites"]) == set(report["sites"]) - {everything}
     assert narrowed["uncut"] == report["uncut"]
+    # What the pattern left out is counted, and `list` prints the count: one site, its two cuts.
+    assert report["left_out"] == {"sites": 0, "cuts": 0, "uncut": 0}
+    assert narrowed["left_out"] == {"sites": 1, "cuts": 2, "uncut": 0}
+    assert "left out by the `!` patterns: 1 sites, 2 cuts, 0 uncut" in output
+    assert "left out by the `!` patterns: 0 sites, 0 cuts, 0 uncut" in listed_output
 
 
 def test_a_pattern_beginning_with_an_exclamation_mark_takes_nothing_that_no_pattern_before_it_took(
@@ -397,6 +402,8 @@ def test_a_pattern_beginning_with_an_exclamation_mark_takes_nothing_that_no_patt
     assert named < set(everywhere["sites"])
     assert set(narrowed["sites"]) == named, output
     assert narrowed["uncut"] == {}
+    # Nothing was left out: what no pattern took is not counted as left out.
+    assert narrowed["left_out"] == {"sites": 0, "cuts": 0, "uncut": 0}
 
 
 def test_a_pattern_beginning_with_an_exclamation_mark_leaves_out_plain_random(tmp_path: Path) -> None:
@@ -409,6 +416,76 @@ def test_a_pattern_beginning_with_an_exclamation_mark_leaves_out_plain_random(tm
     others = {site: why for site, why in everywhere["uncut"].items() if site != call}
     assert narrowed["uncut"] == others, output
     assert narrowed["sites"] == everywhere["sites"]
+    assert narrowed["left_out"] == {"sites": 0, "cuts": 0, "uncut": 1}
+
+
+LOWER = (
+    HEADER
+    + """
+
+def numbers():
+    return st.sampled_from([1, 2])
+"""
+)
+# A strategy that draws its own value and one from `lower`, a module its selection leaves out; a second test
+# module holds each of its own values.
+OWN = (
+    HEADER
+    + """
+from tests import lower
+
+
+@st.composite
+def own(draw):
+    return draw(st.sampled_from(["a", "b"])), draw(lower.numbers())
+
+
+@DERANDOMIZED
+@given(own())
+def test_own(example):
+    pass
+
+
+def test_a_is_drawn():
+    find(own(), lambda example: example[0] == "a", settings=DERANDOMIZED)
+
+
+def test_b_is_drawn():
+    find(own(), lambda example: example[0] == "b", settings=DERANDOMIZED)
+"""
+)
+LEAVING_OUT = {"sites": ["tests/test_own.py::*", "!* > tests/lower.py::*"]}
+OWN_LEFT = {"sites": 1, "cuts": 2, "uncut": 0}
+
+
+def test_what_the_patterns_leave_out_is_in_the_baseline_and_a_new_draw_through_it_fails_the_check(
+    tmp_path: Path,
+) -> None:
+    root = tree(tmp_path, {"lower.py": LOWER, "test_own.py": OWN})
+    # The selection's own draws are held, and the one it draws from `lower` is left out and counted.
+    status, report, output = check(root, "run", "test_own.py", LEAVING_OUT, report="first.json")
+    assert report["left_out"] == OWN_LEFT
+    assert results(report) == {"drop 'a'": "held", "drop 'b'": "held"}
+    assert status == 1
+    assert (
+        "left out by the `!` patterns: 1 sites, 2 cuts, 0 uncut, the baseline says 0 sites, 0 cuts, 0 uncut"
+        in (output)
+    )
+    assert "needs a reason" in output
+    # The baseline that records them passes.
+    baseline = {**LEAVING_OUT, "left_out": {**OWN_LEFT, "reason": "temporary"}}
+    status, _, output = check(root, "check", "test_own.py", baseline, report="first.json")
+    assert status == 0, output
+    # A new draw of the strategy's own through `lower` is left out too, and is not dropped unseen.
+    source = OWN.replace("draw(lower.numbers())", "draw(lower.numbers()), draw(lower.numbers())")
+    (root / "tests" / "test_own.py").write_text(source, encoding="utf-8")
+    status, report, output = check(root, "run", "test_own.py", baseline, report="second.json")
+    assert report["left_out"] == {"sites": 2, "cuts": 4, "uncut": 0}
+    assert status == 1
+    assert (
+        "left out by the `!` patterns: 2 sites, 4 cuts, 0 uncut, the baseline says 1 sites, 2 cuts, 0 uncut"
+        in (output)
+    )
 
 
 OWNERS = ("everything", "other")
@@ -537,7 +614,12 @@ def test_a_cuts_result(
 
 def a_report(**cuts: str) -> dict[str, Any]:
     named = {f"s :: {name}": {"site_id": "s", "result": result, "test": "t"} for name, result in cuts.items()}
-    return {"sites": {"s": {}}, "cuts": named, "uncut": {"u": "text"}}
+    return {
+        "sites": {"s": {}},
+        "cuts": named,
+        "uncut": {"u": "text"},
+        "left_out": {"sites": 0, "cuts": 0, "uncut": 0},
+    }
 
 
 NEEDS = (
@@ -548,6 +630,10 @@ AGREED = {
     "cuts": {"s :: b": {"result": "not held", "reason": "a gap: nothing reads it"}},
     "uncut": {"u": "checked: a name no test reads"},
 }
+
+
+LEFT = {"sites": 3, "cuts": 8, "uncut": 2}
+FOR_NOW = {**LEFT, "reason": "temporary: run, and the patterns removed, by the whole-repository run"}
 
 
 @pytest.mark.parametrize(
@@ -584,6 +670,47 @@ AGREED = {
             )
             for result in ("error", "not applied", "invalid")
             for reason in ("a gap: ", "equivalent: ")
+        ),
+        # What the patterns leave out is counted, and the count is the baseline's.
+        (
+            {**a_report(a="held", b="not held"), "left_out": LEFT},
+            {**AGREED, "left_out": FOR_NOW},
+            [],
+        ),
+        (
+            {**a_report(a="held", b="not held"), "left_out": {**LEFT, "cuts": 9}},
+            {**AGREED, "left_out": FOR_NOW},
+            [
+                "left out by the `!` patterns: 3 sites, 9 cuts, 2 uncut, "
+                "the baseline says 3 sites, 8 cuts, 2 uncut"
+            ],
+        ),
+        (
+            {**a_report(a="held", b="not held"), "left_out": {**LEFT, "uncut": 3}},
+            {**AGREED, "left_out": FOR_NOW},
+            [
+                "left out by the `!` patterns: 3 sites, 8 cuts, 3 uncut, "
+                "the baseline says 3 sites, 8 cuts, 2 uncut"
+            ],
+        ),
+        (
+            {**a_report(a="held", b="not held"), "left_out": LEFT},
+            AGREED,
+            [
+                "left out by the `!` patterns: 3 sites, 8 cuts, 2 uncut, "
+                "the baseline says 0 sites, 0 cuts, 0 uncut",
+                "what the `!` patterns leave out needs a reason in the baseline's `left_out`",
+            ],
+        ),
+        (
+            {**a_report(a="held", b="not held"), "left_out": LEFT},
+            {**AGREED, "left_out": {**LEFT, "reason": " "}},
+            ["what the `!` patterns leave out needs a reason in the baseline's `left_out`"],
+        ),
+        (
+            {**a_report(a="held", b="not held"), "left_out": None},
+            AGREED,
+            ["the report counts nothing left out: record the selection again"],
         ),
         # What it accepts: a cut with nothing to change, as the baseline lists it.
         (
@@ -623,7 +750,9 @@ def test_the_baseline_names_tests_that_exist_and_gives_each_entry_its_reason() -
     baseline = json.loads(input_coverage.BASELINE.read_text(encoding="utf-8"))
     assert baseline
     for name, selection in baseline.items():
-        assert set(selection) == {"tests", "sites", "excused", "cuts", "uncut"}, name
+        assert set(selection) == {"tests", "sites", "excused", "left_out", "cuts", "uncut"}, name
+        assert set(selection["left_out"]) == {*input_coverage.LEFT_OUT, "reason"}, name
+        assert selection["left_out"]["reason"].strip(), name
         assert selection["tests"], name
         assert selection["sites"], name
         for test in [*selection["tests"], *selection["excused"]]:
