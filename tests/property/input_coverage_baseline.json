@@ -70,7 +70,13 @@
    "tests/property/test_model_mutant_table.py::test_a_planned_search_draws_only_reads_the_core_agrees_with_the_model_on[tables among alternatives, no_operating_value_set_aside-original]"
   ],
   "sites": [
-   "tests/property/table_alternatives_strategies.py::*"
+   "tests/property/table_alternatives_strategies.py::*",
+   "!* > tests/property/tables.py::*",
+   "!* > tests/property/value_field_strategies.py::*",
+   "!* > tests/property/strategies.py::*",
+   "!* > tests/property/records.py::*",
+   "!* > tests/property/condition_strategies.py::*",
+   "tests/property/table_alternatives_strategies.py::table_alternatives > operating(way, place, draw) > tests/property/tables.py::above::*"
   ],
   "excused": {
    "tests/property/test_table_alternatives_mutant_table.py": "reads the ways' names (`INSIDE`, `KEPT_OR_SET_ASIDE`, `REFUSES`) to hold the README's table of S4d's mutants; it draws nothing"
@@ -176,9 +182,73 @@
     "result": "not held",
     "reason": "equivalent: the `one_of`'s other option, `just(math.nextafter(number, math.inf))`, draws the very double this keeps the `floats` off, so every value drawn before is drawn still"
    },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > operating(way, place, draw) > tests/property/tables.py::above::st.floats(min_value=number, exclude_min=True, allow_nan=False, allow_in… :: pin to the low end": {
+    "result": "not held",
+    "reason": "a gap: pinned to its low end, the `floats` option draws the double above the value, as the `one_of`'s other option does, so every operating range S4d's own strategy draws is one double wide: as for dropping the `floats` option"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > operating(way, place, draw) > tests/property/tables.py::above::st.one_of(st.just(math.nextafter(number, math.inf)), st.floats(min_valu… :: drop st.floats(min_value=number, exclude_min=True, allow_nan=Fal…": {
+    "result": "not held",
+    "reason": "a gap: with it, every operating range S4d's own strategy draws is one double wide, and no S4d test needs a wider one. HP12's mutant `a_range_across_the_readable_end_outside` needs one, but draws it through HP12's own strategy, whose draws of S4d's composite are HP12's sites by the owner rule (maintainer, 2026-10-24), so for S4d's own draws S4d's review's finding stands: a read that judged an operating range by its lower end alone would pass S4d's tests"
+   },
    "tests/property/table_alternatives_strategies.py::table_alternatives > operating(way, place, draw) > tests/property/tables.py::above::st.one_of(st.just(math.nextafter(number, math.inf)), st.floats(min_valu… :: drop st.just(math.nextafter(number, math.inf))": {
     "result": "not held",
     "reason": "a gap: no test needs an operating range one double wide (`[at, the double above]`), which this option draws in half the operating ranges; the `floats` option draws that double about once in 2,000 (measured, 1 of 2,000 derandomized draws above 0.37). A fault that reads so narrow a range as the value at its lower end would show there"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'magnetic_flux_density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table S4d's `placed` draws; no S4d test needs any one of them, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass here"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'measurement_dimension'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table S4d's `placed` draws; no S4d test needs any one of them, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass here"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'shear_rate'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table S4d's `placed` draws; no S4d test needs any one of them, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass here"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'specimen_size'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table S4d's `placed` draws; no S4d test needs any one of them, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass here"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'temperature'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table S4d's `placed` draws; no S4d test needs any one of them, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass here"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'bulk.density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table S4d's `placed` draws; no S4d test needs any one of them, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass here"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'fluid.dynamic_viscosity'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table S4d's `placed` draws; no S4d test needs any one of them, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass here"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'magnetic.volume_susceptibility'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table S4d's `placed` draws; no S4d test needs any one of them, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass here"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::edge_reads::st.sampled_from(ways) :: drop 'at_an_edge_inside'": {
+    "result": "empty",
+    "reason": "equivalent: S4d's `placed` gives S3b-2's `edge_reads` one way at each call, the place S4d's own way names, so a drop leaves that call nothing to draw (`empty`); S4d's `sampled_from(ways)` is the draw that chooses it, and its cuts are held"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::edge_reads::st.sampled_from(ways) :: drop 'at_an_edge_outside'": {
+    "result": "empty",
+    "reason": "equivalent: S4d's `placed` gives S3b-2's `edge_reads` one way at each call, the place S4d's own way names, so a drop leaves that call nothing to draw (`empty`); S4d's `sampled_from(ways)` is the draw that chooses it, and its cuts are held"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::narrowed_beyond::st.booleans() :: drop False": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `narrowed_beyond` draws on which side of the edge the table's `source_range` leaves it outside the readable range (from the first knot above it, or to the last knot below), for S4d's `at_an_edge_outside`; no S4d test needs either side, while the read judges a place below the readable range and one above it by two branches"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::narrowed_beyond::st.booleans() :: drop True": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `narrowed_beyond` draws on which side of the edge the table's `source_range` leaves it outside the readable range (from the first knot above it, or to the last knot below), for S4d's `at_an_edge_outside`; no S4d test needs either side, while the read judges a place below the readable range and one above it by two branches"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'inside'": {
+    "result": "empty",
+    "reason": "equivalent: S4d's `placed` gives S3b-2's `range_reads` one way at each call, the place S4d's own way names, so a drop leaves that call nothing to draw (`empty`); S4d's `sampled_from(ways)` is the draw that chooses it, and its cuts are held"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'one_double_outside'": {
+    "result": "empty",
+    "reason": "equivalent: S4d's `placed` gives S3b-2's `range_reads` one way at each call, the place S4d's own way names, so a drop leaves that call nothing to draw (`empty`); S4d's `sampled_from(ways)` is the draw that chooses it, and its cuts are held"
    },
    "tests/property/table_alternatives_strategies.py::table_alternatives > want_for(draw, outcome, form, FIELD) > tests/property/alternatives_strategies.py::want_for::st.sampled_from(WANTS) :: drop 'bounds'": {
     "result": "not held",
@@ -263,7 +333,10 @@
   },
   "uncut": {
    "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/alternatives_strategies.py::changed::st.text('abcdefgh', min_size=1, max_size=6)": "the name, after `x_`, of a condition no document names, which S4a's `unknown_name` way gives an alternative beside the table; any such name is read alike, and HP39's oracle compares the read's reasons, which name it",
-   "tests/property/table_alternatives_strategies.py::table_alternatives > operating(way, place, draw) > tests/property/tables.py::above::st.floats(min_value=number, exclude_min=True, allow_nan=False, allow_in…": "the operating range's upper end drawn above the double above the value (`tables.above`), whose upper side has no bound by design: any double above is an upper end alike for the read, which compares the range with the table's readable range at its ends; its lower end is cut"
+   "tests/property/table_alternatives_strategies.py::table_alternatives > operating(way, place, draw) > tests/property/tables.py::above::st.floats(min_value=number, exclude_min=True, allow_nan=False, allow_in…": "the operating range's upper end drawn above the double above the value (`tables.above`), whose upper side has no bound by design: any double above is an upper end alike for the read, which compares the range with the table's readable range at its ends; its lower end is cut",
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::an_edge_strictly_inside::st.sampled_from(strictly_inside_edges(table))": "S3b-2's draw, for the table read `table_alternatives` draws: an edge strictly inside the readable range, a list computed from the drawn table at every call, so no value recurs for a drop to name; the ways at an edge are cut",
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::range_reads::st.sampled_from([place for place in places if low < place < high and pl…": "S3b-2's draw, for the table read `table_alternatives` draws: a place strictly inside the readable range, at no edge, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut",
+   "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(places)": "S3b-2's draw, for the table read `table_alternatives` draws: the read's place among those the drawn table holds for its way, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut"
   }
  },
  "extrapolation": {
@@ -272,7 +345,8 @@
    "tests/property/test_extrapolation_mutants.py"
   ],
   "sites": [
-   "tests/property/extrapolation_strategies.py::*"
+   "tests/property/extrapolation_strategies.py::*",
+   "!* > tests/property/tables.py::*"
   ],
   "excused": {
    "tests/property/test_extrapolation_mutant_table.py": "reads the ways' names to hold the README's table of S3c's mutants; it draws nothing"
@@ -322,9 +396,169 @@
     "result": "not held",
     "reason": "a gap: with it, a member a read ignores (`basis`, `reason`, an unknown or slipped one) never holds a string, the usual form; a read that refused a `basis` string it did not know, taking it for a condition's `basis` token, would pass"
    },
-   "tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop False": {
+   "tests/property/extrapolation_strategies.py::applied > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop False": {
     "result": "not held",
-    "reason": "a gap: with it, every extrapolation drawn carries `basis` and `reason`, so no test reads one without them; a read that refused one lacking them, taking the build's rule (`declarations.md` section 1 item 4, \"Every acceptance MUST carry a `reason`\") for the read's, would pass"
+    "reason": "a gap: with it, every extrapolation `applied` draws carries `basis` and `reason`, so no test reads one of these without them; a read that refused one lacking them, taking the build's rule (`declarations.md` section 1 item 4, \"Every acceptance MUST carry a `reason`\") for the read's, would pass for `applied`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::applied > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.sampled_from(METHODS) :: drop 'constant'": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `applied` draws names the method `consumer_law`, and no test needs `constant` there (`law_optional_under_constant` is killed where `refused_shapes` draws it); the read checks the method against the vocabulary's tokens one by one, so a fault at `constant` alone would pass for `applied`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::applied > draw(tables.range_reads(size, ('one_double_outside' if way == 'stated_w… > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'magnetic_flux_density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::applied > draw(tables.range_reads(size, ('one_double_outside' if way == 'stated_w… > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'measurement_dimension'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::applied > draw(tables.range_reads(size, ('one_double_outside' if way == 'stated_w… > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'shear_rate'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::applied > draw(tables.range_reads(size, ('one_double_outside' if way == 'stated_w… > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'specimen_size'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::applied > draw(tables.range_reads(size, ('one_double_outside' if way == 'stated_w… > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'temperature'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::applied > draw(tables.range_reads(size, ('one_double_outside' if way == 'stated_w… > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'bulk.density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `applied` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::applied > draw(tables.range_reads(size, ('one_double_outside' if way == 'stated_w… > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'fluid.dynamic_viscosity'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `applied` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::applied > draw(tables.range_reads(size, ('one_double_outside' if way == 'stated_w… > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'magnetic.volume_susceptibility'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `applied` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::applied > draw(tables.range_reads(size, ('one_double_outside' if way == 'stated_w… > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'far_outside'": {
+    "result": "empty",
+    "reason": "equivalent: `applied` gives S3b-2's `range_reads` one way at each call, the place its own way names, so a drop leaves that call nothing to draw (`empty`); `applied`'s `sampled_from(ways)` is the draw that chooses it"
+   },
+   "tests/property/extrapolation_strategies.py::applied > draw(tables.range_reads(size, ('one_double_outside' if way == 'stated_w… > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'one_double_outside'": {
+    "result": "empty",
+    "reason": "equivalent: `applied` gives S3b-2's `range_reads` one way at each call, the place its own way names, so a drop leaves that call nothing to draw (`empty`); `applied`'s `sampled_from(ways)` is the draw that chooses it"
+   },
+   "tests/property/extrapolation_strategies.py::applied > draw(tables.range_reads(size, ('one_double_outside' if way == 'stated_w… > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'outside_a_narrower_source_range'": {
+    "result": "empty",
+    "reason": "equivalent: `applied` gives S3b-2's `range_reads` one way at each call, the place its own way names, so a drop leaves that call nothing to draw (`empty`); `applied`'s `sampled_from(ways)` is the draw that chooses it"
+   },
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop False": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `elsewhere` draws carries `basis` and `reason`, so no test reads one of these without them; a read that refused one lacking them, taking the build's rule (`declarations.md` section 1 item 4, \"Every acceptance MUST carry a `reason`\") for the read's, would pass for `elsewhere`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop True": {
+    "result": "not held",
+    "reason": "a gap: with it, no extrapolation `elsewhere` draws through `extrapolations` carries `basis` or `reason`, which the read ignores, and no test needs one that does; the mutant that needs them, `basis_in_the_assumption`, is killed where `applied` draws them, so a read that refused an extrapolation carrying them would pass for `elsewhere`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.sampled_from(METHODS) :: drop 'constant'": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `elsewhere` draws names the method `consumer_law`, and no test needs `constant` there (`law_optional_under_constant` is killed where `refused_shapes` draws it); the read checks the method against the vocabulary's tokens one by one, so a fault at `constant` alone would pass for `elsewhere`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.sampled_from(METHODS) :: drop 'consumer_law'": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `elsewhere` draws names the method `constant`, and no test needs `consumer_law` there (`the_method_read_as_constant` is killed where `applied` draws it); the read checks the method against the vocabulary's tokens one by one, so a fault at `consumer_law` alone would pass for `elsewhere`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'magnetic_flux_density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `elsewhere` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'measurement_dimension'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `elsewhere` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'shear_rate'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `elsewhere` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'specimen_size'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `elsewhere` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'temperature'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `elsewhere` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'bulk.density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `elsewhere` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'fluid.dynamic_viscosity'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `elsewhere` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'magnetic.volume_susceptibility'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `elsewhere` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'far_outside'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `range_reads` draws the read's place for `elsewhere`'s extrapolation; with it, no place is far beyond an end of the readable range, and no S3c test needs one there from `elsewhere`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'one_double_outside'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `range_reads` draws the read's place for `elsewhere`'s extrapolation; with it, no place is one double beyond an end of the readable range, and no S3c test needs one there from `elsewhere`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'magnetic_flux_density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `monotone_worlds` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'measurement_dimension'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `monotone_worlds` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'shear_rate'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `monotone_worlds` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'specimen_size'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `monotone_worlds` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'temperature'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `monotone_worlds` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'bulk.density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `monotone_worlds` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'fluid.dynamic_viscosity'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `monotone_worlds` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'magnetic.volume_susceptibility'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `monotone_worlds` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::met_worlds::st.booleans() :: drop False": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `met_worlds` draws whether the field is stated without origin (a read in the range is then `unknown`); with it, every world `monotone_worlds` draws states it so, and no S3c test needs a world whose field has an origin"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::met_worlds::st.sampled_from(kinds) :: drop 'across_an_end'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `met_worlds` draws the kind of `source_range` the narrowed table is given (`tables.RANGE_KINDS`); no S3c test needs any one kind in the worlds `monotone_worlds` draws, so a read that misjudged one kind's ends alone would pass here"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::met_worlds::st.sampled_from(kinds) :: drop 'narrower'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `met_worlds` draws the kind of `source_range` the narrowed table is given (`tables.RANGE_KINDS`); no S3c test needs any one kind in the worlds `monotone_worlds` draws, so a read that misjudged one kind's ends alone would pass here"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::met_worlds::st.sampled_from(kinds) :: drop 'one_point'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `met_worlds` draws the kind of `source_range` the narrowed table is given (`tables.RANGE_KINDS`); no S3c test needs any one kind in the worlds `monotone_worlds` draws, so a read that misjudged one kind's ends alone would pass here"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::met_worlds::st.sampled_from(kinds) :: drop 'wider'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `met_worlds` draws the kind of `source_range` the narrowed table is given (`tables.RANGE_KINDS`); no S3c test needs any one kind in the worlds `monotone_worlds` draws, so a read that misjudged one kind's ends alone would pass here"
+   },
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::met_worlds::st.sampled_from(kinds) :: drop 'within_an_interval'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `met_worlds` draws the kind of `source_range` the narrowed table is given (`tables.RANGE_KINDS`); no S3c test needs any one kind in the worlds `monotone_worlds` draws, so a read that misjudged one kind's ends alone would pass here"
    },
    "tests/property/extrapolation_strategies.py::monotone_worlds::st.sampled_from(METHODS) :: drop 'constant'": {
     "result": "not held",
@@ -334,6 +568,146 @@
     "result": "not held",
     "reason": "equivalent: the monotonicity property compares statuses alone, and each method takes the end value (`declarations.md` section 4.1), so no status depends on which; each method is held where HP24 draws it (`extrapolations`, both cuts held)"
    },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop False": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `not_applied` draws carries `basis` and `reason`, so no test reads one of these without them; a read that refused one lacking them, taking the build's rule (`declarations.md` section 1 item 4, \"Every acceptance MUST carry a `reason`\") for the read's, would pass for `not_applied`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop True": {
+    "result": "not held",
+    "reason": "a gap: with it, no extrapolation `not_applied` draws through `extrapolations` carries `basis` or `reason`, which the read ignores, and no test needs one that does; the mutant that needs them, `basis_in_the_assumption`, is killed where `applied` draws them, so a read that refused an extrapolation carrying them would pass for `not_applied`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.sampled_from(METHODS) :: drop 'constant'": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `not_applied` draws names the method `consumer_law`, and no test needs `constant` there (`law_optional_under_constant` is killed where `refused_shapes` draws it); the read checks the method against the vocabulary's tokens one by one, so a fault at `constant` alone would pass for `not_applied`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.sampled_from(METHODS) :: drop 'consumer_law'": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `not_applied` draws names the method `constant`, and no test needs `consumer_law` there (`the_method_read_as_constant` is killed where `applied` draws it); the read checks the method against the vocabulary's tokens one by one, so a fault at `consumer_law` alone would pass for `not_applied`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.edge_reads(size, (way,))) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'magnetic_flux_density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.edge_reads(size, (way,))) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'measurement_dimension'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.edge_reads(size, (way,))) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'shear_rate'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.edge_reads(size, (way,))) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'specimen_size'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.edge_reads(size, (way,))) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'temperature'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.edge_reads(size, (way,))) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'bulk.density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.edge_reads(size, (way,))) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'fluid.dynamic_viscosity'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.edge_reads(size, (way,))) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'magnetic.volume_susceptibility'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.edge_reads(size, (way,))) > tests/property/table_read_strategies.py::edge_reads::st.booleans() :: drop False": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `edge_reads` draws, for `not_applied`'s read across an edge, whether the edge lies on the readable range's end or beyond it; with it, every such edge lies on the end, and no S3c test needs one beyond it, though the read side contract's section 5 names both (\"between the operating value and the readable range's nearest end, or on that end\")"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.edge_reads(size, (way,))) > tests/property/table_read_strategies.py::edge_reads::st.sampled_from(ways) :: drop 'across_an_edge'": {
+    "result": "empty",
+    "reason": "equivalent: `not_applied` gives S3b-2's `edge_reads` one way at each call, the place its own way names, so a drop leaves that call nothing to draw (`empty`); `not_applied`'s `sampled_from(ways)` is the draw that chooses it"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.edge_reads(size, (way,))) > tests/property/table_read_strategies.py::edge_reads::st.sampled_from(ways) :: drop 'at_an_edge_inside'": {
+    "result": "empty",
+    "reason": "equivalent: `not_applied` gives S3b-2's `edge_reads` one way at each call, the place its own way names, so a drop leaves that call nothing to draw (`empty`); `not_applied`'s `sampled_from(ways)` is the draw that chooses it"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.edge_reads(size, (way,))) > tests/property/table_read_strategies.py::edge_reads::st.sampled_from(ways) :: drop 'at_an_edge_outside'": {
+    "result": "empty",
+    "reason": "equivalent: `not_applied` gives S3b-2's `edge_reads` one way at each call, the place its own way names, so a drop leaves that call nothing to draw (`empty`); `not_applied`'s `sampled_from(ways)` is the draw that chooses it"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'magnetic_flux_density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'measurement_dimension'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'shear_rate'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'specimen_size'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'temperature'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'bulk.density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'fluid.dynamic_viscosity'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'magnetic.volume_susceptibility'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'far_outside'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `range_reads` draws the read's place for `not_applied`'s extrapolation; with it, no place is far beyond an end of the readable range, and no S3c test needs one there from `not_applied`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'one_double_outside'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `range_reads` draws the read's place for `not_applied`'s extrapolation; with it, no place is one double beyond an end of the readable range, and no S3c test needs one there from `not_applied`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, tables.RANGE_WAYS[:2])) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'magnetic_flux_density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, tables.RANGE_WAYS[:2])) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'measurement_dimension'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, tables.RANGE_WAYS[:2])) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'shear_rate'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, tables.RANGE_WAYS[:2])) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'specimen_size'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, tables.RANGE_WAYS[:2])) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'temperature'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, tables.RANGE_WAYS[:2])) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'bulk.density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, tables.RANGE_WAYS[:2])) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'fluid.dynamic_viscosity'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, tables.RANGE_WAYS[:2])) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'magnetic.volume_susceptibility'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `not_applied` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, tables.RANGE_WAYS[:2])) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'inside'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `range_reads` draws the read's place for `not_applied`'s extrapolation; with it, no place is strictly inside the readable range, and no S3c test needs one there from `not_applied`'s ways"
+   },
    "tests/property/extrapolation_strategies.py::not_applied::st.sampled_from(OTHER_WANTS) :: drop 'components'": {
     "result": "not held",
     "reason": "equivalent: the read applies an extrapolation under `want: value` alone (`read_side_contract.md` section 5, \"Under any other `want`\"), one comparison that `components` and `evidence` fail alike; `applied_under_every_want_but_bounds` shows at either, and `bounds` is held apart"
@@ -341,6 +715,62 @@
    "tests/property/extrapolation_strategies.py::not_applied::st.sampled_from(OTHER_WANTS) :: drop 'evidence'": {
     "result": "not held",
     "reason": "equivalent: the read applies an extrapolation under `want: value` alone (`read_side_contract.md` section 5, \"Under any other `want`\"), one comparison that `components` and `evidence` fail alike; `applied_under_every_want_but_bounds` shows at either, and `bounds` is held apart"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop False": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `read_shapes` draws carries `basis` and `reason`, so no test reads one of these without them; a read that refused one lacking them, taking the build's rule (`declarations.md` section 1 item 4, \"Every acceptance MUST carry a `reason`\") for the read's, would pass for `read_shapes`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop True": {
+    "result": "not held",
+    "reason": "a gap: with it, no extrapolation `read_shapes` draws through `extrapolations` carries `basis` or `reason`, which the read ignores, and no test needs one that does; the mutant that needs them, `basis_in_the_assumption`, is killed where `applied` draws them, so a read that refused an extrapolation carrying them would pass for `read_shapes`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.sampled_from(METHODS) :: drop 'constant'": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `read_shapes` draws names the method `consumer_law`, and no test needs `constant` there (`law_optional_under_constant` is killed where `refused_shapes` draws it); the read checks the method against the vocabulary's tokens one by one, so a fault at `constant` alone would pass for `read_shapes`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.sampled_from(METHODS) :: drop 'consumer_law'": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `read_shapes` draws names the method `constant`, and no test needs `consumer_law` there (`the_method_read_as_constant` is killed where `applied` draws it); the read checks the method against the vocabulary's tokens one by one, so a fault at `consumer_law` alone would pass for `read_shapes`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'magnetic_flux_density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `read_shapes` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'measurement_dimension'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `read_shapes` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'shear_rate'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `read_shapes` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'specimen_size'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `read_shapes` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'temperature'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `read_shapes` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'bulk.density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `read_shapes` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'fluid.dynamic_viscosity'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `read_shapes` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'magnetic.volume_susceptibility'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `read_shapes` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'far_outside'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `range_reads` draws the read's place for `read_shapes`'s extrapolation; with it, no place is far beyond an end of the readable range, and no S3c test needs one there from `read_shapes`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'one_double_outside'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `range_reads` draws the read's place for `read_shapes`'s extrapolation; with it, no place is one double beyond an end of the readable range, and no S3c test needs one there from `read_shapes`'s ways"
    },
    "tests/property/extrapolation_strategies.py::read_shapes::st.sampled_from(NAMED) :: drop 'acceptance'": {
     "result": "not held",
@@ -402,6 +832,58 @@
     "result": "not held",
     "reason": "equivalent: the other value of its kind stays drawn (one space and three; tab and newline; the no-break and the ideographic space), and every list of white space a reader might take (`str.isspace`, `string.whitespace`, JSON's, Unicode's White_Space) holds both of a kind or neither; each kind is held by its mutant"
    },
+   "tests/property/extrapolation_strategies.py::refused_shapes > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop False": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `refused_shapes` draws carries `basis` and `reason`, so no test reads one of these without them; a read that refused one lacking them, taking the build's rule (`declarations.md` section 1 item 4, \"Every acceptance MUST carry a `reason`\") for the read's, would pass for `refused_shapes`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop True": {
+    "result": "not held",
+    "reason": "a gap: with it, no extrapolation `refused_shapes` draws through `extrapolations` carries `basis` or `reason`, which the read ignores, and no test needs one that does; the mutant that needs them, `basis_in_the_assumption`, is killed where `applied` draws them, so a read that refused an extrapolation carrying them would pass for `refused_shapes`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.sampled_from(METHODS) :: drop 'consumer_law'": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `refused_shapes` draws names the method `constant`, and no test needs `consumer_law` there (`the_method_read_as_constant` is killed where `applied` draws it); the read checks the method against the vocabulary's tokens one by one, so a fault at `consumer_law` alone would pass for `refused_shapes`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'magnetic_flux_density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `refused_shapes` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'measurement_dimension'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `refused_shapes` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'shear_rate'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `refused_shapes` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'specimen_size'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `refused_shapes` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'temperature'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `refused_shapes` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'bulk.density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `refused_shapes` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'fluid.dynamic_viscosity'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `refused_shapes` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'magnetic.volume_susceptibility'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `refused_shapes` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'far_outside'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `range_reads` draws the read's place for `refused_shapes`'s extrapolation; with it, no place is far beyond an end of the readable range, and no S3c test needs one there from `refused_shapes`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::refused_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'one_double_outside'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `range_reads` draws the read's place for `refused_shapes`'s extrapolation; with it, no place is one double beyond an end of the readable range, and no S3c test needs one there from `refused_shapes`'s ways"
+   },
    "tests/property/extrapolation_strategies.py::refused_shapes::st.booleans() :: drop False": {
     "result": "not held",
     "reason": "a gap: no test draws a refused shape located at the read, only with no location; a read that checked the shape of an extrapolation only where it applies elsewhere, the converse of `shape_unchecked_off_a_record`, would pass"
@@ -422,6 +904,78 @@
     "result": "not held",
     "reason": "equivalent: a `null` method reads as a missing one (`entry.get`), which the way `method_missing` draws, and fails the token comparison as a number does"
    },
+   "tests/property/extrapolation_strategies.py::two > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop False": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `two` draws carries `basis` and `reason`, so no test reads one of these without them; a read that refused one lacking them, taking the build's rule (`declarations.md` section 1 item 4, \"Every acceptance MUST carry a `reason`\") for the read's, would pass for `two`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop True": {
+    "result": "not held",
+    "reason": "a gap: with it, no extrapolation `two` draws through `extrapolations` carries `basis` or `reason`, which the read ignores, and no test needs one that does; the mutant that needs them, `basis_in_the_assumption`, is killed where `applied` draws them, so a read that refused an extrapolation carrying them would pass for `two`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.sampled_from(METHODS) :: drop 'constant'": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `two` draws names the method `consumer_law`, and no test needs `constant` there (`law_optional_under_constant` is killed where `refused_shapes` draws it); the read checks the method against the vocabulary's tokens one by one, so a fault at `constant` alone would pass for `two`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.sampled_from(METHODS) :: drop 'consumer_law'": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `two` draws names the method `constant`, and no test needs `consumer_law` there (`the_method_read_as_constant` is killed where `applied` draws it); the read checks the method against the vocabulary's tokens one by one, so a fault at `consumer_law` alone would pass for `two`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(extrapolations(drawn))#2 > tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop False": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `two` (the second of its two) draws carries `basis` and `reason`, so no test reads one of these without them; a read that refused one lacking them, taking the build's rule (`declarations.md` section 1 item 4, \"Every acceptance MUST carry a `reason`\") for the read's, would pass for `two` (the second of its two)'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(extrapolations(drawn))#2 > tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop True": {
+    "result": "not held",
+    "reason": "a gap: with it, no extrapolation `two` (the second of its two) draws through `extrapolations` carries `basis` or `reason`, which the read ignores, and no test needs one that does; the mutant that needs them, `basis_in_the_assumption`, is killed where `applied` draws them, so a read that refused an extrapolation carrying them would pass for `two` (the second of its two)'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(extrapolations(drawn))#2 > tests/property/extrapolation_strategies.py::extrapolations::st.sampled_from(METHODS) :: drop 'constant'": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `two` (the second of its two) draws names the method `consumer_law`, and no test needs `constant` there (`law_optional_under_constant` is killed where `refused_shapes` draws it); the read checks the method against the vocabulary's tokens one by one, so a fault at `constant` alone would pass for `two` (the second of its two)'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(extrapolations(drawn))#2 > tests/property/extrapolation_strategies.py::extrapolations::st.sampled_from(METHODS) :: drop 'consumer_law'": {
+    "result": "not held",
+    "reason": "a gap: with it, every extrapolation `two` (the second of its two) draws names the method `constant`, and no test needs `consumer_law` there (`the_method_read_as_constant` is killed where `applied` draws it); the read checks the method against the vocabulary's tokens one by one, so a fault at `consumer_law` alone would pass for `two` (the second of its two)'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'magnetic_flux_density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `two` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'measurement_dimension'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `two` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'shear_rate'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `two` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'specimen_size'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `two` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(NUMERIC_CONDITIONS) :: drop 'temperature'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the table's axis, among the numeric conditions, for the table read `two` draws; no S3c test needs any one of them there, while the read takes each condition's shape from the vocabulary condition by condition, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'bulk.density'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `two` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'fluid.dynamic_viscosity'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `two` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::axis_and_field::st.sampled_from(TABLE_FIELDS) :: drop 'magnetic.volume_susceptibility'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `axis_and_field` draws the field, among those whose forms list a table, for the table read `two` draws; no S3c test needs any one of them there, while the read takes each field's forms from the vocabulary field by field, so a fault at one alone would pass"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'far_outside'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `range_reads` draws the read's place for `two`'s extrapolation; with it, no place is far beyond an end of the readable range, and no S3c test needs one there from `two`'s ways"
+   },
+   "tests/property/extrapolation_strategies.py::two > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'one_double_outside'": {
+    "result": "not held",
+    "reason": "a gap: S3b-2's `range_reads` draws the read's place for `two`'s extrapolation; with it, no place is one double beyond an end of the readable range, and no S3c test needs one there from `two`'s ways"
+   },
    "tests/property/extrapolation_strategies.py::two::st.booleans() :: drop True": {
     "result": "not held",
     "reason": "a gap: with it, the extrapolation that applies (`each_its_own_field`) is always stored second, so no test needs it first; a read whose `applied` held the last acceptance's index, the mirror of `applied_at_the_first_index`, would pass"
@@ -433,7 +987,20 @@
    "tests/property/extrapolation_strategies.py::<module>::st.text(max_size=4)#2": "the strings inside a list or an object given as a `law` or an ignored member (`NOT_TEXT`); no rule reads them, and the kinds are held by `a_list_taken_as_a_law` and `an_object_taken_as_a_law`",
    "tests/property/extrapolation_strategies.py::<module>::st.text(max_size=4)#3": "the strings inside a list or an object given as a `law` or an ignored member (`NOT_TEXT`); no rule reads them, and the kinds are held by `a_list_taken_as_a_law` and `an_object_taken_as_a_law`",
    "tests/property/extrapolation_strategies.py::<module>::st.text(max_size=8)": "a string as the value of a member a read ignores (`IGNORED`: `basis`, `reason`, an unknown or slipped member), read alike whatever it holds (HP26's `basis_and_reason_any`)",
-   "tests/property/extrapolation_strategies.py::<module>::st.text(min_size=1, max_size=12)": "the `law`, text of at least one character that a reader does not judge (`declarations.md` section 4.1); its draws outside ASCII are held by `a_law_outside_ascii_refused`, and white space alone is drawn apart (`WHITE_SPACE`)"
+   "tests/property/extrapolation_strategies.py::<module>::st.text(min_size=1, max_size=12)": "the `law`, text of at least one character that a reader does not judge (`declarations.md` section 4.1); its draws outside ASCII are held by `a_law_outside_ascii_refused`, and white space alone is drawn apart (`WHITE_SPACE`)",
+   "tests/property/extrapolation_strategies.py::applied > draw(tables.range_reads(size, ('one_double_outside' if way == 'stated_w… > tests/property/table_read_strategies.py::range_reads::st.sampled_from(places)": "S3b-2's draw, for the table read `applied` draws: the read's place among those the drawn table holds for its way, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut",
+   "tests/property/extrapolation_strategies.py::elsewhere > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(places)": "S3b-2's draw, for the table read `elsewhere` draws: the read's place among those the drawn table holds for its way, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut",
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from([place for place in places if low < place < high and pl…": "S3b-2's draw, for the table read `monotone_worlds` draws: a place strictly inside the readable range, at no edge, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut",
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(places)": "S3b-2's draw, for the table read `monotone_worlds` draws: the read's place among those the drawn table holds for its way, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut",
+   "tests/property/extrapolation_strategies.py::monotone_worlds > draw(tables.met_worlds(size, ways)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(sorted({end for end in (low, high) if end not in table.…": "S3b-2's draw, for the table read `monotone_worlds` draws: an end of the readable range that is no edge, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut",
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.edge_reads(size, (way,))) > tests/property/table_read_strategies.py::an_edge_strictly_inside::st.sampled_from(strictly_inside_edges(table))": "S3b-2's draw, for the table read `not_applied` draws: an edge strictly inside the readable range, a list computed from the drawn table at every call, so no value recurs for a drop to name; the ways at an edge are cut",
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.edge_reads(size, (way,))) > tests/property/table_read_strategies.py::edge_reads::st.sampled_from(sorted({place for place in beyond if place not in table…": "S3b-2's draw, for the table read `not_applied` draws: the place beyond an edge for a read across it (one double past the edge, or `x`'s end on that side), a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut",
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(places)": "S3b-2's draw, for the table read `not_applied` draws: the read's place among those the drawn table holds for its way, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut",
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, tables.RANGE_WAYS[:2])) > tests/property/table_read_strategies.py::range_reads::st.sampled_from([place for place in places if low < place < high and pl…": "S3b-2's draw, for the table read `not_applied` draws: a place strictly inside the readable range, at no edge, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut",
+   "tests/property/extrapolation_strategies.py::not_applied > draw(tables.range_reads(size, tables.RANGE_WAYS[:2])) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(sorted({end for end in (low, high) if end not in table.…": "S3b-2's draw, for the table read `not_applied` draws: an end of the readable range that is no edge, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut",
+   "tests/property/extrapolation_strategies.py::read_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(places)": "S3b-2's draw, for the table read `read_shapes` draws: the read's place among those the drawn table holds for its way, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut",
+   "tests/property/extrapolation_strategies.py::refused_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(places)": "S3b-2's draw, for the table read `refused_shapes` draws: the read's place among those the drawn table holds for its way, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut",
+   "tests/property/extrapolation_strategies.py::two > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(places)": "S3b-2's draw, for the table read `two` draws: the read's place among those the drawn table holds for its way, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut"
   }
  }
 }
