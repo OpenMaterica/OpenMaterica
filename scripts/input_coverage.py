@@ -9,7 +9,8 @@ derandomized, with `PYTHONHASHSEED=0`, `-n WORKERS --dist worksteal` a cut, and 
 worker the cuts share.
 
 - `list` runs the selection once with no cut, recording the sites it reaches; that run must pass. It prints
-  each site the `--sites` patterns match (`fnmatch` on its name) with its cuts, and each draw it cannot cut.
+  each site the `--sites` patterns take with its cuts, and each draw it cannot cut: a pattern is `fnmatch` on
+  a site's name, one beginning with `!` leaves out what it matches, and the last pattern that matches decides.
 - `run` does the same, then runs each cut as its own process, `--parallel` at a time, stopping at the first
   test that fails (the plugin stops pytest; this script ends the process group at once), and records each
   cut's result in the report (`--report`, JSON, written after each cut): `held` (the first test that failed,
@@ -124,6 +125,18 @@ def cuts_of(site: str, seen: Json) -> tuple[list[Json], str | None]:
     for cut in cuts:
         cut["name"] = cut_name(site, cut["change"], cut["key"])
     return cuts, why
+
+
+def taken(site: str, patterns: Sequence[str]) -> bool:
+    """Whether a selection's `sites` patterns take a site: the last pattern that matches it decides, and one
+    beginning with `!` leaves out what it matches."""
+    chosen = False
+    for pattern in patterns:
+        if pattern.startswith("!"):
+            chosen = chosen and not fnmatch.fnmatchcase(site, pattern[1:])
+        elif fnmatch.fnmatchcase(site, pattern):
+            chosen = True
+    return chosen
 
 
 def merged(out: Path) -> tuple[dict[str, Json], list[str]]:
@@ -283,7 +296,7 @@ def recorded(args: argparse.Namespace, selection: Json, report: Json) -> bool:
     report["record_seconds"] = round(seconds, 1)
     report["sites"], report["uncut"], report["cuts"] = {}, {}, {}
     for site, seen in sorted(sites.items()):
-        if not any(fnmatch.fnmatchcase(site, pattern) for pattern in selection["sites"]):
+        if not taken(site, selection["sites"]):
             continue
         cuts, uncut = cuts_of(site, seen)
         if uncut is not None:
@@ -297,7 +310,7 @@ def recorded(args: argparse.Namespace, selection: Json, report: Json) -> bool:
         for cut in cuts:
             report["cuts"][cut.pop("name")] = cut
     for call in randoms:
-        if any(fnmatch.fnmatchcase(call, pattern) for pattern in selection["sites"]):
+        if taken(call, selection["sites"]):
             report["uncut"][call] = "random"
     made: dict[str, Json] = report["cuts"]
     for cut in made.values():
@@ -411,7 +424,7 @@ def imported(path: Path, root: Path) -> set[str]:
 def importers_not_listed(root: Path, entry: Json) -> list[str]:
     """The test modules under `tests/` importing a module whose sites a selection holds (by the path of its
     `sites` patterns) that the selection neither names (the module, or a test in it) nor excuses."""
-    modules = {pattern.partition("::")[0] for pattern in entry["sites"]}
+    modules = {pattern.partition("::")[0] for pattern in entry["sites"] if not pattern.startswith("!")}
     listed = {test.partition("::")[0] for test in entry["tests"]} | set(entry.get("excused", {}))
     found: list[str] = []
     for path in sorted((root / "tests").rglob("test_*.py")):
@@ -455,7 +468,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("command", choices=("list", "run", "check"))
     parser.add_argument("name", nargs="?", help="a selection of the baseline")
     parser.add_argument("--tests", nargs="+", help="the pytest arguments that select the tests")
-    parser.add_argument("--sites", nargs="+", help="fnmatch patterns of the sites to cut")
+    parser.add_argument("--sites", nargs="+", help="fnmatch patterns of the sites to cut (`!`: leave out)")
     parser.add_argument("--baseline", default=str(BASELINE))
     parser.add_argument("--report", help="the report, JSON: read where it exists, and written")
     parser.add_argument("--profile", default="ci")

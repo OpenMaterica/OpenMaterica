@@ -360,6 +360,25 @@ def test_a_site_keeps_its_name_when_lines_around_it_move(tmp_path: Path) -> None
     )
 
 
+def test_a_pattern_beginning_with_an_exclamation_mark_leaves_out_what_it_matches(tmp_path: Path) -> None:
+    root = tree(tmp_path, {"test_everything.py": EVERYTHING})
+    helper = "tests/test_everything.py::helper::st.sampled_from(['p', 'q'])"
+    everything, other = (f"tests/test_everything.py::{owner} > helper(draw) > {helper}" for owner in OWNERS)
+    _, report, _ = check(root, "list", "test_everything.py")
+    # The control: both owners' draws of the helper are taken by the selection's pattern alone.
+    assert {everything, other} <= set(report["sites"])
+    sites = ["tests/test_everything.py::*", "!* > tests/test_everything.py::helper::*", "*::other > *"]
+    _, narrowed, output = check(root, "list", "test_everything.py", {"sites": sites}, report="narrowed.json")
+    assert other in narrowed["sites"], output
+    assert everything not in narrowed["sites"]
+    assert not [name for name in narrowed["cuts"] if name.startswith(everything)]
+    assert set(narrowed["sites"]) == set(report["sites"]) - {everything}
+    assert narrowed["uncut"] == report["uncut"]
+
+
+OWNERS = ("everything", "other")
+
+
 def seen(kind: str, **tables: dict[str, int]) -> dict[str, Any]:
     return {
         "kind": kind,
