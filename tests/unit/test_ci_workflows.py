@@ -9415,7 +9415,7 @@ def another_input(found: Workflow) -> None:
 
 
 def a_kind_more(found: Workflow) -> None:
-    dispatch(found)["workflow_dispatch"]["inputs"]["kind"]["options"].append("cuts")
+    dispatch(found)["workflow_dispatch"]["inputs"]["kind"]["options"].append("streams")
 
 
 @pytest.mark.parametrize(
@@ -9792,7 +9792,7 @@ def test_the_measure_steps_as_written_measure_and_the_report_refuses_what_is_mis
         ("selection", "tests/property/test_missing.py", "names no file or directory"),
         ("selection", "tests/property/x.py;touch ran", "not a path or node"),
         ("count", "$(touch ran)", "not a whole number"),
-        ("kind", "cuts", "the kind 'cuts' is not one of"),
+        ("kind", "streams", "the kind 'streams' is not one of"),
     ],
 )
 def test_the_measure_request_refuses_an_input_before_any_job(
@@ -9813,6 +9813,44 @@ def test_a_pull_request_asks_for_the_self_test(tmp_path: Path) -> None:
         step(found["jobs"]["request"], MEASURE_CHECK), context, REPOSITORY, environment, tmp_path
     )
     assert (status, checked["kind"]) == (0, "self")
+
+
+@pytest.mark.parametrize(
+    ("selection", "slices"),
+    [
+        ("extrapolation", ["extrapolation"]),
+        ("all:whole", ["table_alternatives:whole", "extrapolation:whole"]),
+    ],
+)
+def test_a_cut_dispatch_makes_the_slices_of_each_selection_its_timing_plans(
+    tmp_path: Path, selection: str, slices: list[str]
+) -> None:
+    found = workflow(MEASURE)
+    environment = runner(tmp_path, UV_RUN_LOCKED)
+    context: dict[str, object] = {f"inputs.{name}": value for name, value in MEASURE_REQUESTED.items()}
+    context |= {
+        "github.event_name": "workflow_dispatch",
+        "inputs.kind": "cuts",
+        "inputs.selection": selection,
+    }
+    context |= {"inputs.count": ""}
+    request = found["jobs"]["request"]
+    status, checked, printed = run_step(
+        step(request, MEASURE_CHECK), context, REPOSITORY, environment, tmp_path
+    )
+    assert status == 0, printed
+    context |= {f"steps.checked.outputs.{name}": value for name, value in checked.items()}
+    status, jobs, printed = run_step(step(request, MEASURE_JOBS), context, REPOSITORY, environment, tmp_path)
+    assert status == 0, printed
+    made = [measure.job_from(json.dumps(each)) for each in json.loads(jobs["matrix"])]
+    baseline = measure.baseline_of(REPOSITORY)
+    for name in slices:
+        entry = baseline[name.partition(":")[0]]
+        cuts = entry["timing"]["cuts"] + (entry["left_out"]["cuts"] if name.endswith(":whole") else 0)
+        planned = math.ceil(cuts * entry["timing"]["seconds"] / (0.5 * 120 * 60 * 2))
+        mine = [job for job in made if job.nodes == name]
+        assert [(job.first, job.length) for job in mine] == [(part, planned) for part in range(planned)]
+    assert {job.nodes for job in made} == set(slices)
 
 
 # --- claims.yml -------------------------------------------------------------------------------------------

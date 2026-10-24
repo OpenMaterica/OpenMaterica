@@ -7,8 +7,9 @@ counts and judgement; only the machine changes).
     uv run python scripts/measure.py drift NODE ... [--streams N]           # 40
     uv run python scripts/measure.py regions NODE ... --base REF [--streams N]  # 18, and the kills
     uv run python scripts/measure.py fuzz CONTROL[:none] ... [--runs N]      # 10, on Python 3.12 to 3.14
+    uv run python scripts/measure.py cuts SELECTION[:whole] ...               # or `all`
     python3 scripts/measure.py report RECORD_OR_DIRECTORY ...
-    python3 scripts/measure.py fetch RUN_ID                                  # a CI run's records, reported
+    python3 scripts/measure.py fetch RUN_ID [--out DIRECTORY]                # a CI run's records, reported
 
 Each kind splits into jobs, and each job writes one record (`record.json`: its inputs, the commit, the Python,
 the Hypothesis version, the profile, the streams or runs, the raw counts and the timings); `report` merges
@@ -30,6 +31,11 @@ records into one table a kind. Locally the jobs run one after another; on CI eac
 - `fuzz`: a seeded fuzz control run R times as `ci.yml`'s control step runs it (`CONTROLS`), each in a job of
   its own: each run's find, seconds and inputs; the rate a second and a million inputs; the miss chance of a
   pair and of CI's runs at the fitted rate. `CONTROL:none` runs it with no fault seeded.
+- `cuts`: the cuts of `scripts/input_coverage.py`'s selections (`all`, or names of its baseline; `NAME:whole`
+  without the selection's `!` patterns, so that the cuts they leave out run too), each selection's cuts split
+  into jobs of about equal time by its longest cut measured (the baseline's `timing`), a slice each: each job
+  records the selection and runs its slice, two cuts at once; the report merges the slices into the
+  selection's report and holds it to the baseline (`input_coverage.py check`), a finding a flag.
 
 A run of a test is its own: the test's checks run, and a failing check ends that stream's run, recorded as
 such; the audit's judgement is skipped and its counts kept. Stream 0 is the test's own derandomised stream;
@@ -73,6 +79,16 @@ MAX_JOBS = 256  # GitHub's matrix
 MAX_STREAMS = 200
 MAX_RUNS = 50
 PYTHONS = ("3.11", "3.12", "3.13", "3.14", "3.15")
+# The cut kind (`scripts/input_coverage.py`): workers a cut and cuts at once on GitHub's runner of four vCPUs,
+# the minutes of its job, and the share of them its cuts are planned to fill, by the selection's longest cut
+# measured; the rest is the selection's recording and a margin for a runner slower than the one measured on.
+CUT_WORKERS = 2
+CUTS_AT_ONCE = 2
+CUT_JOB_MINUTES = 120
+CUT_PLANNED = 0.5
+ALL, WHOLE_SELECTION = "all", "whole"
+BASELINE = Path("tests/property/input_coverage_baseline.json")
+PATTERN = re.compile(r"[\x21-\x7e]+")
 FUZZ_PYTHON = "3.14"  # Atheris 3.1.0's wheels: 3.12 to 3.14
 PROFILE = "ci"
 
@@ -187,7 +203,8 @@ SELF_FLOORS_STREAM_0 = {
 # each kind at its rule's count on one small selection, with the answer it must give: stream 0 the recorded
 # kill; a tree against itself
 # every share's ratio 1 and every kill the recorded one; the fastest control finding its fault, and finding
-# nothing with none seeded.
+# nothing with none seeded; and the cuts of one site, a `one_of` S3c builds at module level (its selection's
+# name, then the cuts' pattern), one held and one not, each with the baseline's result.
 SELF_TEST: tuple[tuple[str, str, str], ...] = (
     (
         "floors",
@@ -203,23 +220,26 @@ SELF_TEST: tuple[tuple[str, str, str], ...] = (
     ("regions", "tests/property/test_slip_properties.py", "ratio_one"),
     ("fuzz", "properties", "finds"),
     ("fuzz", f"properties:{NO_FAULT}", "no_finds"),
+    ("cuts", "extrapolation *::<module>::st.one_of(NOT_TEXT,*", "baseline"),
 )
 
 
 class Job(NamedTuple):
-    """One job of the matrix: what it measures and over which streams (or which run), as text."""
+    """One job of the matrix: what it measures and over which streams (or which run, or which slice of a
+    selection's cuts), as text."""
 
     id: str
-    kind: str  # floors, drift, regions, kills or fuzz
-    nodes: str = ""  # pytest node ids, space-separated
+    kind: str  # floors, drift, regions, kills, fuzz or cuts
+    nodes: str = ""  # pytest node ids, space-separated; for cuts, a selection, `NAME` or `NAME:whole`
     first: int = 0
-    length: int = 1  # streams, from `first`; a fuzz job's run is `first`
+    length: int = 1  # streams, from `first`; a fuzz job's run is `first`; cuts: slice `first` of `length`
     side: str = "head"  # regions: base or head
     base: str = ""  # regions and kills: the base commit
     control: str = ""
     fault: str = ""
     python: str = "3.15"
     expect: str = ""
+    scope: str = ""  # cuts: fnmatch patterns of the cuts to run, space-separated; all where empty
 
     def data(self) -> dict[str, object]:
         return dict(self._asdict())
@@ -254,8 +274,16 @@ def selection_problems(kind: str, words: Sequence[str], root: Path) -> list[str]
     if not words:
         return ["the selection is empty"]
     problems: list[str] = []
+    selections = baseline_of(root) if kind == "cuts" else {}
     for word in words:
-        if kind == "fuzz":
+        if kind == "cuts":
+            name, colon, whole = word.partition(":")
+            if (name != ALL and name not in selections) or (colon and whole != WHOLE_SELECTION):
+                problems.append(
+                    f"{word!r} is not {ALL} or a selection of {BASELINE} ({', '.join(selections)}),"
+                    f" alone or with :{WHOLE_SELECTION}"
+                )
+        elif kind == "fuzz":
             name, _, fault = word.partition(":")
             if name not in CONTROLS or fault not in ("", NO_FAULT):
                 problems.append(
@@ -286,10 +314,16 @@ def checked_request(environment: Mapping[str, str], root: Path) -> dict[str, str
         raise MeasureError(problems)
     words = environment.get("SELECTION", "").split()
     problems += selection_problems(kind, words, root)
-    count_text = environment.get("COUNT", "") or str(KINDS[kind].rule)
-    count = whole("the count", count_text, 1, MAX_RUNS if kind == "fuzz" else MAX_STREAMS, problems)
-    per_job = environment.get("PER_JOB", "")
-    if per_job and kind != "fuzz":
+    count, per_job = 0, environment.get("PER_JOB", "")
+    if kind == "cuts":
+        if environment.get("COUNT", "") or per_job:
+            problems.append(
+                "the cut kind takes no count and no streams a job: its jobs are its selections' slices"
+            )
+    else:
+        count_text = environment.get("COUNT", "") or str(KINDS[kind].rule)
+        count = whole("the count", count_text, 1, MAX_RUNS if kind == "fuzz" else MAX_STREAMS, problems)
+    if per_job and kind not in ("fuzz", "cuts"):
         whole("the streams a job", per_job, 1, count, problems)
     base = environment.get("BASE", "")
     if kind == "regions" and not REF.fullmatch(base):
@@ -302,8 +336,8 @@ def checked_request(environment: Mapping[str, str], root: Path) -> dict[str, str
     return {
         "kind": kind,
         "selection": " ".join(words),
-        "count": str(count),
-        "per_job": per_job if kind != "fuzz" else "",
+        "count": str(count) if kind != "cuts" else "",
+        "per_job": per_job if kind not in ("fuzz", "cuts") else "",
         "base": base if kind == "regions" else "",
         "python": FUZZ_PYTHON if kind == "fuzz" else python,
     }
@@ -343,27 +377,74 @@ def chunks(count: int, per_job: int) -> list[tuple[int, int]]:
     return [(first, min(per_job, count - first)) for first in range(0, count, per_job)]
 
 
+def baseline_of(root: Path) -> dict[str, Any]:
+    """The input coverage's selections (`scripts/input_coverage.py`'s baseline)."""
+    path = root / BASELINE
+    return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8"))) if path.exists() else {}
+
+
+def input_coverage(root: Path = REPOSITORY) -> Any:
+    """`scripts/input_coverage.py`, loaded from its file (standard library only, as this script)."""
+    spec = importlib.util.spec_from_file_location("input_coverage", root / "scripts" / "input_coverage.py")
+    if spec is None or spec.loader is None:
+        raise MeasureError(["scripts/input_coverage.py cannot be loaded"])
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def cut_jobs(
+    words: Sequence[str], python: str, root: Path, expect: str = "", scope: str = "", count: int = 0
+) -> list[Job]:
+    """The jobs of a cut request: each selection named (`all`, every one) split into slices of about equal
+    time, by the cuts its baseline's `timing` counts (with those its `!` patterns leave out, where whole) and
+    its longest cut measured, so that a slice's cuts fill `CUT_PLANNED` of its job's minutes at most; `count`
+    slices where given."""
+    baseline = baseline_of(root)
+    capacity = CUT_PLANNED * CUT_JOB_MINUTES * 60 * CUTS_AT_ONCE
+    named: list[tuple[str, str]] = []
+    for word in words:
+        name, _, whole = word.partition(":")
+        for each in baseline if name == ALL else [name]:
+            if (each, whole) not in named:
+                named.append((each, whole))
+    jobs: list[Job] = []
+    for name, whole in named:
+        entry = baseline[name]
+        timing: dict[str, Any] = entry["timing"]
+        cuts = timing["cuts"] + (entry["left_out"]["cuts"] if whole else 0)
+        slices = count or max(1, math.ceil(cuts * timing["seconds"] / capacity))
+        selection = f"{name}:{whole}" if whole else name
+        jobs += [
+            Job(
+                f"cuts-{selection.replace(':', '-')}-{part}",
+                "cuts",
+                selection,
+                part,
+                slices,
+                python=python,
+                expect=expect,
+                scope=scope,
+            )
+            for part in range(slices)
+        ]
+    return jobs
+
+
 def matrix(request: Mapping[str, str], root: Path = REPOSITORY) -> list[Job]:
     """The jobs a checked request makes: one a test function (a run of the base and one of the head for
-    regions, and one run of every mutant search) and stream chunk, or one a control's run."""
+    regions, and one run of every mutant search) and stream chunk, one a control's run, or one a slice of a
+    selection's cuts; on a pull request, the self-test."""
     kind = request["kind"]
     if kind == "self":
-        head = subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=True
-        ).stdout.strip()
-        jobs: list[Job] = []
-        for index, (each, selection, expect) in enumerate(SELF_TEST):
-            asked = {
-                "kind": each,
-                "selection": selection,
-                "count": str(KINDS[each].rule),
-                "per_job": "",
-                "base": head,
-                "python": FUZZ_PYTHON if each == "fuzz" else request["python"],
-            }
-            jobs += [job._replace(id=f"self{index}-{job.id}", expect=expect) for job in matrix(asked, root)]
+        return self_test(request["python"], root)
+    words = request["selection"].split()
+    if kind == "cuts":
+        jobs = cut_jobs(words, request["python"], root)
+        if len(jobs) > MAX_JOBS:
+            raise MeasureError([f"{len(jobs)} jobs, more than a matrix holds ({MAX_JOBS}): select less"])
         return jobs
-    words, count = request["selection"].split(), int(request["count"])
+    count = int(request["count"])
     if kind == "fuzz":
         return [
             Job(
@@ -410,6 +491,30 @@ def matrix(request: Mapping[str, str], root: Path = REPOSITORY) -> list[Job]:
     return jobs
 
 
+def self_test(python: str, root: Path) -> list[Job]:
+    """The self-test's jobs (`SELF_TEST`), each with its answer."""
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=True
+    ).stdout.strip()
+    jobs: list[Job] = []
+    for index, (each, selection, expect) in enumerate(SELF_TEST):
+        if each == "cuts":
+            name, _, scope = selection.partition(" ")
+            made = cut_jobs([name], python, root, expect=expect, scope=scope, count=1)
+        else:
+            asked = {
+                "kind": each,
+                "selection": selection,
+                "count": str(KINDS[each].rule),
+                "per_job": "",
+                "base": head,
+                "python": FUZZ_PYTHON if each == "fuzz" else python,
+            }
+            made = [job._replace(expect=expect) for job in matrix(asked, root)]
+        jobs += [job._replace(id=f"self{index}-{job.id}") for job in made]
+    return jobs
+
+
 def resolved(ref: str, root: Path) -> str:
     for name in (f"origin/{ref}", ref):
         done = subprocess.run(
@@ -446,6 +551,7 @@ def job_from(text: str) -> Job:
         text_of["fault"],
         text_of["python"],
         text_of["expect"],
+        text_of["scope"],
     )
     problems: list[str] = []
     if job.kind not in KINDS or job.python not in PYTHONS or job.side not in ("base", "head"):
@@ -458,6 +564,12 @@ def job_from(text: str) -> Job:
         problems.append(f"the job {job.id!r} has a base that is no commit")
     if job.kind in ("floors", "drift", "regions"):
         problems += selection_problems(job.kind, job.nodes.split(), REPOSITORY)
+    if job.kind == "cuts":
+        problems += selection_problems("cuts", [job.nodes], REPOSITORY)
+        if ALL in job.nodes.split(":") or not job.first < job.length:
+            problems.append(f"the job {job.id!r} is no slice of one selection's cuts")
+        if not all(PATTERN.fullmatch(pattern) for pattern in job.scope.split()):
+            problems.append(f"the job {job.id!r} has a scope that is no printable pattern")
     if problems:
         raise MeasureError(problems)
     return job
@@ -732,6 +844,64 @@ def run_fuzz(job: Job, out: Path, workers: int, root: Path = REPOSITORY, seconds
         "status": statuses[0],
         "problems": problems,
     }
+
+
+def cut_budget(job: Job, root: Path) -> float | None:
+    """The seconds after which a cut job starts no cut: those to the job's interrupt (three minutes before
+    its timeout, counted from its start, as the workflow gives them), less one and a half times the
+    selection's longest cut measured, so that the last cut started finishes before it. None outside CI."""
+    started, minutes = os.environ.get("JOB_STARTED", ""), os.environ.get("JOB_MINUTES", "")
+    if not (WHOLE.fullmatch(started) and WHOLE.fullmatch(minutes)):
+        return None
+    longest = float(baseline_of(root)[job.nodes.partition(":")[0]]["timing"]["seconds"])
+    return int(started) + (int(minutes) - 3) * 60 - time.time() - 1.5 * longest
+
+
+def run_cuts_job(job: Job, out: Path, workers: int, root: Path = REPOSITORY) -> dict[str, Any]:
+    """A slice of a selection's cuts: `scripts/input_coverage.py run` with the slice and the job's scope as
+    the report's share, `CUT_WORKERS` workers a cut and as many cuts at once as the workers allow; the report,
+    with every cut of the share's result, and the selection's baseline entry at this commit are the record's.
+    Its problems: the selection not recorded (it fails with no cut), a cut of the share not run in the job's
+    time, an interrupt, the tool's own failure. A cut not held that the baseline does not list is a finding of
+    the report, not of the job."""
+    name, _, whole = job.nodes.partition(":")
+    report_path = out / "report.json"
+    command = [
+        sys.executable,
+        str(root / "scripts" / "input_coverage.py"),
+        "run",
+        name,
+        *("--report", str(report_path), "--root", str(root), "--baseline", str(root / BASELINE)),
+        *("--workers", str(CUT_WORKERS), "--parallel", str(max(1, workers // CUT_WORKERS))),
+        *("--slice", f"{job.first}/{job.length}"),
+    ]
+    if whole:
+        command.append("--whole")
+    if job.scope:
+        command += ["--scope", *job.scope.split()]
+    budget = cut_budget(job, root)
+    if budget is not None:
+        command += ["--budget", str(max(0, int(budget)))]
+    with (out / "input-coverage.log").open("wb") as log:
+        process = subprocess.Popen(command, cwd=root, stdout=log, stderr=subprocess.STDOUT)
+        statuses, problems = waited([process])
+    report: dict[str, Any] | None = None
+    if report_path.exists():
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        report_path.unlink()
+    if report is None or "cuts" not in report:
+        problems.append(
+            "the selection was not recorded: it fails with no cut, or the tool failed (input-coverage.log)"
+        )
+    else:
+        share = input_coverage(root).shared(report)
+        left = sum("result" not in report["cuts"][name] for name in share)
+        if left:
+            problems.append(f"{left} of the {len(share)} cuts of the job's share not run in its time")
+    if statuses[0] not in (0, 1, 2) and not problems:
+        problems.append(f"scripts/input_coverage.py exited {statuses[0]} (input-coverage.log)")
+    entry: dict[str, Any] = baseline_of(root).get(name, {})
+    return {"commit": git_commit(root), "report": report, "baseline": entry, "problems": problems}
 
 
 def hypothesis_version(runs: Sequence[dict[str, Any]]) -> str:
@@ -1259,12 +1429,88 @@ def reported_under_regions(records: list[dict[str, Any]]) -> tuple[list[str], li
     return [], []
 
 
+CUT_RESULTS = ("held", "not held", "empty", "invalid", "not applied", "error", "not run")
+
+
+def cut_groups(records: Sequence[dict[str, Any]]) -> dict[tuple[str, str], list[dict[str, Any]]]:
+    """The cut kind's records by selection and scope: the slices of one report each."""
+    groups: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for record in records:
+        if record["job"]["kind"] == "cuts":
+            groups[(record["job"]["nodes"], record["job"]["scope"])].append(record)
+    return dict(sorted(groups.items()))
+
+
+def merged_cuts(group: Sequence[dict[str, Any]]) -> tuple[dict[str, Any] | None, list[str]]:
+    """A selection's report merged from its slices' records, and where they do not make one: a slice that
+    recorded nothing, slices that recorded other cuts, a slice missing or doubled."""
+    reports = [record["report"] for record in group if record.get("report")]
+    if not reports:
+        return None, ["no slice recorded the selection"]
+    merged, problems = input_coverage().merged_reports(reports)
+    return merged, list(problems)
+
+
+def report_cuts(records: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
+    """A row a selection (and scope): its sites, its cuts by result, its uncut draws and what its `!`
+    patterns leave out, merged from its slices; every place it and the baseline disagree a flag."""
+    lines = [
+        "| Selection | Scope | Slices | Sites | Cuts | "
+        + " | ".join(result.capitalize() for result in CUT_RESULTS)
+        + " | Uncut | Left out (sites, cuts, uncut) |",
+        "|---|---|---:|---:|---:|" + "---:|" * len(CUT_RESULTS) + "---:|---|",
+    ]
+    flags: list[str] = []
+    module = input_coverage()
+    for (selection, scope), group in cut_groups(records).items():
+        merged, _ = merged_cuts(group)
+        if merged is None:
+            flags.append(f"{selection}: no slice recorded the selection")
+            continue
+        counts = module.results(merged)
+        left: dict[str, int] = merged.get("left_out") or {}
+        lines.append(
+            row(
+                f"`{selection}`",
+                " ".join(f"`{pattern}`" for pattern in scope.split()) or "all",
+                len(group),
+                len(merged["sites"]),
+                sum(counts[result] for result in CUT_RESULTS),
+                *(counts[result] for result in CUT_RESULTS),
+                len(merged["uncut"]),
+                f"{left.get('sites', 0)}, {left.get('cuts', 0)}, {left.get('uncut', 0)}",
+            )
+        )
+        flags += [
+            f"{selection}: {problem}" for problem in module.problems(merged, group[0].get("baseline", {}))
+        ]
+    return lines, flags
+
+
+def cut_problems(records: Sequence[dict[str, Any]]) -> list[str]:
+    """Where the cut kind's records do not make one report a selection (`merged_cuts`), and, of a job whose
+    answer is the baseline (a pull request's), each place its slice and the baseline disagree."""
+    problems: list[str] = []
+    for (selection, _), group in cut_groups(records).items():
+        merged, found = merged_cuts(group)
+        problems += [f"{selection}: {problem}" for problem in found]
+        if merged is not None and any(record["job"]["expect"] == "baseline" for record in group):
+            entry = group[0].get("baseline", {})
+            problems += [
+                f"{selection}, held to the baseline: {each}"
+                for each in input_coverage().problems(merged, entry)
+            ]
+    return problems
+
+
 KINDS: dict[str, Kind] = {
     "floors": Kind(20, run_pytest_kind, report_floors),
     "drift": Kind(40, run_pytest_kind, report_drift),
     "regions": Kind(18, run_pytest_kind, report_regions),
     "kills": Kind(1, run_kills, reported_under_regions),
     "fuzz": Kind(10, run_fuzz, report_fuzz),
+    # No count: a selection's cuts are run each once.
+    "cuts": Kind(0, run_cuts_job, report_cuts),
 }
 # The kinds a request may name; `kills` runs within regions.
 REQUESTABLE = tuple(kind for kind in KINDS if kind != "kills")
@@ -1421,7 +1667,7 @@ def summary(directory: Path, jobs: Sequence[Job], result: str, attempt: int) -> 
         f"job {record['job']['id']}: {problem}" for record in found for problem in record.get("problems", [])
     ]
     text, flags = report(found)
-    problems += expectations(found, flags)
+    problems += expectations(found, flags) + cut_problems(found)
     if result != "success":
         problems.append(f"the measurement jobs ended in {result!r}")
     if attempt != 1:
@@ -1516,9 +1762,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     for kind in REQUESTABLE:
         each = commands.add_parser(kind, help=f"measure {kind} here")
         each.add_argument("selection", nargs="+")
-        each.add_argument(
-            "--streams" if kind != "fuzz" else "--runs", type=int, default=KINDS[kind].rule, dest="count"
-        )
+        if KINDS[kind].rule:
+            each.add_argument(
+                "--streams" if kind != "fuzz" else "--runs", type=int, default=KINDS[kind].rule, dest="count"
+            )
         each.add_argument("--workers", type=int, default=8)
         each.add_argument("--out", type=Path)
         if kind == "regions":
@@ -1537,6 +1784,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     summing.add_argument("output", type=Path)
     fetching = commands.add_parser("fetch", help="a CI run's records, downloaded and reported")
     fetching.add_argument("run")
+    fetching.add_argument("--out", type=Path, help="the directory to download into (a new one by default)")
     arguments = parser.parse_args(argv)
     try:
         if arguments.command in REQUESTABLE:
@@ -1544,7 +1792,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return local(
                 arguments.command,
                 arguments.selection,
-                arguments.count,
+                getattr(arguments, "count", 0),
                 getattr(arguments, "base", ""),
                 out,
                 arguments.workers,
@@ -1565,7 +1813,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             job = job_from(os.environ.get("JOB", ""))
             record = run_job(job, arguments.directory, arguments.workers)
             print(
-                json.dumps({key: value for key, value in record.items() if key not in ("runs", "measured")})
+                json.dumps(
+                    {key: value for key, value in record.items() if key not in ("runs", "measured", "report")}
+                )
             )
             return 1 if record.get("problems") else 0
         elif arguments.command == "report":
@@ -1589,16 +1839,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(text)
             return 0 if ok else 1
         else:
-            directory = Path(tempfile.mkdtemp(prefix="measure-fetch-"))
+            directory = arguments.out or Path(tempfile.mkdtemp(prefix="measure-fetch-"))
+            directory.mkdir(parents=True, exist_ok=True)
             missing = fetched(arguments.run, directory)
             found = records_in([directory])
             print(report(found)[0])
+            print(f"records: {directory}")
             matrices = sorted(directory.rglob(MATRIX_FILE))
             problems = [f"{len(missing)} artifacts not downloaded: {', '.join(missing)}"] if missing else []
             if matrices:
                 problems += counted_against(json.loads(matrices[0].read_text(encoding="utf-8")), found)
             else:
                 problems.append("the run kept no table, so its records are not counted against its matrix")
+            problems += cut_problems(found)
             if problems:
                 print("\nThis report is partial or wrong:")
                 print("\n".join(f"- {problem}" for problem in problems))

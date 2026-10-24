@@ -200,8 +200,8 @@ Never re-run a mutant table's jobs: dispatch it anew, as the table fails on any 
 ## Measurements on CI
 
 The measurements a property piece makes before review (floors at the variance measured, kill drift over
-streams, regions of a base against the head, a fuzz control's rate) run on CI as a matrix, with the counts and
-judgement of a local run (maintainer, 2026-10-23). `scripts/measure.py` runs each kind the same way here, at a
+streams, regions of a base against the head, a fuzz control's rate, the input coverage's cuts) run on CI as a
+matrix, with the counts and judgement of a local run (maintainer, 2026-10-23). `scripts/measure.py` runs each kind the same way here, at a
 small scale, and in each of `measure.yml`'s jobs; `.github/workflows/README.md` says what each job does.
 
 | Kind | Measures | Count (the rule's default) | A job |
@@ -210,6 +210,7 @@ small scale, and in each of `measure.yml`'s jobs; `.github/workflows/README.md` 
 | `drift` | each mutant search over streams: its kill, whether it died where it names, the latest, stream 0 against `kill_points.json`, a kill from the 400th example (near the guard) or past the 500th | 40 streams | a search function, each of its selected mutants at each size |
 | `regions` | each recorded feature's mean share at the head against the base's (flagged below 0.8) and its least share against its floor; and every mutant search at the head, its kills against the base's and the head's records | 18 streams | a function on one side, the base exported into an environment of its own; one job runs the searches |
 | `fuzz` | a seeded control run as `ci.yml`'s control step runs it: each run's find, seconds and inputs, the rate a second and a million inputs, and the miss of a pair and of CI's runs at the fitted rate | 10 runs | one run, with the runner to itself |
+| `cuts` | each cut of an input coverage selection (`tests/property/README.md`, "Every draw is held"): held, not held, empty, invalid, not applied or in error, the uncut draws and what the `!` patterns leave out, merged from the slices and held to the baseline; a disagreement is a flag on a dispatch and a failure in the self-test | each cut once | a slice of a selection's cuts, of about equal time by the baseline's `timing`: the selection recorded, then its cuts two at once |
 
 Locally, under the heavy-run lock, at a small scale (two streams, one function):
 
@@ -218,6 +219,7 @@ uv run python scripts/measure.py floors tests/property/test_x_properties.py::tes
 uv run python scripts/measure.py drift 'tests/property/test_x_mutants.py::test_k[m-small]' --streams 2
 uv run python scripts/measure.py regions tests/property/test_x_properties.py --base main --streams 2
 UV_PROJECT_ENVIRONMENT=<an environment> uv run --python 3.14 python scripts/measure.py fuzz properties --runs 1
+uv run python scripts/measure.py cuts extrapolation          # every slice of a selection, one after another
 ```
 
 On CI, at the rule's counts, on a pushed branch (through the main session):
@@ -227,17 +229,21 @@ gh workflow run measure.yml --ref <branch> -f kind=floors -f selection="tests/pr
 gh workflow run measure.yml --ref <branch> -f kind=regions -f selection="tests/property/test_x_properties.py" \
   -f base=main
 gh workflow run measure.yml --ref <branch> -f kind=fuzz -f selection="table_alternatives properties:none"
+gh workflow run measure.yml --ref <branch> -f kind=cuts -f selection="all:whole"
 gh run watch <id> --exit-status
-uv run python scripts/measure.py fetch <id>     # the records, downloaded and reported as a local run's
+uv run python scripts/measure.py fetch <id> --out <directory>   # the records, downloaded and reported
+uv run python scripts/input_coverage.py check <selection> --records <directory>   # a selection, held to the baseline
 ```
 
 GitHub dispatches a workflow only once the default branch holds it; before that, a pull request that changes
-the workflow or its script runs its self-test, each kind at its rule's count on one small selection, with the answer it must give.
+the workflow or its script runs its self-test, each kind on one small selection, with the answer it must give.
 
 The inputs: `kind`; `selection`, paths or nodes under `tests/property` (property tests for floors and regions,
-mutant searches for drift), or for fuzz the controls of `CONTROLS`, each alone or as `NAME:none`, its commands
-with no fault seeded; `count`, streams or runs, the rule's by default; `per_job`, streams a job, all of a
-function's by default; `base`, for regions; `python`. The base of a regions run must be a commit that registers the `deep_controls` marker and holds
+mutant searches for drift), for fuzz the controls of `CONTROLS`, each alone or as `NAME:none`, its commands
+with no fault seeded, or for cuts `all` or selections of `tests/property/input_coverage_baseline.json`, each
+alone or as `NAME:whole`, without its `!` patterns; `count`, streams or runs, the rule's by default (none for
+cuts); `per_job`, streams a job, all of a function's by default (none for cuts); `base`, for regions;
+`python`. The base of a regions run must be a commit that registers the `deep_controls` marker and holds
 `tests/property/kill_points.json` (2026-10-21 and later); an older one cannot be measured. A count below the rule's is reported as such: it
 measures, and does not meet the rule. Each job keeps its record (`record.json`: the job, the commit, the
 Python, the Hypothesis version, the profile, the streams, the raw counts and the timings); the `report` job

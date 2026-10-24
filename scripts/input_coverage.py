@@ -3,10 +3,11 @@
 cuts no test holds compared with the baseline (`tests/property/README.md`, "Every draw is held").
 
 A selection is a set of tests and the sites whose draws they are to hold: a name in the baseline
-(`tests/property/input_coverage_baseline.json`), or `--tests` and `--sites` given here. The tests run with
-the plugin `tests/property/input_coverage.py` (`-p`), at the profile given (`ci` unless `--profile`),
-derandomized, with `PYTHONHASHSEED=0`, `-n WORKERS --dist worksteal` a cut, and the run with no cut on every
-worker the cuts share.
+(`tests/property/input_coverage_baseline.json`), or `--tests` and `--sites` given here; with `--whole`,
+without its `!` patterns, so that what they leave out is cut too. The tests run with the plugin
+`tests/property/input_coverage.py` (`-p`), at the profile given (`ci` unless `--profile`), derandomized, with
+`PYTHONHASHSEED=0`, `-n WORKERS --dist worksteal` a cut, and the run with no cut on every worker the cuts
+share.
 
 - `list` runs the selection once with no cut, recording the sites it reaches; that run must pass. It prints
   each site the `--sites` patterns take with its cuts, and each draw it cannot cut: a pattern is `fnmatch` on
@@ -20,14 +21,19 @@ worker the cuts share.
   the draws' rejection audit), `empty` (every call the cut reached would have had nothing left to draw),
   `not applied` (no call reached) or `error` (a failure with the cut applied nowhere, a time out, or no
   outcome). Given a report that holds results, it runs only the cuts without one, or of those only the ones
-  `--only` patterns match; with `--budget SECONDS`, it starts no cut once that much time has gone. It exits 2
-  while cuts are left.
+  `--only` patterns match; with `--budget SECONDS`, it starts no cut once that much time has gone since the
+  command started. It exits 2 while cuts are left. A report may be a share of the selection's cuts: those its
+  `--scope` patterns match, and of those, with `--slice K/N`, every Nth from the Kth (`shared`); a run runs
+  the share's cuts alone, and a check judges them alone. The share is part of the report, and a report of
+  another share is refused.
 - `check` compares a finished report with the baseline: it exits 1, naming each, on a cut not held that the
   baseline does not list with that result, a cut the baseline lists that is now held or no longer made, a
   draw it cannot cut that the baseline does not list, and a baseline entry for one no longer drawn: an entry
   cannot outlive its gap. It exits 1 too where the counts of what the `!` patterns leave out differ from the
   baseline's `left_out`, so that a draw added to what a selection leaves out is not dropped unseen. `run` ends
-  with the same check once every cut has run.
+  with the same check once every cut has run. With `--records DIRECTORY` in place of `--report`, it checks the
+  report merged from the slices of `.github/workflows/measure.yml`'s cut kind (`merged_reports`), as
+  `scripts/measure.py fetch` downloads them, and fails too where they do not make one report.
 
 The cuts of a site (`cuts_of`): each value of `sampled_from` and `booleans`, and each option of `one_of` and
 `|`, dropped in turn (a value's key is unique within its call); a range of `integers` or `floats` pinned to
@@ -48,6 +54,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections import Counter
 from collections.abc import Sequence
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from pathlib import Path
@@ -355,20 +362,34 @@ def run_cut(args: argparse.Namespace, selection: Json, cut: Json) -> Json:
     }
 
 
+def shared(report: Json) -> list[str]:
+    """The cuts of the report's share: those its scope's patterns match (all, with no scope), and of those, in
+    a slice K of N, every Nth from the Kth."""
+    share: Json = report.get("share") or {}
+    scope: list[str] | None = share.get("scope")
+    names = [
+        name
+        for name in report["cuts"]
+        if scope is None or any(fnmatch.fnmatchcase(name, pattern) for pattern in scope)
+    ]
+    part: list[int] | None = share.get("slice")
+    return names if part is None else names[part[0] :: part[1]]
+
+
 def run_cuts(args: argparse.Namespace, selection: Json, report: Json, path: Path) -> int:
-    """Each cut not yet run, `--parallel` at a time, the report written after each; 2 where the budget ran
-    out first."""
-    started = time.monotonic()
+    """Each cut of the report's share not yet run, `--parallel` at a time, the report written after each; 2
+    where the budget ran out first."""
     patterns = args.only or ["*"]
     waiting = [
         name
-        for name, cut in report["cuts"].items()
-        if "result" not in cut and any(fnmatch.fnmatchcase(name, pattern) for pattern in patterns)
+        for name in shared(report)
+        if "result" not in report["cuts"][name]
+        and any(fnmatch.fnmatchcase(name, pattern) for pattern in patterns)
     ]
     running: dict[Future[Json], str] = {}
     with ThreadPoolExecutor(args.parallel) as pool:
         while waiting or running:
-            spent = args.budget is not None and time.monotonic() - started > args.budget
+            spent = args.budget is not None and time.monotonic() - args.started > args.budget
             while waiting and len(running) < args.parallel and not spent:
                 name = waiting.pop(0)
                 running[pool.submit(run_cut, args, selection, report["cuts"][name])] = name
@@ -381,7 +402,7 @@ def run_cuts(args: argparse.Namespace, selection: Json, report: Json, path: Path
                 cut.update(future.result())
                 print(f"{cut['result']:>11}  {cut['seconds']:6.1f} s  {name}", flush=True)
                 write(path, report)
-    left = sum("result" not in cut for cut in report["cuts"].values())
+    left = sum("result" not in report["cuts"][name] for name in shared(report))
     if left:
         print(f"input coverage: {left} cuts left, by the budget or `--only`; run again to go on")
         return 2
@@ -389,10 +410,12 @@ def run_cuts(args: argparse.Namespace, selection: Json, report: Json, path: Path
 
 
 def problems(report: Json, entry: Json) -> list[str]:
-    """Where a finished report and the selection's baseline disagree."""
+    """Where a finished report and the selection's baseline disagree; of the cuts, those of the report's
+    share alone are judged."""
     found: list[str] = []
     listed: dict[str, Json] = entry.get("cuts", {})
-    for name, cut in report["cuts"].items():
+    for name in shared(report):
+        cut = report["cuts"][name]
         result = cut.get("result")
         if result is None:
             found.append(f"not run: {name}")
@@ -487,21 +510,99 @@ def selection_of(args: argparse.Namespace) -> tuple[Json, Json]:
             raise SystemExit(
                 f"input coverage: no selection {args.name!r} in {args.baseline}: {sorted(baseline)}"
             )
-        entry = baseline[args.name]
-        return {"name": args.name, "tests": entry["tests"], "sites": entry["sites"]}, entry
-    if not args.tests or not args.sites:
+        entry: Json = baseline[args.name]
+        name, tests, sites = args.name, entry["tests"], entry["sites"]
+    elif not args.tests or not args.sites:
         raise SystemExit("input coverage: name a selection of the baseline, or give --tests and --sites")
-    return {"name": None, "tests": args.tests, "sites": args.sites}, {}
+    else:
+        name, tests, sites, entry = None, args.tests, args.sites, {}
+    if args.whole:
+        sites = [pattern for pattern in sites if not pattern.startswith("!")]
+    return {"name": name, "tests": tests, "sites": sites}, entry
+
+
+def share_of(args: argparse.Namespace) -> Json:
+    """The share of the selection's cuts a run takes: the cuts whose names its scope's patterns match, and of
+    those, a slice `K/N`."""
+    part = None
+    if args.slice is not None:
+        first, _, count = args.slice.partition("/")
+        if not (first.isdigit() and count.isdigit() and int(first) < int(count)):
+            raise SystemExit(f"input coverage: the slice {args.slice!r} is not K/N with K below N")
+        part = [int(first), int(count)]
+    return {"scope": args.scope, "slice": part}
+
+
+WHOLE_SHARE: Json = {"scope": None, "slice": None}
+
+
+def merged_reports(reports: Sequence[Json]) -> tuple[Json, list[str]]:
+    """One report of a selection from the reports of its slices (the cut kind's jobs): each slice there once,
+    every report's recording alike (its cuts, its uncut draws and what its patterns leave out), and each cut's
+    result taken from the report whose share holds it."""
+    first = reports[0]
+    share: Json = first.get("share") or WHOLE_SHARE
+    count = (share.get("slice") or [0, 1])[1]
+    found: list[str] = []
+    made = {
+        name: {key: cut[key] for key in ("site_id", "change", "key")} for name, cut in first["cuts"].items()
+    }
+    parts: Counter[int] = Counter()
+    for each in reports:
+        each_share: Json = each.get("share") or WHOLE_SHARE
+        part = each_share.get("slice") or [0, 1]
+        parts[part[0]] += 1
+        if (each["selection"], each["profile"], each_share.get("scope"), part[1]) != (
+            first["selection"],
+            first["profile"],
+            share.get("scope"),
+            count,
+        ):
+            found.append(f"a report of another selection, profile, scope or slicing: slice {part[0]}")
+            continue
+        recorded = {
+            name: {key: cut[key] for key in ("site_id", "change", "key")}
+            for name, cut in each["cuts"].items()
+        }
+        if (recorded, each["uncut"], each.get("left_out")) != (made, first["uncut"], first.get("left_out")):
+            found.append(
+                f"slice {part[0]} recorded other cuts, uncut draws or left-out counts than the first"
+            )
+    found += [
+        f"slice {part} of {count}: {number} reports" for part, number in sorted(parts.items()) if number > 1
+    ]
+    found += [f"slice {part} of {count}: no report" for part in range(count) if not parts[part]]
+    merged: Json = {**first, "share": {"scope": share.get("scope"), "slice": None}, "cuts": made}
+    for each in reports:
+        for name in shared(each):
+            cut = each["cuts"].get(name, {})
+            if "result" in cut and name in made:
+                made[name] = {
+                    **made[name],
+                    **{key: value for key, value in cut.items() if key not in made[name]},
+                }
+    for name, cut in first["cuts"].items():
+        if cut.get("result") == "empty" and "result" not in made[name]:
+            made[name] = {**made[name], "result": "empty", "seconds": 0.0}
+    return merged, found
 
 
 def left_text(counts: dict[str, int]) -> str:
     return f"{counts['sites']} sites, {counts['cuts']} cuts, {counts['uncut']} uncut"
 
 
+def results(report: Json) -> Counter[str]:
+    """The report's cuts by result: of its share, `not run` where a cut has none yet; of the others,
+    `another share's`."""
+    mine = set(shared(report))
+    return Counter(
+        cut.get("result", "not run") if name in mine else "another share's"
+        for name, cut in report["cuts"].items()
+    )
+
+
 def summary(report: Json) -> str:
-    counts: dict[str, int] = {}
-    for cut in report["cuts"].values():
-        counts[cut.get("result", "not run")] = counts.get(cut.get("result", "not run"), 0) + 1
+    counts = results(report)
     text = (
         f"{len(report['sites'])} sites, {len(report['cuts'])} cuts ("
         + ", ".join(f"{result} {count}" for result, count in sorted(counts.items()))
@@ -525,23 +626,38 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--parallel", type=int, default=1, help="cuts run at once")
     parser.add_argument("--budget", type=float, help="seconds after which no cut is started")
     parser.add_argument("--only", nargs="+", help="run only the cuts whose names these patterns match")
+    parser.add_argument("--scope", nargs="+", help="the report's share: the cuts these patterns match")
+    parser.add_argument("--slice", help="the report's share: of its cuts, every Nth from the Kth (K/N)")
+    parser.add_argument("--whole", action="store_true", help="the selection without its `!` patterns")
+    parser.add_argument("--records", help="check: the cut kind's records of `measure.yml`, merged")
     parser.add_argument("--timeout", type=float, default=1800.0, help="seconds a run may take")
     parser.add_argument("--root", type=Path, default=ROOT, help="the tree whose tests run")
     args = parser.parse_args(argv)
+    args.started = time.monotonic()
     signal.signal(signal.SIGTERM, ended)
     signal.signal(signal.SIGINT, ended)
     selection, entry = selection_of(args)
+    share = share_of(args)
     path = Path(args.report) if args.report else None
     report: Json = {}
+    merging: list[str] = []
+    if args.records is not None:
+        if args.command != "check" or path is not None:
+            raise SystemExit("input coverage: --records is for check, in place of --report")
+        report, merging = from_records(Path(args.records), selection, args.profile)
     if path is not None and path.exists():
         report = json.loads(path.read_text(encoding="utf-8"))
-        if report.get("selection") != selection or report.get("profile") != args.profile:
-            raise SystemExit(f"input coverage: {path} is a report of another selection or profile")
+        if (report.get("selection"), report.get("profile"), report.get("share", WHOLE_SHARE)) != (
+            selection,
+            args.profile,
+            share,
+        ):
+            raise SystemExit(f"input coverage: {path} is a report of another selection, profile or share")
     if args.command == "check":
         if not report:
-            raise SystemExit("input coverage: check needs a --report")
+            raise SystemExit("input coverage: check needs a --report or --records")
     elif "sites" not in report:
-        report = {"selection": selection, "profile": args.profile, "root": str(args.root)}
+        report = {"selection": selection, "profile": args.profile, "root": str(args.root), "share": share}
         if not recorded(args, selection, report):
             return 1
         if path is not None:
@@ -561,11 +677,31 @@ def main(argv: Sequence[str] | None = None) -> int:
         left = run_cuts(args, selection, report, path)
         if left:
             return left
-    found = problems(report, entry)
+    found = merging + problems(report, entry)
     for problem in found:
         print(problem)
     print(summary(report))
+    timed: int | None = entry.get("timing", {}).get("cuts")
+    if timed is not None and not args.whole and timed != len(report["cuts"]):
+        # Not a failure: the count sizes the cut kind's slices (`scripts/measure.py`) and nothing else.
+        print(f"the baseline's timing counts {timed} cuts, and the selection makes {len(report['cuts'])}")
     return 1 if found else 0
+
+
+def from_records(directory: Path, selection: Json, profile: str) -> tuple[Json, list[str]]:
+    """The selection's report merged from the records of `measure.yml`'s cut kind under `directory` (as
+    `measure.py fetch` downloads them), and where they do not make one report."""
+    reports: list[Json] = []
+    for path in sorted(directory.rglob("record.json")):
+        record: Any = json.loads(path.read_text(encoding="utf-8"))
+        held: Any = cast(Json, record).get("report") if isinstance(record, dict) else None
+        if isinstance(held, dict):
+            report = cast(Json, held)
+            if (report.get("selection"), report.get("profile")) == (selection, profile):
+                reports.append(report)
+    if not reports:
+        raise SystemExit(f"input coverage: no record under {directory} holds a report of this selection")
+    return merged_reports(reports)
 
 
 if __name__ == "__main__":

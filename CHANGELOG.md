@@ -392,6 +392,19 @@ every family entry goes in `families/CHANGELOG.md`.
   trees before S3c's fix round and at S4d's first round it reports not held the draws those rounds' reviews
   and builder found unheld by hand. The plugin loaded with no cut draws what is drawn without it, every
   choice compared (`tests/unit/test_input_coverage.py`, on a tree of every kind of draw it cuts).
+- The input coverage's cuts run on CI as a kind of `.github/workflows/measure.yml`, `cuts` (maintainer,
+  2026-10-23 and 2026-10-24): a dispatch names selections of the baseline, or `all`, each alone or as
+  `NAME:whole`, without its `!` patterns, so that the cuts they leave out run too. The request job splits each
+  selection's cuts into slices by the baseline's new `timing` (the cuts the selection makes and its longest
+  cut, from its last full run), each slice's cuts planned to fill half of its job's 120 minutes at two at once;
+  each job records the selection and runs its slice, starting no cut it could not finish before its interrupt;
+  the report merges the slices into the selection's report, refusing a slice missing, doubled or recording
+  other cuts, and holds it to the baseline, a disagreement a flag. `measure.py fetch RUN --out DIR` downloads
+  the records and `input_coverage.py check NAME --records DIR` checks them. `scripts/input_coverage.py` gains
+  what the jobs use: `--whole`, `--scope` and `--slice K/N` (a report that is a share of a selection's cuts,
+  run and judged alone), `--records`, and a `--budget` counted from the command's start. The self-test now
+  holds the cuts of one site of S3c's to the baseline beside the other kinds. The draw-time ownership the
+  maintainer ruled on 2026-10-24 follows as a piece of its own, before the whole-repository run.
 
 ## [0.1.0.dev3] - 2026-10-22
 

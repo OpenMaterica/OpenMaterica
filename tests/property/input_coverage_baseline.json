@@ -83,6 +83,11 @@
   "excused": {
    "tests/property/test_table_alternatives_mutant_table.py": "reads the ways' names (`INSIDE`, `KEPT_OR_SET_ASIDE`, `REFUSES`) to hold the README's table of S4d's mutants; it draws nothing"
   },
+  "timing": {
+   "cuts": 93,
+   "seconds": 368.7,
+   "measured": "the longest of the selection's cuts in its last full run, on two workers a cut, four cuts at once, run locally (2026-10-23 and 2026-10-24)"
+  },
   "left_out": {
    "sites": 61,
    "cuts": 258,
@@ -422,6 +427,11 @@
   ],
   "excused": {
    "tests/property/test_extrapolation_mutant_table.py": "reads the ways' names to hold the README's table of S3c's mutants; it draws nothing"
+  },
+  "timing": {
+   "cuts": 213,
+   "seconds": 147.1,
+   "measured": "the longest of the selection's cuts in its last full run, on two workers a cut, four cuts at once, run locally (2026-10-23 and 2026-10-24)"
   },
   "left_out": {
    "sites": 165,
