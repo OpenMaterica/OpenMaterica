@@ -38,6 +38,7 @@ from materica import shapes
 from materica.core import jsonio
 from materica.core.identifiers import MaterialRef
 from materica.core.jsonio import JsonValue
+from materica.core.read import unknown_suites
 from materica.core.reasons import Reason
 from materica.core.report import BuildRefusal
 from materica.core.slips import one_slip
@@ -391,8 +392,17 @@ _ANY_KIND: dict[str, Member] = {
     for member in SHAPE[kind]
 }
 _LOCATED_KINDS = tuple(kind for kind in KINDS if any(member.name == "region" for member in SHAPE[kind]))
-_NEEDS_LOCATION = ("pick", "waiver", "implied_condition", "extrapolation", "nominal", "distribution")
-_NEEDS_BASIS = ("extrapolation", "nominal", "distribution")
+# The kinds whose location a rule beside the table judges (`_locations`), and those that require a `basis`.
+_NEEDS_LOCATION = tuple(
+    kind
+    for kind in KINDS
+    if any(member.name == "region" and member.required == "rule" for member in SHAPE[kind])
+)
+_NEEDS_BASIS = tuple(
+    kind
+    for kind in KINDS
+    if any(member.name == "basis" and member.required == "yes" for member in SHAPE[kind])
+)
 
 # The tokens of the members whose lists are not the vocabulary's registered names (fields, conditions, facts,
 # sections, labels and their rows' tokens, judged where they are read), by place and member.
@@ -899,12 +909,11 @@ def _suites(declaration: JsonObject, claims: Collection[Suite]) -> list[Finding]
       not a number in (0, 1].
     - BC-043, the `population_level` rule: `represents` `population` without `population_level`, and a
       `population_level` beside another `represents` or none (maintainer, 2026-10-24).
-    - BC-051, item 12: each member a suite the build does not claim checks (`_suite_members`); but no model's
-      `engine` that item 7 refuses, and no member of a requirement over which item 8 or the `population_level`
-      rule refuses the declaration.
+    - BC-051, item 12: each member a suite the build does not claim checks (`_suite_members`); but no member
+      of a requirement over which item 8 or the `population_level` rule refuses the declaration. A model's
+      `engine` that item 7 refuses is one fault with item 12's, which `_precedence` gives item 7's case.
     """
     found: list[Finding] = []
-    item7: set[str] = set()
     for index, model in _entries(declaration, "models"):
         at = f"/models/{index}/engine"
         checked_over, engine = _object(model.get("checked_over")), _object(model.get("engine"))
@@ -923,7 +932,6 @@ def _suites(declaration: JsonObject, claims: Collection[Suite]) -> list[Finding]
         ]
         if "engine" in model and faults:
             found += [Finding("BC-040", at, fault) for fault in faults]
-            item7.add(at)
     requirements = [
         (f"/models/{index}/requirements/{position}", requirement)
         for index, model in _entries(declaration, "models")
@@ -960,7 +968,7 @@ def _suites(declaration: JsonObject, claims: Collection[Suite]) -> list[Finding]
                 spared.add(at)
     for suite, members in _suite_members(declaration).items():
         for at, detail in members:
-            if suite not in claims and at not in item7 and at.rpartition("/")[0] not in spared:
+            if suite not in claims and at.rpartition("/")[0] not in spared:
                 found.append(Finding("BC-051", at, f"{detail}, without {suite}"))
     return found
 
@@ -1046,7 +1054,6 @@ def _checked_records(model: JsonObject) -> list[MaterialRef | None] | None:
 CLAIMS: frozenset[Suite] = frozenset({"plain_read", "hash", "build_checks"})
 """The suites a build claims unless told otherwise: plain read, the hash suite and the build checks."""
 
-SUITES: frozenset[str] = frozenset(get_args(Suite))
 # The suites item 12 refuses without, which this version does not build, and the piece that builds each.
 _NOT_BUILT = {
     "scene_documents": "S7b builds the scene suite's build checks",
@@ -1059,8 +1066,7 @@ def check_claims(claims: Collection[Suite]) -> frozenset[Suite]:
     """The claims, as a set. `ValueError` for claims no implementation makes: a suite not in the README's
     list, or claims without plain read or without the build checks, which every build claims."""
     claimed = frozenset(claims)
-    if not claimed <= SUITES:
-        raise ValueError(f"not suites: {sorted(claimed - SUITES)}")
+    unknown_suites(claimed)
     for suite in ("plain_read", "build_checks"):
         if suite not in claimed:
             raise ValueError(f"every build claims {suite}")

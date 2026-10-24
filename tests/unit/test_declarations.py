@@ -15,6 +15,7 @@ import pytest
 import materica
 from materica.core.build import check_build
 from materica.core.declarations import Declaration, DeclarationInput
+from materica.core.identifiers import MaterialRef
 from materica.core.jsonio import JsonValue
 from materica.core.record import RecordStore
 from materica.core.report import BuildRefusal
@@ -56,6 +57,14 @@ def conditions(declaration: Json) -> Json:
 
 def condition(declaration: Json, name: str) -> Json:
     return cast(Json, conditions(declaration)[name])
+
+
+def requirement(declaration: Json) -> Json:
+    return cast(list[Json], model(declaration)["requirements"])[0]
+
+
+def appended(acceptance: Json, **members: JsonValue) -> Callable[[Json], object]:
+    return lambda declaration: acceptances(declaration).append(acceptance | members | {"reason": "a reason"})
 
 
 def tolerance(declaration: Json) -> Json:
@@ -133,6 +142,15 @@ def test_a_text_that_is_no_json_and_a_value_that_is_none_are_refused_at_the_empt
         assert refusals(cast(DeclarationInput, given)) == {("BC-048", "")}, given
 
 
+def test_a_lone_surrogate_in_a_text_is_refused_not_raised() -> None:
+    """A `str` holding a lone surrogate is no UTF-8 text: refused at the empty pointer, as `parse_declaration`
+    says, rather than raised."""
+    text = json.dumps(
+        a_declaration(lambda d: cast(Json, acceptances(d)[0]).update(reason="\ud800")), ensure_ascii=False
+    )
+    assert refusals("\ud800") == refusals(text) == {("BC-048", "")}
+
+
 # The claims, checked first.
 
 
@@ -154,12 +172,28 @@ def engine(declaration: Json) -> None:
 
 
 def sampled_requirement(declaration: Json) -> None:
-    cast(list[Json], model(declaration)["requirements"])[0]["represents"] = "measurement"
+    requirement(declaration)["represents"] = "measurement"
+
+
+DISTRIBUTION: Json = {
+    "acceptance": "distribution",
+    "record": WATER,
+    "field": "fluid.dynamic_viscosity",
+    "distribution": "normal",
+    "space": "identity",
+    "distribution_parameters": {"mean": 0.000692, "sd": 0.00002},
+    "basis": "a spread of about 3 %",
+}
 
 
 @pytest.mark.parametrize(
     ("suite", "change"),
-    [("scene_documents", domain), ("usd_read", engine), ("sampling", sampled_requirement)],
+    [
+        ("scene_documents", domain),
+        ("usd_read", engine),
+        ("sampling", sampled_requirement),
+        ("sampling", appended(DISTRIBUTION)),
+    ],
 )
 def test_a_claimed_suite_this_version_does_not_build_fails_closed_where_the_declaration_holds_its_member(
     suite: Suite, change: Callable[[Json], None]
@@ -349,6 +383,59 @@ def test_the_raise_names_each_pick_and_overlay_and_the_piece_that_applies_them()
     assert "(S7a-2 reads the waiver /models/0/acceptances/0; " in said
 
 
+def test_the_raise_names_an_accepted_difference_and_a_trainable_entry_and_the_pieces_that_read_them() -> None:
+    difference: Json = {"acceptance": "accepted_difference", "section": "fluid", "fact": "species"}
+    difference["value"] = {"status": "not_applicable"}
+
+    def change(declaration: Json) -> None:
+        appended(difference)(declaration)
+        model(declaration)["trainable"] = [{"field": "fluid.dynamic_viscosity", "record": WATER}]
+
+    with pytest.raises(NotImplementedError) as raised:
+        check_build(a_declaration(change), store())
+    assert "S7a-3 reads the accepted_difference /models/0/acceptances/1" in str(raised.value)
+    assert "S7a-4 reads the trainable entry /models/0/trainable/0" in str(raised.value)
+
+
+# A declaration that passes, typed member by member: S7a-2 reads each.
+
+
+def test_a_declaration_that_passes_is_typed_member_by_member() -> None:
+    reads: list[JsonValue] = ["fluid.dynamic_viscosity", "bulk.density"]
+    combined: list[JsonValue] = [reads]
+
+    def change(declaration: Json) -> None:
+        model(declaration).update(reads=reads, combinations=combined)
+        model(declaration)["trainable"] = [{"field": reads[0], "record": WATER}]
+        requirement(declaration).update(label="materica.fluid.newtonian.v1", review="reviewed")
+
+    given = a_declaration(change)
+    checked = Declaration.from_json(given)
+    assert isinstance(checked, Declaration)
+    entry, water = model(given), MaterialRef(**cast(dict[str, str], WATER))
+    assert checked.consumer == given["consumer"]
+    assert checked.operating_conditions == given["operating_conditions"]
+    assert checked.given == given
+    (typed,) = checked.models
+    assert typed.index == 0
+    assert (typed.name, typed.version) == ("drag", "1.0.0")
+    assert typed.configuration_hash == entry["model_configuration_hash"]
+    checked_over = cast(list[dict[str, str]], cast(Json, entry["checked_over"])["records"])
+    assert typed.records == tuple(MaterialRef(**reference) for reference in checked_over)
+    assert typed.target == entry["target"]
+    assert typed.reads == tuple(reads)
+    assert typed.combinations == (tuple(reads),)
+    assert typed.trainable == ((reads[0], water),)
+    assert typed.entry == entry
+    (needed,) = typed.requirements
+    assert (needed.field, needed.want) == (reads[0], "value")
+    assert needed.conditions == requirement(given)["conditions"]
+    assert (needed.label, needed.reviewed) == ("materica.fluid.newtonian.v1", True)
+    (waiver,) = typed.acceptances
+    assert (waiver.index, waiver.kind, waiver.location, waiver.field) == (0, "waiver", water, reads[0])
+    assert waiver.members == acceptances(given)[0]
+
+
 # The Holds constraints and the exclusive alternatives, which no build-check file plants.
 
 
@@ -418,6 +505,173 @@ def test_a_waiver_names_its_condition_exactly_where_its_code_names_one() -> None
     assert isinstance(Declaration.from_json(waived("at_edge", "temperature")), Declaration)
 
 
+# Each constraint's boundary, a number's JSON type (`true` is none), a status object's members and a
+# population level's `within`; then the rules on names, tokens and shapes the text states. Each row: a change
+# and the refusals it gives, none where the declaration is taken.
+
+
+def sampling(min_acceptance: JsonValue, represents: str | None = None) -> Callable[[Json], object]:
+    def change(declaration: Json) -> None:
+        declaration["sampling"] = {"min_acceptance": min_acceptance, "reason": "a reason", "independence": []}
+        if represents is not None:
+            requirement(declaration)["represents"] = represents
+
+    return change
+
+
+def no_block(declaration: Json) -> None:
+    sampling(0.5, "measurement")(declaration)
+    declaration["sampling"] = "a block"
+
+
+def within(held: JsonValue) -> Callable[[Json], object]:
+    def change(declaration: Json) -> None:
+        sampling(0.5, "population")(declaration)
+        requirement(declaration)["population_level"] = {"level": "donor", "within": held}
+
+    return change
+
+
+Refusals = set[tuple[str, str]]
+AT = "/models/0/requirements/0"
+BLOCK: Refusals = {("BC-051", "/sampling")}
+LEVEL: Refusals = BLOCK | {("BC-051", f"{AT}/represents"), ("BC-051", f"{AT}/population_level")}
+DIFFERENCE: Json = {"acceptance": "accepted_difference", "section": "fluid", "fact": "species"}
+BOUNDARIES: list[tuple[Callable[[Json], object], Refusals]] = [
+    # `min_acceptance` in (0, 1]: by its Holds where no requirement samples, by item 8 where one does.
+    (sampling(1.0), BLOCK),
+    (sampling(0.0), BLOCK | {("BC-048", "/sampling/min_acceptance")}),
+    (sampling(1.0000001), BLOCK | {("BC-048", "/sampling/min_acceptance")}),
+    (sampling(True), BLOCK | {("BC-048", "/sampling/min_acceptance")}),
+    (sampling(0.0, "measurement"), BLOCK | {("BC-044", "/sampling/min_acceptance")}),
+    (sampling("one half", "measurement"), BLOCK | {("BC-044", "/sampling/min_acceptance")}),
+    (no_block, {("BC-044", "/sampling")}),
+    # A number and a string of the JSON types their rows give.
+    (lambda d: tolerance(d).update(value=True), {("BC-048", f"{AT}/conditions/temperature/tolerance/value")}),
+    (
+        lambda d: model(d).update(model_configuration_hash=1.0),
+        {("BC-048", "/models/0/model_configuration_hash")},
+    ),
+    # An UBERON identifier holds its digits.
+    (
+        lambda d: model(d).update(target={"anatomical_site": {"uberon": "UBERON:"}}),
+        {("BC-048", "/models/0/target/anatomical_site/uberon")},
+    ),
+    (lambda d: model(d).update(target={"anatomical_site": {"uberon": "UBERON:0000948"}}), set()),
+    # A status object holds `status` and, beside it, `reason` at most.
+    (appended(DIFFERENCE, value={"status": "not_applicable", "reason": "water has none"}), set()),
+    # A population level's `within`: a level, or the status object `none`.
+    (within({"status": "none"}), LEVEL),
+    (within("lot"), LEVEL),
+    (within({"status": "unstated"}), LEVEL | {("BC-048", f"{AT}/population_level/within")}),
+    (within("lots"), LEVEL | {("BC-048", f"{AT}/population_level/within")}),
+]
+
+
+@pytest.mark.parametrize(("change", "expected"), BOUNDARIES)
+def test_each_constraint_judges_its_boundary_and_each_type_its_own(
+    change: Callable[[Json], object], expected: Refusals
+) -> None:
+    declaration = a_declaration(change)
+    if not expected:
+        assert isinstance(Declaration.from_json(declaration), Declaration)
+    else:
+        assert refusals(declaration) == expected
+
+
+MAGNETIC: list[JsonValue] = ["magnetic.remanence", "magnetic.saturation_magnetisation"]
+TRAINABLE: Json = {"field": "fluid.dynamic_viscosity", "record": WATER}
+IMPLIED: Json = {
+    "acceptance": "implied_condition",
+    "record": WATER,
+    "field": "fluid.dynamic_viscosity",
+    "fact": "tissue_state",
+    "token": "in_vivo",
+    "implies": {"temperature": {"value": 310.15, "unit": "C"}},
+}
+NOMINAL: Json = {
+    "acceptance": "nominal",
+    "record": WATER,
+    "field": "fluid.dynamic_viscosity",
+    "basis": "a basis",
+}
+SCOPE: Json = {"acceptance": "overlay_scope", "overlay": WATER, "accepts": ["consumer", "consumer"]}
+ELSEWHERE: Json = {"id": "conformance/another_fixture", "version": "1.0.0", "content_hash": "sha256:0"}
+
+
+def entries(**members: JsonValue) -> Callable[[Json], object]:
+    return lambda declaration: model(declaration).update(members)
+
+
+NAMES: list[tuple[Callable[[Json], object], Refusals]] = [
+    # A combination: two or more fields in `reads`, of different sections.
+    (entries(combinations=[["fluid.dynamic_viscosity"]]), {("BC-048", "/models/0/combinations/0")}),
+    (
+        entries(reads=["fluid.dynamic_viscosity", *MAGNETIC], combinations=[MAGNETIC]),
+        {("BC-048", "/models/0/combinations/0")},
+    ),
+    (
+        entries(
+            reads=["fluid.dynamic_viscosity", *MAGNETIC],
+            combinations=[[MAGNETIC[0], "fluid.dynamic_viscosity"]],
+        ),
+        set(),
+    ),
+    # An implied condition's value in its condition's registered unit; a token condition's accept list of its
+    # row's tokens.
+    (appended(IMPLIED), {("BC-048", "/models/0/acceptances/1/implies/temperature/unit")}),
+    (
+        lambda d: conditions(d).update(test_method={"accept": ["a_rheometer"], "reason": "a reason"}),
+        {("BC-048", f"{AT}/conditions/test_method/accept/0")},
+    ),
+    # A distribution's parameters its token's, none missing (and the sampling suite's member, item 12).
+    (
+        appended(DISTRIBUTION, distribution_parameters={"mean": 0.000692}),
+        {
+            ("BC-051", "/models/0/acceptances/1"),
+            ("BC-048", "/models/0/acceptances/1/distribution_parameters"),
+        },
+    ),
+    # An `overlay_scope`'s `accepts`, none twice; two `trainable` entries for one field at one location;
+    # `params` only for a field whose row allows a parameter set, which no field of 0.1.0 does.
+    (appended(SCOPE), {("BC-048", "/models/0/acceptances/1/accepts")}),
+    (
+        entries(trainable=[TRAINABLE, TRAINABLE]),
+        {("BC-048", "/models/0/trainable/1")},
+    ),
+    (appended(NOMINAL, params={"a": 1.0}), {("BC-048", "/models/0/acceptances/1/params")}),
+    # An accepted difference's value of its fact's shape.
+    (
+        appended(DIFFERENCE, value={"ncbi_taxon": "human"}),
+        {("BC-048", "/models/0/acceptances/1/value/ncbi_taxon")},
+    ),
+    # A requirement for a field the build does not register: its `label` is not judged against it.
+    (
+        lambda d: requirement(d).update(field="fluid.viscosity", label="materica.fluid.newtonian.v1"),
+        {("BC-048", f"{AT}/field")},
+    ),
+    # Checked over a domain and records, two alternatives: no `trainable` record is judged against them.
+    (
+        entries(
+            checked_over={"domain": "lumen", "records": [WATER]},
+            trainable=[{"field": "fluid.dynamic_viscosity", "record": ELSEWHERE}],
+        ),
+        {("BC-048", "/models/0/checked_over"), ("BC-051", "/models/0/checked_over/domain")},
+    ),
+]
+
+
+@pytest.mark.parametrize(("change", "expected"), NAMES)
+def test_each_rule_on_names_tokens_and_shapes_the_text_states_holds(
+    change: Callable[[Json], object], expected: Refusals
+) -> None:
+    declaration = a_declaration(change)
+    if not expected:
+        assert isinstance(Declaration.from_json(declaration), Declaration)
+    else:
+        assert refusals(declaration) == expected
+
+
 # One fault is one member at fault (maintainer, 2026-10-24): a member two rules name gives one refusal, of the
 # first rule's case; a status object where none is taken is refused at the member, nothing inside it checked.
 
@@ -483,10 +737,6 @@ def test_a_trainable_entry_at_a_record_and_a_region_is_one_refusal_of_item_12() 
 
 # A member of another JSON type is refused at itself, and nothing inside it is checked (section 1): a member
 # holding a token, one holding a list of tokens and one keyed by names, each given a container of no tokens.
-
-
-def requirement(declaration: Json) -> Json:
-    return cast(list[Json], model(declaration)["requirements"])[0]
 
 
 OTHER_TYPES: list[tuple[Callable[[Json], object], str]] = [
