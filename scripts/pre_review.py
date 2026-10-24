@@ -366,8 +366,9 @@ TREE_READERS = (
         ("tests/spec_sync/test_name_overlaps.py",),
     ),
     TreeReader(
-        r"tests/property/input_coverage\.py",
-        "the input coverage's tests copy the plugin into trees of their own and run it there",
+        r"tests/.+\.py",
+        "the input coverage's tests copy the plugin into trees of their own and run it there, and read every "
+        "test module under `tests/` for the strategy modules it imports",
         ("tests/unit/test_input_coverage.py",),
     ),
     TreeReader(
