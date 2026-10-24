@@ -1164,9 +1164,14 @@ def _ends(found: list[Reason]) -> bool:
     return _status(found) == "not_met"
 
 
-def _check(claims: Collection[Suite]) -> None:
+def unknown_suites(claims: Collection[Suite]) -> None:
+    """`ValueError` for claims naming a suite the README's list does not, a read's or a build's."""
     if not set(claims) <= SUITES:
         raise ValueError(f"not suites: {sorted(set(claims) - SUITES)}")
+
+
+def _check(claims: Collection[Suite]) -> None:
+    unknown_suites(claims)
     if "plain_read" not in claims:
         raise ValueError("every reader claims plain_read")
 
