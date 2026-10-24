@@ -425,6 +425,10 @@ LOWER = (
 
 def numbers():
     return st.sampled_from([1, 2])
+
+
+def words():
+    return st.text(max_size=3)
 """
 )
 # A strategy that draws its own value and one from `lower`, a module its selection leaves out; a second test
@@ -437,7 +441,7 @@ from tests import lower
 
 @st.composite
 def own(draw):
-    return draw(st.sampled_from(["a", "b"])), draw(lower.numbers())
+    return draw(st.sampled_from(["a", "b"])), draw(lower.numbers()), draw(lower.words())
 
 
 @DERANDOMIZED
@@ -455,7 +459,7 @@ def test_b_is_drawn():
 """
 )
 LEAVING_OUT = {"sites": ["tests/test_own.py::*", "!* > tests/lower.py::*"]}
-OWN_LEFT = {"sites": 1, "cuts": 2, "uncut": 0}
+OWN_LEFT = {"sites": 1, "cuts": 2, "uncut": 1}
 
 
 def test_what_the_patterns_leave_out_is_in_the_baseline_and_a_new_draw_through_it_fails_the_check(
@@ -468,7 +472,7 @@ def test_what_the_patterns_leave_out_is_in_the_baseline_and_a_new_draw_through_i
     assert results(report) == {"drop 'a'": "held", "drop 'b'": "held"}
     assert status == 1
     assert (
-        "left out by the `!` patterns: 1 sites, 2 cuts, 0 uncut, the baseline says 0 sites, 0 cuts, 0 uncut"
+        "left out by the `!` patterns: 1 sites, 2 cuts, 1 uncut, the baseline says 0 sites, 0 cuts, 0 uncut"
         in (output)
     )
     assert "needs a reason" in output
@@ -480,10 +484,10 @@ def test_what_the_patterns_leave_out_is_in_the_baseline_and_a_new_draw_through_i
     source = OWN.replace("draw(lower.numbers())", "draw(lower.numbers()), draw(lower.numbers())")
     (root / "tests" / "test_own.py").write_text(source, encoding="utf-8")
     status, report, output = check(root, "run", "test_own.py", baseline, report="second.json")
-    assert report["left_out"] == {"sites": 2, "cuts": 4, "uncut": 0}
+    assert report["left_out"] == {"sites": 2, "cuts": 4, "uncut": 1}
     assert status == 1
     assert (
-        "left out by the `!` patterns: 2 sites, 4 cuts, 0 uncut, the baseline says 1 sites, 2 cuts, 0 uncut"
+        "left out by the `!` patterns: 2 sites, 4 cuts, 1 uncut, the baseline says 1 sites, 2 cuts, 1 uncut"
         in (output)
     )
 
