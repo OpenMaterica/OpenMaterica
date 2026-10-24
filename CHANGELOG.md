@@ -239,11 +239,14 @@ every family entry goes in `families/CHANGELOG.md`.
   each fault carrying the case of the first rule that names it, and no verdict past the declaration or on what a
   claimed suite checks; item 7's BC-040 it names without placing. `tests/reference/test_cases.py` runs every
   build-check file through it under every configuration of build claims its claims allow: it agrees with each
-  of S7a-1's 51 files, and gives no verdict on S7a-2's 57, listed in `exceptions.py`. 64 seeded faults, one per
-  rule, 46 killed by the files and 18 listed as survivors for HP41 and HP42 to kill; its citations, its
-  layering and its token lists against the vocabulary are held as the read model's are. The model follows the
-  maintainer's five clauses of 2026-10-24 as S7a-1b words them; their citations wait for that wording on
-  `main`.
+  of S7a-1's 51 files, and gives no verdict on S7a-2's 57, listed in `exceptions.py`. 100 seeded faults, one for
+  each rule the first table and the review's hand mutants named, 59 killed (47 by the files, 12 by its direct
+  checks) and 41 listed as survivors for HP41 and HP42 to kill; its citations, its layering and its token lists
+  against the vocabulary are held as the read model's are, and its shape table and token lists against the
+  declaration's JSON Schema. One fault is one member at fault, a pick is located by its `record`, and a claimed
+  suite gives no verdict (maintainer, 2026-10-24); `tests/reference/direct.py` holds those and the order of
+  the cases, which no file pins. The model follows the maintainer's five clauses of 2026-10-24 as S7a-1b words
+  them; their citations wait for that wording on `main`.
 - The measurements a property piece makes before review run on CI as a matrix (maintainer, 2026-10-23), with
   the counts and judgement of a local run: `scripts/measure.py` (floors at the variance measured, at the mean and the least share, kill drift over
   streams, regions of a base against the head with every mutant search's kill, a fuzz control's rate), run alike
