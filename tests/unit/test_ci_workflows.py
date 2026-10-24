@@ -9369,8 +9369,15 @@ def test_the_kill_points_step_fails_unless_it_has_the_report_of_every_part(
 # --- measure.yml ------------------------------------------------------------------------------------------
 
 MEASURE = "measure.yml"
-# The files whose change runs the workflow's self-test on a pull request: its own two.
-MEASURE_OWN = (".github/workflows/measure.yml", "scripts/measure.py")
+# The files whose change runs the workflow on a pull request, whose request reads what the change measures:
+# its own two, the input coverage's runner, and the tests, among them the strategies and the input coverage's
+# plugin (the self-test where the tool changes, a selection's cuts where its strategies or tests change).
+MEASURE_PATHS = (
+    ".github/workflows/measure.yml",
+    "scripts/measure.py",
+    "scripts/input_coverage.py",
+    "tests/**",
+)
 MEASURE_INPUTS = ("kind", "selection", "count", "per_job", "base", "python")
 MEASURE_CHECK, MEASURE_JOBS, MEASURE_RUN = "The inputs, checked", "The selection, as jobs", "The measurement"
 MEASURE_KEEP, MEASURE_FETCH, MEASURE_TABLE = "Keep the record", "Fetch the records", "The table"
@@ -9379,14 +9386,14 @@ MEASURE_HEADING = "## Measurements (`measure.yml`)"
 
 def measure_trigger_problems(found: Workflow) -> list[str]:
     """Where the workflow runs on anything but a dispatch by hand of its inputs, or a pull request that
-    changes its own files alone (its self-test)."""
+    changes its own files, the input coverage's runner or the tests."""
     triggers = dispatch(found)
     problems = (
         [] if set(triggers) == {"workflow_dispatch", "pull_request"} else [f"runs on {sorted(triggers)}"]
     )
     pull = cast(dict[str, Any], triggers.get("pull_request") or {})
-    if list(pull) != ["paths"] or not pull["paths"] or not set(pull["paths"]) <= set(MEASURE_OWN):
-        problems.append(f"a pull request runs it beyond its own files: {pull!r}")
+    if list(pull) != ["paths"] or not pull["paths"] or not set(pull["paths"]) <= set(MEASURE_PATHS):
+        problems.append(f"a pull request runs it beyond its own files and the tests: {pull!r}")
     dispatched = cast(dict[str, Any], triggers.get("workflow_dispatch") or {})
     inputs = cast(dict[str, Any], dispatched.get("inputs", {}))
     if tuple(inputs) != MEASURE_INPUTS:
@@ -9423,14 +9430,14 @@ def a_kind_more(found: Workflow) -> None:
     [
         (None, ""),
         (a_push_too_measured, "runs on ['pull_request', 'push', 'workflow_dispatch']"),
-        (every_pull_request, "a pull request runs it beyond its own files: {}"),
+        (every_pull_request, "a pull request runs it beyond its own files and the tests: {}"),
         (a_pull_request_of_the_source, "beyond its own files"),
         (another_input, "its inputs are"),
         (a_kind_more, "its kinds are"),
     ],
     ids=lambda value: value.__name__ if callable(value) else None,
 )
-def test_the_measure_workflow_runs_by_hand_or_on_a_change_to_itself(
+def test_the_measure_workflow_runs_by_hand_or_on_a_change_to_itself_or_the_tests(
     fault: Callable[[Workflow], None] | None, problem: str
 ) -> None:
     found = workflow(MEASURE)
@@ -9482,9 +9489,11 @@ MEASURE_REQUESTED = {
     "base": "main",
     "python": "3.15",
 }
-MEASURE_DISPATCHED = {"github.ref": "refs/heads/a", "github.run_id": "1"} | {
-    f"inputs.{name}": value for name, value in MEASURE_REQUESTED.items()
-}
+MEASURE_DISPATCHED = {
+    "github.ref": "refs/heads/a",
+    "github.run_id": "1",
+    "github.event_name": "workflow_dispatch",
+} | {f"inputs.{name}": value for name, value in MEASURE_REQUESTED.items()}
 MEASURE_DIFFERING = {
     "github.ref": "refs/heads/b",
     "inputs.kind": "drift",
@@ -9497,13 +9506,17 @@ MEASURE_DIFFERING = {
 
 
 def measure_concurrency_problems(found: Workflow) -> list[str]:
-    """Where two dispatches of one request on one ref could run at once, or a dispatch could cancel another or
-    wait behind another request."""
+    """Where two dispatches of one request on one ref could run at once, a dispatch could cancel another or
+    wait behind another request, or a pull request's run would not give way to the next push's."""
     settings = cast(dict[str, object], found.get("concurrency") or {})
     context = MEASURE_DISPATCHED | {"github.workflow": found["name"]}
     problems: list[str] = []
     if truthy(setting(settings.get("cancel-in-progress", False), context)):
         problems.append("a dispatch cancels the one running in its group")
+    pulled = context | {"github.event_name": "pull_request", "github.ref": "refs/pull/1/merge"}
+    pulled |= {f"inputs.{name}": "" for name in MEASURE_INPUTS}
+    if not truthy(setting(settings.get("cancel-in-progress", False), pulled)):
+        problems.append("a pull request's run is not cancelled by the next push's")
     if settings.get("queue") != "max":
         problems.append(PENDING_CANCELLED)
     group = setting(settings.get("group"), context)
@@ -9525,8 +9538,9 @@ def measure_concurrency_problems(found: Workflow) -> list[str]:
         ({"group": "${{ github.workflow }}-${{ github.run_id }}", "queue": "max"}, "do not share a group"),
         ({"group": "${{ github.workflow }}", "cancel-in-progress": True}, "cancels the one running"),
         ("no queue", PENDING_CANCELLED),
+        ("never cancelled", "a pull request's run is not cancelled"),
     ],
-    ids=["as-written", "a-group-per-ref", "a-group-per-run", "cancelling", "no-queue"],
+    ids=["as-written", "a-group-per-ref", "a-group-per-run", "cancelling", "no-queue", "never-cancelled"],
 )
 def test_a_measure_dispatch_waits_only_behind_one_of_the_same_request(
     concurrency: object, problem: str
@@ -9534,6 +9548,8 @@ def test_a_measure_dispatch_waits_only_behind_one_of_the_same_request(
     found = workflow(MEASURE)
     if concurrency == "no queue":
         del found["concurrency"]["queue"]
+    elif concurrency == "never cancelled":
+        found["concurrency"]["cancel-in-progress"] = False
     elif concurrency != "as written":
         found["concurrency"] = concurrency
     problems = measure_concurrency_problems(found)
@@ -9554,6 +9570,7 @@ def measure_wiring_problems(found: Workflow) -> list[str]:
             {"matrix": "${{ steps.jobs.outputs.matrix }}", "max_parallel": CAP_OUTPUT},
         ),
         "measure needs": (job.get("needs"), "request"),
+        "measure runs": (condition(job), "success() && (needs.request.outputs.matrix != '[]')"),
         "fail-fast": (job["strategy"].get("fail-fast"), False),
         "the matrix": (
             job["strategy"].get("matrix"),
@@ -9566,7 +9583,10 @@ def measure_wiring_problems(found: Workflow) -> list[str]:
         ),
         "a record kept": (step(job, MEASURE_KEEP)["with"].get("if-no-files-found"), "error"),
         "report needs": (summary.get("needs"), ["request", "measure"]),
-        "report runs": (condition(summary), "always() && needs.request.result == 'success'"),
+        "report runs": (
+            condition(summary),
+            "always() && needs.request.result == 'success' && needs.request.outputs.matrix != '[]'",
+        ),
         "records fetched": (step(summary, MEASURE_FETCH)["with"].get("pattern"), "record-*"),
         "the table's env": (
             step(summary, MEASURE_TABLE).get("env"),
@@ -9605,6 +9625,10 @@ def the_report_after_success_alone(found: Workflow) -> None:
     found["jobs"]["report"]["if"] = "needs.request.result == 'success'"
 
 
+def a_matrix_of_no_jobs_run(found: Workflow) -> None:
+    del found["jobs"]["measure"]["if"]
+
+
 def a_measure_record_kept_on_success_alone(found: Workflow) -> None:
     del step(found["jobs"]["measure"], MEASURE_KEEP)["if"]
 
@@ -9631,6 +9655,7 @@ def an_input_in_the_measurement(found: Workflow) -> None:
         (None, ""),
         (a_failure_cancelling, "fail-fast: True"),
         (the_report_after_success_alone, "report runs"),
+        (a_matrix_of_no_jobs_run, "measure runs"),
         (a_measure_record_kept_on_success_alone, "the record kept: None"),
         (the_attempt_left_out, "the record's name"),
         (another_result_read, "the table's env"),
@@ -9700,6 +9725,9 @@ def test_the_workflows_readme_names_the_jobs_of_the_measure_workflow() -> None:
     )
 
 
+# A dispatch's event holds no pull request: GitHub reads its base and head as empty.
+NOT_PULLED = {"github.event.pull_request.base.sha": "", "github.event.pull_request.head.sha": ""}
+
 # A uv that runs what `uv run --locked` is given, with this Python as `python`.
 UV_RUN_LOCKED = """import os, sys
 arguments = sys.argv[1:]
@@ -9720,6 +9748,7 @@ def measure_steps(
     )
     (directory / "bin" / "python").chmod(0o755)
     context: dict[str, object] = {f"inputs.{name}": value for name, value in inputs.items()}
+    context |= NOT_PULLED
     context["github.event_name"] = event
     request = found["jobs"]["request"]
     status, checked, printed = run_step(
@@ -9805,14 +9834,24 @@ def test_the_measure_request_refuses_an_input_before_any_job(
     assert not (REPOSITORY / "ran").exists()
 
 
-def test_a_pull_request_asks_for_the_self_test(tmp_path: Path) -> None:
+PULLED = {"github.event.pull_request.base.sha": "a" * 40, "github.event.pull_request.head.sha": "b" * 40}
+
+
+@pytest.mark.parametrize("given", [PULLED, NOT_PULLED], ids=["its-base-and-head", "none"])
+def test_a_pull_request_asks_for_what_its_base_and_head_change(tmp_path: Path, given: dict[str, str]) -> None:
     found = workflow(MEASURE)
     environment = runner(tmp_path, UV_RUN_LOCKED)
-    context = {f"inputs.{name}": "" for name in MEASURE_INPUTS} | {"github.event_name": "pull_request"}
-    status, checked, _ = run_step(
+    context = (
+        {f"inputs.{name}": "" for name in MEASURE_INPUTS} | {"github.event_name": "pull_request"} | given
+    )
+    status, checked, printed = run_step(
         step(found["jobs"]["request"], MEASURE_CHECK), context, REPOSITORY, environment, tmp_path
     )
-    assert (status, checked["kind"]) == (0, "self")
+    if given == PULLED:
+        assert (status, checked["kind"], checked["base"]) == (0, "pull_request", f"{'a' * 40}...{'b' * 40}")
+    else:
+        assert status == 1
+        assert "the pull request's base and head '...' are not two commits" in printed
 
 
 @pytest.mark.parametrize(
@@ -9828,7 +9867,7 @@ def test_a_cut_dispatch_makes_the_slices_of_each_selection_its_timing_plans(
     found = workflow(MEASURE)
     environment = runner(tmp_path, UV_RUN_LOCKED)
     context: dict[str, object] = {f"inputs.{name}": value for name, value in MEASURE_REQUESTED.items()}
-    context |= {
+    context |= NOT_PULLED | {
         "github.event_name": "workflow_dispatch",
         "inputs.kind": "cuts",
         "inputs.selection": selection,

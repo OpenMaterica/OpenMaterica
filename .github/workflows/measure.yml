@@ -2,17 +2,21 @@
 # another on the shared laptop (maintainer, 2026-10-23): floors at the variance measured, the kills' drift over
 # streams, regions of a base against the head, a fuzz control's rate, and the input coverage's cuts. The runs,
 # their counts and their judgement are the repository's own; only the machine changes. Dispatched by hand;
-# tests/README.md, "Measurements on CI", says how to ask for one and how to read its table. A pull request
-# that changes this workflow or its script runs the self-test instead (`SELF_TEST` in scripts/measure.py), each
-# kind on one small selection, with the answer it must give: GitHub dispatches a workflow only from the
-# default branch's copy of it, so a draft could not run its own workflow otherwise.
+# tests/README.md, "Measurements on CI", says how to ask for one and how to read its table. On a pull request
+# that changes a file under tests/, this workflow or a script it runs, the request job reads what the pull
+# request changes: where it changes the workflow, scripts/measure.py or the input coverage's tool, the
+# self-test (`SELF_TEST` in scripts/measure.py), each kind on one small selection with the answer it must give
+# (GitHub dispatches a workflow only from the default branch's copy of it, so a draft could not run its own
+# otherwise); and where it changes a strategy module or a test of a selection of the input coverage, the cuts
+# of the sites it changes, held to the baseline (maintainer, 2026-10-24). A pull request that changes neither
+# makes no job but the request.
 # Every input is checked by the request job, and the jobs after it read the checked values alone; each reaches
 # its steps through the environment, never through a script's text. tests/unit/test_ci_workflows.py holds each
 # of these.
 
 name: Measure
 
-run-name: "${{ github.event_name == 'pull_request' && 'Measure: the self-test' || format('Measure {0} of {1}', inputs.kind, inputs.selection) }}"
+run-name: "${{ github.event_name == 'pull_request' && 'Measure: what the pull request changes' || format('Measure {0} of {1}', inputs.kind, inputs.selection) }}"
 
 on:
   workflow_dispatch:
@@ -47,12 +51,15 @@ on:
     paths:
       - .github/workflows/measure.yml
       - scripts/measure.py
+      - scripts/input_coverage.py
+      - "tests/**"
 
 # A dispatch waits while another of the same inputs runs on the same ref; one of other inputs runs beside it.
-# None is cancelled, and `queue: max` keeps those pending in order (repeat.yml says why).
+# No dispatch is cancelled, and `queue: max` keeps those pending in order (repeat.yml says why). A pull
+# request's run is cancelled by the next push's, which measures the newer head.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.kind }}-${{ inputs.selection }}-${{ inputs.count }}-${{ inputs.per_job }}-${{ inputs.base }}-${{ inputs.python }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
   queue: max
 
 permissions:
@@ -82,7 +89,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       # The only step that reads an input (scripts/measure.py, `request`, says what it refuses), on the runner's
-      # Python; on a pull request, the self-test.
+      # Python; on a pull request, its base and head instead, from the event.
       - name: The inputs, checked
         id: checked
         env:
@@ -93,6 +100,8 @@ jobs:
           PER_JOB: ${{ inputs.per_job }}
           BASE: ${{ inputs.base }}
           PYTHON_VERSION: ${{ inputs.python }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: python3 scripts/measure.py request
       # The uv cache CI saved is restored, and none is saved: no other run reads what this workflow writes.
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
@@ -107,7 +116,7 @@ jobs:
       # mutant searches), one job a test function and chunk of streams, and resolves the base to its commit:
       # a selection that holds none, a base that is no commit, or more jobs than a matrix holds fail here,
       # before any job starts. The cut kind splits each selection's cuts into slices by its baseline's
-      # `timing`.
+      # `timing`; a pull request's jobs are those of what it changes, none where it changes nothing measured.
       - name: The selection, as jobs
         id: jobs
         env:
@@ -138,6 +147,8 @@ jobs:
   measure:
     name: ${{ matrix.job.id }}
     needs: request
+    # A pull request that changes nothing measured makes no job.
+    if: needs.request.outputs.matrix != '[]'
     runs-on: ubuntu-24.04
     # A fuzz job is one run of up to 900 s with its corpus written first; a cut job a slice of a selection's
     # cuts, two at once on two workers each, planned at half these minutes; another job a test function's
@@ -203,8 +214,8 @@ jobs:
   report:
     name: the table
     needs: [request, measure]
-    # After every job, whatever their outcome, once the request was checked.
-    if: always() && needs.request.result == 'success'
+    # After every job, whatever their outcome, once the request was checked and made one.
+    if: always() && needs.request.result == 'success' && needs.request.outputs.matrix != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -219,9 +230,9 @@ jobs:
       # The records counted first, one for each job of the matrix (a missing one named as that), then merged
       # into one table a kind, on the run's page and kept as an artifact; fails where a record is missing or
       # duplicated, a job failed, a self-test job gave another answer than its own, a selection's slices do not
-      # make one report, a self-test's cuts disagree with the baseline, or the run is not on its first attempt
-      # (scripts/measure.py, `summary`). To measure again, dispatch anew. The report job reads the input
-      # coverage's runner from the checkout.
+      # make one report, a pull request's or the self-test's cuts disagree with the baseline, or the run is not
+      # on its first attempt (scripts/measure.py, `summary`). To measure again, dispatch anew. The report job
+      # reads the input coverage's runner from the checkout.
       - name: The table
         id: table
         env:

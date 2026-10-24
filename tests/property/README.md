@@ -2037,8 +2037,13 @@ job's 120 minutes at two at once, the rest left to the selection's recording and
 records the selection and runs its slice (`--slice K/N`); the report merges the slices into the selection's
 report, each slice there once and every slice recording the same cuts, and holds it to the baseline, a
 disagreement a flag. `measure.py fetch RUN --out DIR` downloads the records, and `input_coverage.py check NAME
---records DIR` holds them to the baseline here. The workflow's self-test holds the cuts of one site of S3c's
-to the baseline.
+--records DIR` holds them to the baseline here. On a pull request that changes a test a selection runs, every
+cut of that selection runs; on one that changes a module the selection's tests import, the cuts of the sites
+whose names hold that module (`--scope`); each is held to the baseline, and a disagreement fails the run. A
+change to the plugin or the runner runs the self-test, the cuts of one site of S3c's. A scoped run does not see
+what a change does to the cuts of sites that do not name the module changed (a derandomized run draws
+differently after a draw that changed), which the whole-repository run, made now and then, does (maintainer,
+2026-10-24).
 
 "Drop each value" is finer than the hand rule's "cut the list to one value": two values of one kind, each
 held by the kind's mutant, pass a drop each, where a cut to one value fails. The baseline calls such a pair

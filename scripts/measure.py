@@ -35,7 +35,8 @@ records into one table a kind. Locally the jobs run one after another; on CI eac
   without the selection's `!` patterns, so that the cuts they leave out run too), each selection's cuts split
   into jobs of about equal time by its longest cut measured (the baseline's `timing`), a slice each: each job
   records the selection and runs its slice, two cuts at once; the report merges the slices into the
-  selection's report and holds it to the baseline (`input_coverage.py check`), a finding a flag.
+  selection's report and holds it to the baseline (`input_coverage.py check`), a finding a flag. On a pull
+  request, the cuts of the sites its change names, held to the baseline (`pull_request_jobs`).
 
 A run of a test is its own: the test's checks run, and a failing check ends that stream's run, recorded as
 such; the audit's judgement is skipped and its counts kept. Stream 0 is the test's own derandomised stream;
@@ -88,6 +89,14 @@ CUT_JOB_MINUTES = 120
 CUT_PLANNED = 0.5
 ALL, WHOLE_SELECTION = "all", "whole"
 BASELINE = Path("tests/property/input_coverage_baseline.json")
+# The files whose change on a pull request runs the self-test: this workflow's own, and the cut kind's tool.
+SELF_TESTED = (
+    ".github/workflows/measure.yml",
+    "scripts/measure.py",
+    "scripts/input_coverage.py",
+    "tests/property/input_coverage.py",
+)
+SHA = re.compile(r"[0-9a-f]{40}")
 PATTERN = re.compile(r"[\x21-\x7e]+")
 FUZZ_PYTHON = "3.14"  # Atheris 3.1.0's wheels: 3.12 to 3.14
 PROFILE = "ci"
@@ -297,14 +306,18 @@ def selection_problems(kind: str, words: Sequence[str], root: Path) -> list[str]
 
 
 def checked_request(environment: Mapping[str, str], root: Path) -> dict[str, str]:
-    """The dispatch's inputs, checked; on a pull request, the self-test."""
+    """The dispatch's inputs, checked; on a pull request, its base and head, from which the matrix takes
+    what it changes (`pull_request_jobs`)."""
     if environment.get("EVENT") == "pull_request":
+        pull = f"{environment.get('PR_BASE', '')}...{environment.get('PR_HEAD', '')}"
+        if not all(SHA.fullmatch(each) for each in pull.split("...")):
+            raise MeasureError([f"the pull request's base and head {pull!r} are not two commits"])
         return {
-            "kind": "self",
+            "kind": "pull_request",
             "selection": "",
             "count": "",
             "per_job": "",
-            "base": "",
+            "base": pull,
             "python": "3.15",
         }
     problems: list[str] = []
@@ -431,13 +444,66 @@ def cut_jobs(
     return jobs
 
 
+def changed_files(pull: str, root: Path) -> list[str]:
+    """The files a pull request changes that its head holds, from its base and head (`BASE...HEAD`)."""
+    done = subprocess.run(
+        ["git", "diff", "--name-only", "--no-renames", pull, "--"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if done.returncode != 0:
+        raise MeasureError([f"git diff {pull} failed: {done.stderr[-500:]}"])
+    return sorted(name for name in done.stdout.splitlines() if (root / name).is_file())
+
+
+def imported_closure(files: Sequence[str], root: Path) -> set[str]:
+    """The modules of the tree that `files` import, and those they import, and so on (as paths)."""
+    module = input_coverage(root)
+    found: set[str] = set()
+    waiting = [name for name in files if (root / name).is_file()]
+    while waiting:
+        name = waiting.pop()
+        if name in found:
+            continue
+        found.add(name)
+        try:
+            imports: set[str] = module.imported(root / name, root)
+        except SyntaxError:
+            continue  # a module that does not parse fails its own tests; it names nothing it imports
+        waiting += [each for each in imports if (root / each).is_file()]
+    return found
+
+
+def pull_request_jobs(changed: Sequence[str], python: str, root: Path) -> list[Job]:
+    """The cut jobs of a pull request: for each selection, all its cuts where the change touches one of its
+    tests, the cuts of the sites that name a module it changes where that module is one its tests import, and
+    none otherwise; each slice held to the baseline (its answer `baseline`)."""
+    jobs: list[Job] = []
+    for name, entry in baseline_of(root).items():
+        tests = sorted({test.partition("::")[0] for test in entry["tests"]})
+        scope = ""
+        if not set(tests) & set(changed):
+            closure = imported_closure(tests, root)
+            touched = [each for each in changed if each in closure and each.endswith(".py")]
+            if not touched:
+                continue
+            scope = " ".join(f"*{each}::*" for each in touched)
+        jobs += cut_jobs([name], python, root, expect="baseline", scope=scope)
+    return jobs
+
+
 def matrix(request: Mapping[str, str], root: Path = REPOSITORY) -> list[Job]:
     """The jobs a checked request makes: one a test function (a run of the base and one of the head for
     regions, and one run of every mutant search) and stream chunk, one a control's run, or one a slice of a
-    selection's cuts; on a pull request, the self-test."""
+    selection's cuts; on a pull request, the self-test where it changes the tool (`SELF_TESTED`), and the cuts
+    of what it changes (`pull_request_jobs`)."""
     kind = request["kind"]
-    if kind == "self":
-        return self_test(request["python"], root)
+    if kind == "pull_request":
+        changed = changed_files(request["base"], root)
+        jobs = self_test(request["python"], root) if set(changed) & set(SELF_TESTED) else []
+        return jobs + pull_request_jobs(changed, request["python"], root)
     words = request["selection"].split()
     if kind == "cuts":
         jobs = cut_jobs(words, request["python"], root)
