@@ -76,14 +76,16 @@
    "!* > tests/property/strategies.py::*",
    "!* > tests/property/records.py::*",
    "!* > tests/property/condition_strategies.py::*",
-   "tests/property/table_alternatives_strategies.py::table_alternatives > operating(way, place, draw) > tests/property/tables.py::above::*"
+   "tests/property/table_alternatives_strategies.py::table_alternatives > operating(way, place, draw) > tests/property/tables.py::above::*",
+   "tests/property/table_alternatives_strategies.py::table_alternatives > changed(*) > tests/property/value_field_strategies.py::*",
+   "tests/property/table_alternatives_strategies.py::table_alternatives > results.another_value(*) > tests/property/value_field_strategies.py::*"
   ],
   "excused": {
    "tests/property/test_table_alternatives_mutant_table.py": "reads the ways' names (`INSIDE`, `KEPT_OR_SET_ASIDE`, `REFUSES`) to hold the README's table of S4d's mutants; it draws nothing"
   },
   "left_out": {
-   "sites": 65,
-   "cuts": 274,
+   "sites": 61,
+   "cuts": 258,
    "uncut": 10,
    "reason": "temporary: the earlier pieces' strategies that this one draws inside its own are left out by the `!` patterns and not yet run; the whole-repository run on the CI matrix (the next piece of this tool) runs them first and removes the patterns, and each cut of them not held then gets its reason"
   },
@@ -95,6 +97,38 @@
    "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/alternatives_strategies.py::changed::st.sampled_from(others) :: drop 'gap'": {
     "result": "not held",
     "reason": "a gap: S4a's `changed` draws, for an alternative beside the table that S4a's way sets aside as `not_accepted`, the measurement-geometry token the request does not accept; S4d's checks need neither token"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/value_field_strategies.py::interval::st.sampled_from(INTERVAL_WAYS) :: drop 'both' #0": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `interval` draws the way of an interval's bounds (both stated, or one `none`) for an alternative beside the table that S4a's `changed` gives the other form (`other_form`, from a constant); S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the ways"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/value_field_strategies.py::interval::st.sampled_from(INTERVAL_WAYS) :: drop 'both' #1": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `interval` draws the way of an interval's bounds (both stated, or one `none`) for an alternative beside the table that S4a's `changed` gives the other form (`other_form`, from a constant); S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the ways"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/value_field_strategies.py::interval::st.sampled_from(INTERVAL_WAYS) :: drop 'lower_none'": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `interval` draws the way of an interval's bounds (both stated, or one `none`) for an alternative beside the table that S4a's `changed` gives the other form (`other_form`, from a constant); S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the ways"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/value_field_strategies.py::interval::st.sampled_from(INTERVAL_WAYS) :: drop 'upper_none'": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `interval` draws the way of an interval's bounds (both stated, or one `none`) for an alternative beside the table that S4a's `changed` gives the other form (`other_form`, from a constant); S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the ways"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/value_field_strategies.py::tokens::st.sampled_from(VOCABULARY.token_lists[name]) :: drop 'proxy_range'": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `tokens` draws the basis of that interval, for an alternative beside the table that S4a's `changed` gives the other form (`other_form`, from a constant); S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the four"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/value_field_strategies.py::tokens::st.sampled_from(VOCABULARY.token_lists[name]) :: drop 'reported_range'": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `tokens` draws the basis of that interval, for an alternative beside the table that S4a's `changed` gives the other form (`other_form`, from a constant); S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the four"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/value_field_strategies.py::tokens::st.sampled_from(VOCABULARY.token_lists[name]) :: drop 'specification_limits'": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `tokens` draws the basis of that interval, for an alternative beside the table that S4a's `changed` gives the other form (`other_form`, from a constant); S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the four"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/value_field_strategies.py::tokens::st.sampled_from(VOCABULARY.token_lists[name]) :: drop 'stated_bound'": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `tokens` draws the basis of that interval, for an alternative beside the table that S4a's `changed` gives the other form (`other_form`, from a constant); S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the four"
    },
    "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, table, 'not_accepted', request, FIELD) > tests/property/alternatives_strategies.py::changed::st.sampled_from(others) :: drop 'bulk'": {
     "result": "not held",
@@ -255,6 +289,38 @@
    "tests/property/table_alternatives_strategies.py::table_alternatives > placed(draw, size, way) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(ways) :: drop 'one_double_outside'": {
     "result": "empty",
     "reason": "equivalent: S4d's `placed` gives S3b-2's `range_reads` one way at each call, the place S4d's own way names, so a drop leaves that call nothing to draw (`empty`); S4d's `sampled_from(ways)` is the draw that chooses it, and its cuts are held"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > results.another_value(draw, field, FIELD) > tests/property/value_field_strategies.py::interval::st.sampled_from(INTERVAL_WAYS) :: drop 'both' #0": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `interval` draws the way of the interval bounds of S2's `another_value`, for each alternative beside the table whose form is an interval; S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the ways"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > results.another_value(draw, field, FIELD) > tests/property/value_field_strategies.py::interval::st.sampled_from(INTERVAL_WAYS) :: drop 'both' #1": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `interval` draws the way of the interval bounds of S2's `another_value`, for each alternative beside the table whose form is an interval; S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the ways"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > results.another_value(draw, field, FIELD) > tests/property/value_field_strategies.py::interval::st.sampled_from(INTERVAL_WAYS) :: drop 'lower_none'": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `interval` draws the way of the interval bounds of S2's `another_value`, for each alternative beside the table whose form is an interval; S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the ways"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > results.another_value(draw, field, FIELD) > tests/property/value_field_strategies.py::interval::st.sampled_from(INTERVAL_WAYS) :: drop 'upper_none'": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `interval` draws the way of the interval bounds of S2's `another_value`, for each alternative beside the table whose form is an interval; S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the ways"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > results.another_value(draw, field, FIELD) > tests/property/value_field_strategies.py::tokens::st.sampled_from(VOCABULARY.token_lists[name]) :: drop 'proxy_range'": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `tokens` draws the basis of the interval S2's `another_value` gives each alternative beside the table whose form is an interval; S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the four"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > results.another_value(draw, field, FIELD) > tests/property/value_field_strategies.py::tokens::st.sampled_from(VOCABULARY.token_lists[name]) :: drop 'reported_range'": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `tokens` draws the basis of the interval S2's `another_value` gives each alternative beside the table whose form is an interval; S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the four"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > results.another_value(draw, field, FIELD) > tests/property/value_field_strategies.py::tokens::st.sampled_from(VOCABULARY.token_lists[name]) :: drop 'specification_limits'": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `tokens` draws the basis of the interval S2's `another_value` gives each alternative beside the table whose form is an interval; S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the four"
+   },
+   "tests/property/table_alternatives_strategies.py::table_alternatives > results.another_value(draw, field, FIELD) > tests/property/value_field_strategies.py::tokens::st.sampled_from(VOCABULARY.token_lists[name]) :: drop 'stated_bound'": {
+    "result": "not held",
+    "reason": "a gap: the value-field piece's `tokens` draws the basis of the interval S2's `another_value` gives each alternative beside the table whose form is an interval; S4d's checks read the others only through HP27's oracle, which composes each alternative's read alone, and no S4d test needs any one of the four"
    },
    "tests/property/table_alternatives_strategies.py::table_alternatives > want_for(draw, outcome, form, FIELD) > tests/property/alternatives_strategies.py::want_for::st.sampled_from(WANTS) :: drop 'bounds'": {
     "result": "not held",
@@ -574,11 +640,11 @@
    },
    "tests/property/extrapolation_strategies.py::monotone_worlds::st.sampled_from(METHODS) :: drop 'constant'": {
     "result": "not held",
-    "reason": "equivalent: the monotonicity property compares statuses alone, and each method takes the end value (`declarations.md` section 4.1), so no status depends on which; each method is held where HP24 draws it (`extrapolations`, both cuts held)"
+    "reason": "equivalent: the monotonicity property compares statuses alone, and each method takes the end value (`declarations.md` section 4.1), so no status depends on which; each method is held where `applied` and `refused_shapes` draw it (`extrapolations`): `consumer_law` at `applied`, `constant` at `refused_shapes`"
    },
    "tests/property/extrapolation_strategies.py::monotone_worlds::st.sampled_from(METHODS) :: drop 'consumer_law'": {
     "result": "not held",
-    "reason": "equivalent: the monotonicity property compares statuses alone, and each method takes the end value (`declarations.md` section 4.1), so no status depends on which; each method is held where HP24 draws it (`extrapolations`, both cuts held)"
+    "reason": "equivalent: the monotonicity property compares statuses alone, and each method takes the end value (`declarations.md` section 4.1), so no status depends on which; each method is held where `applied` and `refused_shapes` draw it (`extrapolations`): `consumer_law` at `applied`, `constant` at `refused_shapes`"
    },
    "tests/property/extrapolation_strategies.py::not_applied > draw(extrapolations(drawn)) > tests/property/extrapolation_strategies.py::extrapolations::st.booleans() :: drop False": {
     "result": "not held",
