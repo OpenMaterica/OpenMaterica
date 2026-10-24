@@ -11,6 +11,9 @@ on a later one is not seen there; the faults that once raised are held on the fi
 The build model's faults (`BUILD_MUTANTS`) are held to the build-check case files the same way, against
 `BUILD_EXCEPTIONS`, and failing those to the direct checks (`direct.py`)."""
 
+import re
+from collections.abc import Mapping
+from pathlib import Path
 from typing import NoReturn
 
 import pytest
@@ -190,3 +193,40 @@ def test_a_build_fault_that_makes_the_model_raise_fails_its_check(kind: type[Exc
         build_check("broken_build_model", broken_build_model(kind))
     notes = getattr(raised.value, "__notes__", [])
     assert any(note.startswith("the build model raised reading BC-") for note in notes), notes
+
+
+README = Path(__file__).with_name("README.md")
+README_ROW = re.compile(r"^\| `(build_\w+)` \|.*\| (killed|survives) \|\s*$", re.MULTILINE)
+
+
+def readme_problems(text: str, mutants: Mapping[str, Mutant]) -> list[str]:
+    """Each build fault the README's table does not list, lists without a fault, or lists with the wrong
+    outcome: it says only whether the cases (or the direct checks) kill a fault, and the table here is the
+    one source of why a survivor survives."""
+    rows = dict(README_ROW.findall(text))
+    return [
+        *(f"{name}: no row" for name in mutants if name not in rows),
+        *(f"{name}: a row, and no fault" for name in rows if name not in mutants),
+        *(
+            f"{name}: the row says {rows[name]}, the table {'survives' if mutant.survives else 'killed'}"
+            for name, mutant in mutants.items()
+            if name in rows and (rows[name] == "survives") != (mutant.survives is not None)
+        ),
+    ]
+
+
+def test_the_readme_lists_each_build_fault_and_whether_it_survives() -> None:
+    assert readme_problems(README.read_text(encoding="utf-8"), BUILD_MUTANTS) == []
+
+
+def test_a_readme_table_that_drifts_from_the_faults_fails() -> None:
+    """Control: a row dropped, a row for no fault and a row with the other outcome are each found."""
+    killed = next(name for name, mutant in BUILD_MUTANTS.items() if mutant.survives is None)
+    text = README.read_text(encoding="utf-8")
+    row = next(match for match in README_ROW.finditer(text) if match[1] == killed)
+    assert readme_problems(text.replace(row[0], ""), BUILD_MUTANTS) == [f"{killed}: no row"]
+    assert readme_problems(text + "| `build_no_such_fault` | a fault | killed |\n", BUILD_MUTANTS) == [
+        "build_no_such_fault: a row, and no fault"
+    ]
+    flipped = text.replace(row[0], row[0].replace("| killed |", "| survives |"))
+    assert readme_problems(flipped, BUILD_MUTANTS) == [f"{killed}: the row says survives, the table killed"]
