@@ -540,6 +540,10 @@ def a_report(**cuts: str) -> dict[str, Any]:
     return {"sites": {"s": {}}, "cuts": named, "uncut": {"u": "text"}}
 
 
+NEEDS = (
+    "a baseline entry needs a result of ('not held', 'empty') and a reason beginning "
+    "('a gap: ', 'equivalent: ') with text after it: "
+)
 AGREED = {
     "cuts": {"s :: b": {"result": "not held", "reason": "a gap: nothing reads it"}},
     "uncut": {"u": "checked: a name no test reads"},
@@ -557,10 +561,35 @@ AGREED = {
         (
             a_report(a="held", b="not held"),
             {**AGREED, "cuts": {"s :: b": {"result": "not held", "reason": "nothing reads it"}}},
-            [
-                "a baseline entry needs a result not held and a reason beginning "
-                "('a gap: ', 'equivalent: '): s :: b"
-            ],
+            [NEEDS + "s :: b"],
+        ),
+        # A reason of its prefix alone says nothing.
+        (
+            a_report(a="held", b="not held"),
+            {**AGREED, "cuts": {"s :: b": {"result": "not held", "reason": "a gap: "}}},
+            [NEEDS + "s :: b"],
+        ),
+        (
+            a_report(a="held", b="not held"),
+            {**AGREED, "cuts": {"s :: b": {"result": "not held", "reason": "equivalent:  "}}},
+            [NEEDS + "s :: b"],
+        ),
+        # A cut that errored, was not applied or drew nothing valid is no evidence about the tests: a gap
+        # cannot be baselined as one, and nor can an equivalent.
+        *(
+            (
+                a_report(a="held", b=result),
+                {**AGREED, "cuts": {"s :: b": {"result": result, "reason": reason + "nothing reads it"}}},
+                [NEEDS + "s :: b"],
+            )
+            for result in ("error", "not applied", "invalid")
+            for reason in ("a gap: ", "equivalent: ")
+        ),
+        # What it accepts: a cut with nothing to change, as the baseline lists it.
+        (
+            a_report(a="held", b="empty"),
+            {**AGREED, "cuts": {"s :: b": {"result": "empty", "reason": "equivalent: it draws alone"}}},
+            [],
         ),
         (
             a_report(a="held", b="not held"),
@@ -602,8 +631,9 @@ def test_the_baseline_names_tests_that_exist_and_gives_each_entry_its_reason() -
         for test, note in selection["excused"].items():
             assert note.strip(), test
         for cut, entry in selection["cuts"].items():
-            assert entry["result"] in input_coverage.RESULTS[1:], cut
+            assert entry["result"] in input_coverage.BASELINED, cut
             assert entry["reason"].startswith(input_coverage.REASONS), cut
+            assert entry["reason"].partition(": ")[2].strip(), cut
         for site, note in selection["uncut"].items():
             assert note.strip(), site
 
