@@ -55,6 +55,17 @@ every family entry goes in `families/CHANGELOG.md`.
   a step without them, or reading a find otherwise than the checks do, fails.
 
 ### Schema
+- Five clauses of `declarations.md` (the maintainer's rulings of 2026-10-24 on S7a-1a's open points, as
+  recommended; `docs/specification/changes.md`): `condition_unknown_name` is never accepted, its remedy the
+  reader's upgrade (section 4.2); `basis` is a member of an extrapolation, a nominal and a distribution alone,
+  and `declaration.json` names it on no other kind; a `population_level` beside a `represents` that is not
+  `population` is refused, by the `population_level` rule (BC-043), and `declaration.json` refuses it; a
+  watch holds `unit` with an `interval` only (section 8 item 1); and the report of a declaration refused on
+  its own holds the declaration as given where its text is JSON, and its `consumer` where the declaration
+  declares one (section 2), which `build_report.json` now requires. Three build-check arms, one for each
+  clause the declaration's check can show: `BC-048.waiver_of_an_unknown_condition_name`,
+  `BC-048.basis_on_a_waiver` and `BC-051.population_level_beside_another_represents`. No other case file
+  changes.
 - Three sentences of `declarations.md` (the maintainer's ruling of 2026-10-23, as recommended after
   S7-cases-2's review; `docs/specification/changes.md`): a code names a condition, for a waiver's `condition`,
   where its reasons always carry one, the six `condition_*` codes, `outside_range`, `at_edge` and

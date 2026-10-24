@@ -1094,7 +1094,6 @@ class Overlay(TypedDict):
     field: RegisteredField
     overlay: MaterialReference
     reason: Text
-    basis: NotRequired[Text]
 
 
 class DeclaredOverlayScope(TypedDict):
@@ -1107,7 +1106,6 @@ class DeclaredOverlayScope(TypedDict):
     overlay: MaterialReference
     accepts: list[Literal["consumer", "model", "configuration"]]
     reason: Text
-    basis: NotRequired[Text]
 
 
 class BuildRefusalJson(TypedDict):
@@ -2435,7 +2433,6 @@ class Pick(TypedDict):
     field: RegisteredField
     index: float
     reason: Text
-    basis: NotRequired[Text]
 
 
 class Waiver(TypedDict):
@@ -2454,7 +2451,6 @@ class Waiver(TypedDict):
     condition: NotRequired[RegisteredCondition]
     label: NotRequired[Label]
     reason: Text
-    basis: NotRequired[Text]
 
 
 class ImpliedCondition(TypedDict):
@@ -2472,7 +2468,6 @@ class ImpliedCondition(TypedDict):
     token: str
     implies: Implies
     reason: Text
-    basis: NotRequired[Text]
 
 
 class AcceptedDifference(TypedDict):
@@ -2490,7 +2485,6 @@ class AcceptedDifference(TypedDict):
     fact: RegisteredFact
     value: Literal["any"] | StatusObject | dict[str, Any]
     reason: Text
-    basis: NotRequired[Text]
 
 
 class Extrapolation(TypedDict):
@@ -2554,9 +2548,9 @@ class BuildReport(TypedDict):
     item 9). watches is optional, so that a build that does not yet emit watches omits it rather than hold an
     empty list; every other list is required, and may be empty. A declaration the build refuses on its own
     gives no results, no watches and nothing unused, so a report holding a refusal holds those lists empty,
-    and its consumer and declaration, where it holds them, as given, whatever their shape: the text says what
-    a refused declaration's report compares and nothing of the rest. A report holding no refusal holds its
-    consumer and a declaration valid against declaration.json.
+    its declaration as given where its text is JSON, and its consumer where the declaration declares one,
+    whatever their shape. A report holding no refusal holds its consumer and a declaration valid against
+    declaration.json.
     """
 
     consumer: NotRequired[JsonValue]
