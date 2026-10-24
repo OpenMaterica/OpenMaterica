@@ -178,8 +178,13 @@ def expected_kind(
                 named |= members
                 needed |= members
             continue
+        listed = held.startswith("for ") and f"`{kind}`" in held
+        # A member required of the kinds its cell lists, which "no other kind holds", is named on those alone
+        # (`basis`, the maintainer's ruling of 2026-10-24).
+        if held.startswith("for ") and "no other kind holds" in held and not listed:
+            continue
         named |= members
-        if held.startswith("yes") or (held.startswith("for ") and f"`{kind}`" in held):
+        if held.startswith("yes") or listed:
             needed |= members
     return named, needed
 
@@ -325,6 +330,10 @@ def _basis_of_a_waiver(schema: Json) -> None:
     required(definitions(schema)["waiver"]).append("basis")
 
 
+def _basis_named_on_a_waiver(schema: Json) -> None:
+    properties(definitions(schema)["waiver"])["basis"] = {"$ref": "#/$defs/text"}
+
+
 def _empty_reads(schema: Json) -> None:
     properties(definitions(schema)["model_entry"])["reads"].pop("minItems")
 
@@ -345,6 +354,7 @@ def _field_of_an_accepted_difference(schema: Json) -> None:
         (_require_optional, "the model entry requires"),
         (_optional_required, "the model entry requires"),
         (_basis_of_a_waiver, "waiver requires"),
+        (_basis_named_on_a_waiver, "waiver names"),
         (_empty_reads, "reads takes an empty list"),
         (_unlocated_nominal, "nominal's location rule is missing"),
         (_field_of_an_accepted_difference, "accepted_difference names"),
@@ -729,10 +739,39 @@ def _refused(report: Json) -> None:
 
 
 def _refused_alone(report: Json) -> None:
-    """A refused declaration's report: no results, nothing unused, its consumer and declaration left out."""
+    """A refused declaration's report: no results, nothing unused, its consumer and declaration as given."""
     _refused(report)
     report["results"] = []
-    del report["consumer"], report["declaration"]
+
+
+def _refused_without(*members: str) -> Callable[[Json], None]:
+    def change(report: Json) -> None:
+        _refused_alone(report)
+        for member in members:
+            del report[member]
+
+    return change
+
+
+def _refused_holding_a_consumer_it_does_not_declare(report: Json) -> None:
+    _refused_alone(report)
+    del cast(Json, report["declaration"])["consumer"]
+
+
+def _refused_at_the_empty_pointer(declaration: JsonValue | None, *more: Json) -> Callable[[Json], None]:
+    """A report of a declaration refused at the empty pointer, and of any refusals given beside it, holding
+    the declaration given, and its consumer where it declares one; None for a text that is not JSON."""
+
+    def change(report: Json) -> None:
+        _refused_alone(report)
+        report["refusals"] = [{"item": "BC-048", "pointer": ""}, *more]
+        del report["consumer"], report["declaration"]
+        if declaration is not None:
+            report["declaration"] = declaration
+            if isinstance(declaration, dict) and "consumer" in declaration:
+                report["consumer"] = declaration["consumer"]
+
+    return change
 
 
 def _no_consumer(report: Json) -> None:
@@ -852,6 +891,20 @@ def _unchanged(report: Json) -> None:
         (_unchanged, True),
         (_refused, False),
         (_refused_alone, True),
+        (_refused_without("consumer", "declaration"), False),
+        (_refused_without("consumer"), False),
+        (_refused_without("declaration"), False),
+        (_refused_holding_a_consumer_it_does_not_declare, False),
+        (_refused_at_the_empty_pointer(None), True),
+        (_refused_at_the_empty_pointer(None, {"item": "BC-048", "pointer": "/models"}), False),
+        (_refused_at_the_empty_pointer(["a list"]), True),
+        (_refused_at_the_empty_pointer({"models": []}), True),
+        (
+            _refused_at_the_empty_pointer(
+                {"consumer": {"name": "a", "version": "1"}, "operating_conditions": {}}
+            ),
+            True,
+        ),
         (_no_consumer, False),
         (_invalid_declaration, False),
         (_a_watch, True),
@@ -894,6 +947,15 @@ def _unchanged(report: Json) -> None:
         "a_report",
         "refused_with_results",
         "refused_alone",
+        "refused_without_its_consumer_and_declaration",
+        "refused_without_its_consumer",
+        "refused_without_its_declaration",
+        "refused_holding_a_consumer_its_declaration_does_not_declare",
+        "refused_as_a_text_that_is_not_json",
+        "refused_at_the_empty_pointer_and_elsewhere_without_its_declaration",
+        "refused_as_a_declaration_that_is_not_an_object",
+        "refused_as_a_declaration_without_its_consumer",
+        "refused_at_the_empty_pointer_holding_its_consumer",
         "no_consumer",
         "an_invalid_declaration_not_refused",
         "a_watch",
@@ -1697,8 +1759,9 @@ PROBES: list[tuple[str, Callable[[Json], None], bool]] = [
     ("a_waiver_at_an_interval", at_other_location({"interval": [1.0, 2.0]}), True),
     ("a_pick_at_a_record_and_a_region", a_pick({"region": "lumen"}), True),
     ("a_pick_index_of_one", a_pick({"index": 1}), True),
-    # Pinned as the table gives it, not as a ruling: `basis` is named on every acceptance kind.
-    ("a_pick_with_a_basis", a_pick({"basis": "a basis"}), True),
+    # `basis` is a member of an extrapolation, a nominal and a distribution alone (the maintainer's ruling of
+    # 2026-10-24): every other kind holding one is refused.
+    ("a_pick_with_a_basis", a_pick({"basis": "a basis"}), False),
     (
         "an_implied_condition_with_a_basis_of_its_own",
         lambda d: with_acceptance(
@@ -1712,9 +1775,9 @@ PROBES: list[tuple[str, Callable[[Json], None], bool]] = [
                 }
             )
         )(d),
-        True,
+        False,
     ),
-    ("a_waiver_with_a_basis", waiver({"code": "no_requirement", "basis": "a basis"}), True),
+    ("a_waiver_with_a_basis", waiver({"code": "no_requirement", "basis": "a basis"}), False),
     (
         "an_accepted_difference_with_a_basis",
         with_acceptance(
@@ -1727,7 +1790,7 @@ PROBES: list[tuple[str, Callable[[Json], None], bool]] = [
                 "basis": "a basis",
             }
         ),
-        True,
+        False,
     ),
     (
         "an_overlay_with_a_basis",
@@ -1740,7 +1803,7 @@ PROBES: list[tuple[str, Callable[[Json], None], bool]] = [
                 "basis": "a basis",
             }
         ),
-        True,
+        False,
     ),
     (
         "an_overlay_scope_with_a_basis",
@@ -1753,8 +1816,9 @@ PROBES: list[tuple[str, Callable[[Json], None], bool]] = [
                 "basis": "a basis",
             }
         ),
-        True,
+        False,
     ),
+    ("a_nominal_with_its_basis", nominal({"value": 0.001}), True),
     ("two_identical_models", twice("models"), False),
     ("two_identical_requirements", twice("requirements"), False),
     ("two_identical_trainable_entries", twice("trainable"), False),
@@ -1830,12 +1894,17 @@ PROBES: list[tuple[str, Callable[[Json], None], bool]] = [
         waiver({"code": "outside_range", "condition": "pressure"}),
         False,
     ),
-    # Pinned as the table gives it, not as a ruling: a waiver of `condition_unknown_name` takes a registered
-    # condition only, so no declaration can name the condition the reader did not know.
+    # `condition_unknown_name` is never accepted (the maintainer's ruling of 2026-10-24): a waiver of it names
+    # a registered condition, as every waiver does, so none names the condition the reader did not know.
     (
         "a_waiver_of_an_unknown_conditions_name_naming_it",
         waiver({"code": "condition_unknown_name", "condition": "pressure"}),
         False,
+    ),
+    (
+        "a_waiver_of_an_unknown_conditions_name_naming_a_registered_one",
+        waiver({"code": "condition_unknown_name", "condition": "temperature"}),
+        True,
     ),
     ("a_target_species_by_its_taxon", target({"species": {"ncbi_taxon": 9606}}), True),
     ("a_target_species_with_a_fractional_taxon", target({"species": {"ncbi_taxon": 9606.5}}), False),
@@ -1855,6 +1924,8 @@ PROBES: list[tuple[str, Callable[[Json], None], bool]] = [
         population_level({"level": "donor", "balanced_over": "lot"}),
         True,
     ),
+    ("a_population_level_beside_another_represents", sampled("measurement", level=True), False),
+    ("a_population_level_beside_population", sampled("population", level=True), True),
     (
         "a_balanced_population_level_with_a_slip",
         population_level({"level": "donor", "balanced_over": "lots"}),
