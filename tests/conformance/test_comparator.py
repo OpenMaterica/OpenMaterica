@@ -652,3 +652,81 @@ def test_a_table_evaluation_case_that_passes_is_verified_never_passed() -> None:
         executors={"content_hash": lambda case_file, claims: {"status": "met", "reasons": []}},
     )
     assert run.outcome is Outcome.PASSED
+
+
+# A build's report (README, "Case files"; the S7 design's 5.1).
+
+BUILD_MEMBERS = ("refusals", "results", "watches", "unused")
+
+
+def build_case(refusals: list[JsonValue], rules: tuple[str, ...] = (), **expected: JsonValue) -> CaseFile:
+    document: JsonObject = {
+        "case": "BC-048",
+        "variant": "arm",
+        "suite": "build_checks",
+        "schema_version": "0.1.0",
+        "inputs": {"records": [], "declaration": "a.json"},
+        "request": {"operation": "check_build"},
+        "expected": {"refusals": refusals, **expected},
+        "compare": {"members": list(BUILD_MEMBERS), **({"rules_compared": list(rules)} if rules else {})},
+    }
+    return CaseFile.from_document(Path("BC-048.arm.json"), document)
+
+
+def refusal(item: str, pointer: str, **more: JsonValue) -> JsonObject:
+    return {"item": item, "pointer": pointer, **more}
+
+
+REPORT: JsonObject = {
+    "records": [],
+    "refusals": [refusal("BC-048", "/models/1"), refusal("BC-051", "/sampling", detail="words")],
+    "results": [],
+    "unused": [],
+}
+
+
+def test_a_builds_refusals_are_a_set_of_item_and_pointer_and_detail_is_never_compared() -> None:
+    expected: list[JsonValue] = [refusal("BC-051", "/sampling"), refusal("BC-048", "/models/1")]
+    assert differences(build_case(expected), REPORT) == []
+    assert differences(build_case(expected), {**REPORT, "refusals": [*expected, expected[0]]}) == []
+
+
+@pytest.mark.parametrize(
+    "refusals",
+    [
+        [refusal("BC-048", "/models/1")],
+        [refusal("BC-048", "/models/1"), refusal("BC-051", "/sampling"), refusal("BC-048", "")],
+        [refusal("BC-048", "/models/0"), refusal("BC-051", "/sampling")],
+        [refusal("BC-040", "/models/1"), refusal("BC-051", "/sampling")],
+        [{"item": "BC-048"}, refusal("BC-051", "/sampling")],
+    ],
+)
+def test_a_refusal_missing_extra_or_moved_fails(refusals: list[JsonValue]) -> None:
+    expected: list[JsonValue] = [refusal("BC-048", "/models/1"), refusal("BC-051", "/sampling")]
+    found = differences(build_case(expected), {**REPORT, "refusals": refusals})
+    assert len(found) == 1
+    assert found[0].startswith("refusals: ")
+
+
+def test_only_the_rules_compared_are_compared_where_a_case_names_them() -> None:
+    expected: list[JsonValue] = [refusal("BC-051", "/sampling")]
+    assert differences(build_case(expected, ("BC-051",)), REPORT) == []
+    assert differences(build_case(expected), REPORT) != []
+    assert differences(build_case([], ("BC-040",)), REPORT) == []
+    assert differences(build_case([refusal("BC-040", "/models/0")], ("BC-040",)), REPORT) != []
+
+
+@pytest.mark.parametrize("member", ["results", "watches", "unused"])
+def test_a_list_compared_and_not_expected_must_be_absent_or_empty(member: str) -> None:
+    expected: list[JsonValue] = [refusal("BC-048", "/models/1"), refusal("BC-051", "/sampling")]
+    without = {name: held for name, held in REPORT.items() if name != member}
+    assert differences(build_case(expected), without) == []
+    assert differences(build_case(expected), {**REPORT, member: []}) == []
+    assert differences(build_case(expected), {**REPORT, member: [{"model": "drag", "acceptance": 0}]}) == [
+        f"{member}: must be absent or empty, got [{{'model': 'drag', 'acceptance': 0}}]"
+    ]
+
+
+def test_a_build_case_that_expects_results_is_not_compared_before_s7a_2() -> None:
+    with pytest.raises(CaseFileError, match="arrives with S7a-2"):
+        differences(build_case([], unused=[{"model": "drag", "acceptance": 0}]), REPORT)
