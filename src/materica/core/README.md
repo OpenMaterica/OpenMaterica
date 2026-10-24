@@ -99,9 +99,9 @@ read, through step 13 for a constant, an interval, a composition and evidence (`
   a misuse of the Python API (`canonicalize` given a value `parse` would never give; claims no reader makes, a
   suite that does not exist or claims without plain read) or a step not built yet: a read whose answer a later
   step would decide raises `NotImplementedError` rather than give one, whatever else is wrong with the request
-  (`tests/property/test_read_properties.py`, `tests/unit/test_read.py`). The build is alike: a declaration gives
-  a report of its refusals, and one that passes its own check raises until the pieces that read it are built
-  (`tests/unit/test_declarations.py`).
+  (`tests/property/test_read_properties.py`, `tests/unit/test_read.py`). The build is alike: a declaration
+  gives a report of its refusals, and one that passes its own check raises until the pieces that read it are
+  built (`tests/unit/test_declarations.py`).
 - **A request is JSON text or a value.** Text is a `str` or bytes-like (`bytes`, `bytearray`, `memoryview`),
   read like a record's bytes; a `str` is always text, as a JSON string is never a request. Any other value is
   read as the JSON text `json.dumps` writes of it.

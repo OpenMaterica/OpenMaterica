@@ -30,4 +30,6 @@ standard library; and nothing imports `materica_authoring`.
 - Generated files are never edited by hand. `scripts/` regenerates them and CI fails on any difference: the
   vocabulary from the specification's tables, the reader schema and the shapes from the writer schemas
   (CONTRIBUTING, "Changing the schema").
-- `__init__.py` holds the public API built so far: `content_hash`, `load_records` and `read`.
+- `__init__.py` holds the public API built so far: `check_build`, `content_hash`, `load_records` and `read`.
+  `check_build` checks a consumer's declaration on its own (`declarations.md` section 1) and reports its
+  refusals; past that check it raises `NotImplementedError` until S7a-2 builds the reads and the verdict.
