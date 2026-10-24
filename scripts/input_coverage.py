@@ -54,12 +54,14 @@ BASELINE = ROOT / "tests" / "property" / "input_coverage_baseline.json"
 PLUGIN = "tests.property.input_coverage"
 PROFILE_VARIABLE = "MATERICA_HYPOTHESIS_PROFILE"
 MOST_VALUES = 24
-RESULTS = ("held", "not held", "invalid", "empty", "not applied", "error")
 # Why a kind of draw is uncut, where its name alone does not say.
 UNCUT_REASONS = {"fixed_dictionaries": "optional keys"}
-# What a baseline entry's reason begins with: a gap a test should hold, or a cut no test can tell apart from
-# the draw it cut.
+# What a baseline entry's reason begins with, text following: a gap a test should hold, or a cut no test can
+# tell apart from the draw it cut.
 REASONS = ("a gap: ", "equivalent: ")
+# The results a baseline lists: a cut that ran and no test needed, or one with nothing to change. A cut that
+# errored, was not applied or drew nothing valid says nothing about the tests.
+BASELINED = ("not held", "empty")
 DESCRIBED = {
     "pin_low": "pin to the low end",
     "off_low": "keep off the low end",
@@ -384,8 +386,16 @@ def problems(report: Json, entry: Json) -> list[str]:
     for name, cut in listed.items():
         if name not in report["cuts"]:
             found.append(f"in the baseline, no longer cut: {name}")
-        if not cut.get("reason", "").startswith(REASONS) or cut.get("result") not in RESULTS[1:]:
-            found.append(f"a baseline entry needs a result not held and a reason beginning {REASONS}: {name}")
+        reason: str = cut.get("reason", "")
+        if (
+            not reason.startswith(REASONS)
+            or not reason.partition(": ")[2].strip()
+            or cut.get("result") not in BASELINED
+        ):
+            found.append(
+                f"a baseline entry needs a result of {BASELINED} and a reason beginning {REASONS} "
+                f"with text after it: {name}"
+            )
     uncut: dict[str, str] = entry.get("uncut", {})
     for site, why in report["uncut"].items():
         if site not in uncut:
@@ -424,7 +434,7 @@ def imported(path: Path, root: Path) -> set[str]:
 def importers_not_listed(root: Path, entry: Json) -> list[str]:
     """The test modules under `tests/` importing a module whose sites a selection holds (by the path of its
     `sites` patterns) that the selection neither names (the module, or a test in it) nor excuses."""
-    modules = {pattern.partition("::")[0] for pattern in entry["sites"] if not pattern.startswith("!")}
+    modules = {pattern.partition("::")[0] for pattern in entry["sites"]}
     listed = {test.partition("::")[0] for test in entry["tests"]} | set(entry.get("excused", {}))
     found: list[str] = []
     for path in sorted((root / "tests").rglob("test_*.py")):
