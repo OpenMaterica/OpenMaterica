@@ -2,7 +2,8 @@
 """The cut kind of the measurement tool (`scripts/measure.py`, `.github/workflows/measure.yml`): a request
 names selections of the input coverage's baseline; the matrix splits each into slices by its timing; a job
 runs its slice and keeps the selection's report; the summary merges the slices, refuses a slice missing or
-recording other cuts, and holds a slice whose answer is the baseline to it, a dispatch's findings flags.
+recording other cuts, and holds a pull request's to the baseline, a dispatch's findings flags; a pull request
+makes the cuts of what it changes, and none where it changes nothing measured.
 
 The jobs run `scripts/input_coverage.py` on a tree of their own, written here, with copies of the runner and
 the plugin, as `tests/unit/test_input_coverage.py` does."""
@@ -10,6 +11,7 @@ the plugin, as `tests/unit/test_input_coverage.py` does."""
 import json
 import math
 import shutil
+import subprocess
 import time
 from pathlib import Path
 from typing import Any
@@ -18,6 +20,7 @@ import pytest
 
 from scripts import input_coverage, measure
 from scripts.measure import Job, MeasureError
+from tests.unit.throwaway_git import throwaway_repository
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 
@@ -121,7 +124,7 @@ def test_each_cut_job_runs_its_slice_and_the_summary_merges_them_and_holds_them_
     assert ok, text
     assert "| `fixture` | all | 2 | 1 | 2 | 1 | 1 |" in text
     assert f"- fixture: not held, and not in the baseline: {DROP_B}" in text
-    # Slices whose answer is the baseline (the self-test's) are held to it: the finding is a problem there.
+    # A pull request's slices are held to the baseline: the same finding is a problem there.
     held = slices(2, expect="baseline")
     for job, record in zip(held, (first, second), strict=True):
         record["job"] = job.data()
@@ -260,3 +263,56 @@ def test_a_cut_job_is_checked_again_as_its_job_reads_it() -> None:
     ):
         with pytest.raises(MeasureError):
             measure.job_from(json.dumps(job.data() | changed))
+
+
+def git(*words: str) -> str:
+    return subprocess.run(["git", *words], capture_output=True, text=True, check=True).stdout.strip()
+
+
+def committed(message: str) -> str:
+    git("add", "-A")
+    git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", message)
+    return git("rev-parse", "HEAD")
+
+
+def test_a_pull_request_makes_the_cuts_of_what_it_changes_and_none_where_it_changes_nothing_measured(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = throwaway_repository(tmp_path, monkeypatch)
+    (root / "tests" / "property").mkdir(parents=True)
+    (root / "scripts").mkdir()
+    shutil.copy(REPOSITORY / "scripts" / "input_coverage.py", root / "scripts")
+    files = {
+        "tests/property/drawn_strategies.py": "WAYS = 1\n",
+        "tests/property/test_drawn.py": "from tests.property.drawn_strategies import WAYS\n",
+        "tests/property/unrelated.py": "OTHER = 1\n",
+    }
+    for name, text in files.items():
+        (root / name).write_text(text, encoding="utf-8")
+    entry = ENTRY | {"tests": ["tests/property/test_drawn.py::test_x"]}
+    write_baseline(root, {"drawn": entry})
+    base = committed("base")
+
+    def jobs_of(name: str) -> list[Job]:
+        (root / name).write_text((root / name).read_text(encoding="utf-8") + "# changed\n", encoding="utf-8")
+        head = committed(f"change {name}")
+        made = measure.matrix({"kind": "pull_request", "base": f"{base}...{head}", "python": "3.15"}, root)
+        git("reset", "-q", "--hard", base)
+        return made
+
+    (strategies,) = jobs_of("tests/property/drawn_strategies.py")
+    assert (strategies.nodes, strategies.scope, strategies.expect) == (
+        "drawn",
+        "*tests/property/drawn_strategies.py::*",
+        "baseline",
+    )
+    (tests,) = jobs_of("tests/property/test_drawn.py")
+    assert (tests.nodes, tests.scope, tests.expect) == ("drawn", "", "baseline")
+    assert jobs_of("tests/property/unrelated.py") == []
+
+    # A change to the tool runs the self-test besides.
+    def self_test(python: str, root: Path) -> list[Job]:
+        return [Job("self", "fuzz")]
+
+    monkeypatch.setattr(measure, "self_test", self_test)
+    assert [job.id for job in jobs_of("scripts/input_coverage.py")] == ["self"]

@@ -210,7 +210,7 @@ small scale, and in each of `measure.yml`'s jobs; `.github/workflows/README.md` 
 | `drift` | each mutant search over streams: its kill, whether it died where it names, the latest, stream 0 against `kill_points.json`, a kill from the 400th example (near the guard) or past the 500th | 40 streams | a search function, each of its selected mutants at each size |
 | `regions` | each recorded feature's mean share at the head against the base's (flagged below 0.8) and its least share against its floor; and every mutant search at the head, its kills against the base's and the head's records | 18 streams | a function on one side, the base exported into an environment of its own; one job runs the searches |
 | `fuzz` | a seeded control run as `ci.yml`'s control step runs it: each run's find, seconds and inputs, the rate a second and a million inputs, and the miss of a pair and of CI's runs at the fitted rate | 10 runs | one run, with the runner to itself |
-| `cuts` | each cut of an input coverage selection (`tests/property/README.md`, "Every draw is held"): held, not held, empty, invalid, not applied or in error, the uncut draws and what the `!` patterns leave out, merged from the slices and held to the baseline; a disagreement is a flag on a dispatch and a failure in the self-test | each cut once | a slice of a selection's cuts, of about equal time by the baseline's `timing`: the selection recorded, then its cuts two at once |
+| `cuts` | each cut of an input coverage selection (`tests/property/README.md`, "Every draw is held"): held, not held, empty, invalid, not applied or in error, the uncut draws and what the `!` patterns leave out, merged from the slices and held to the baseline; a disagreement is a flag on a dispatch and a failure on a pull request | each cut once | a slice of a selection's cuts, of about equal time by the baseline's `timing`: the selection recorded, then its cuts two at once |
 
 Locally, under the heavy-run lock, at a small scale (two streams, one function):
 
@@ -236,7 +236,10 @@ uv run python scripts/input_coverage.py check <selection> --records <directory> 
 ```
 
 GitHub dispatches a workflow only once the default branch holds it; before that, a pull request that changes
-the workflow or its script runs its self-test, each kind on one small selection, with the answer it must give.
+the workflow, its script or the input coverage's runner or plugin runs its self-test, each kind on one small
+selection, with the answer it must give. A pull request that changes a test or a strategy module of an input
+coverage selection runs that selection's cuts of what it changes, held to the baseline
+(`.github/workflows/README.md`, "Measurements"); a cut that disagrees fails the run's report.
 
 The inputs: `kind`; `selection`, paths or nodes under `tests/property` (property tests for floors and regions,
 mutant searches for drift), for fuzz the controls of `CONTROLS`, each alone or as `NAME:none`, its commands

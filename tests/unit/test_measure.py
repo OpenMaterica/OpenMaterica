@@ -377,7 +377,11 @@ def test_the_request_takes_the_rules_counts_and_a_control_with_no_fault() -> Non
     regions = ENVIRONMENT | {"KIND": "regions", "BASE": "-x"}
     with pytest.raises(MeasureError, match="the base '-x' is not a branch"):
         measure.checked_request(regions, REPOSITORY)
-    assert measure.checked_request({"EVENT": "pull_request"}, REPOSITORY)["kind"] == "self"
+    pulled = {"EVENT": "pull_request", "PR_BASE": "a" * 40, "PR_HEAD": "b" * 40}
+    checked = measure.checked_request(pulled, REPOSITORY)
+    assert (checked["kind"], checked["base"]) == ("pull_request", f"{'a' * 40}...{'b' * 40}")
+    with pytest.raises(MeasureError, match="are not two commits"):
+        measure.checked_request(pulled | {"PR_HEAD": "main"}, REPOSITORY)
 
 
 def test_the_matrix_makes_a_job_of_each_property_function_and_chunk_and_none_of_another_test(
@@ -476,8 +480,7 @@ def test_the_summary_keeps_the_matrix_beside_the_table_for_fetch_to_count_agains
 
 
 def test_the_self_test_resolves_to_a_job_of_each_kind_with_its_answer() -> None:
-    request = {"kind": "self", "selection": "", "count": "", "per_job": "", "base": "", "python": "3.15"}
-    jobs = measure.matrix(request)
+    jobs = measure.self_test("3.15", REPOSITORY)
     assert sorted({(job.kind, job.side, job.expect) for job in jobs}) == [
         ("cuts", "head", "baseline"),
         ("drift", "head", "recorded"),

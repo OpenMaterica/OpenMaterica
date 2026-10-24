@@ -402,9 +402,14 @@ every family entry goes in `families/CHANGELOG.md`.
   other cuts, and holds it to the baseline, a disagreement a flag. `measure.py fetch RUN --out DIR` downloads
   the records and `input_coverage.py check NAME --records DIR` checks them. `scripts/input_coverage.py` gains
   what the jobs use: `--whole`, `--scope` and `--slice K/N` (a report that is a share of a selection's cuts,
-  run and judged alone), `--records`, and a `--budget` counted from the command's start. The self-test now
-  holds the cuts of one site of S3c's to the baseline beside the other kinds. The draw-time ownership the
-  maintainer ruled on 2026-10-24 follows as a piece of its own, before the whole-repository run.
+  run and judged alone), `--records`, and a `--budget` counted from the command's start. On a pull request
+  that changes a test a selection runs, the workflow runs every cut of that selection, and on one that changes
+  a module the selection's tests import, the cuts of the sites whose names hold that module, each held to the
+  baseline, a disagreement failing the run; a pull request that changes neither makes no job but the request,
+  and one that changes the workflow, its script or the input coverage's runner or plugin runs the self-test,
+  now with the cuts of one site of S3c's beside the other kinds. Whether that run gates a merge is the
+  maintainer's. The draw-time ownership the maintainer ruled on 2026-10-24 follows as a piece of its own,
+  before the whole-repository run.
 
 ## [0.1.0.dev3] - 2026-10-22
 
