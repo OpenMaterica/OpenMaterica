@@ -15,6 +15,18 @@ every family entry goes in `families/CHANGELOG.md`.
 ## [Unreleased]
 
 ### Added
+- `materica.check_build(declaration, store, *, claims=...)`, the build check up to the declaration's own check
+  (S7a-1b; `declarations.md` section 1). The declaration, JSON text or a value, is read by `record_format.md`
+  section 1 item 6 and checked by hand against `SHAPE`, the table of its shape (`core/declarations.py`), held
+  to the specification's table and to `declaration.json` by a spec-sync test: every fault found, one refusal
+  per fault by the precedence rule, each its case and a JSON pointer (BC-004, BC-005, BC-037, BC-040, BC-043,
+  BC-044, BC-048, BC-050, BC-051). A refused declaration gives a `BuildReport` of its refusals alone
+  (`core/report.py`); one that passes raises `NotImplementedError`, naming each acceptance and the piece that
+  reads it, until S7a-2 builds the reads and the verdict. Claims no implementation makes raise `ValueError`;
+  a claim of the scene suite, USD read or the sampling suite raises `NotImplementedError`. The conformance
+  runner gains the `check_build` executor, the build comparison (refusals as a set, under `rules_compared`
+  where named) and the build's two configurations of claims, and runs S7a-1's 54 build-check files, which
+  pass; its broken builds, seven the S7 design names and one per clause of 2026-10-24, each fail one.
 - `.github/workflows/claims.yml`, the claims check on every pull request (approved by the maintainer on
   2026-10-24): on each push and each edit of the description, `check_claims.py` holds the description and the
   commit messages to git, and a head, base, commit or count that git does not show fails the job; the figures
