@@ -155,9 +155,11 @@ def test_each_code_is_given_at_the_steps_the_table_names_and_no_other() -> None:
 # passes to step 0, to report as `request_incomplete`, and `RecordStore.add` notes for an unreadable source,
 # which step 1 reports; `merged` copies the reasons a step found, each code, condition and alternative once,
 # and `tagged` copies those found reading one alternative, with its index. Step 8's checks of shape construct
-# theirs in `value_shapes.invalid` and `unknown_token`.
+# theirs in `value_shapes.invalid` and `unknown_token`. `parse_declaration` gives the reader's refusal of a
+# declaration's text, which no read reports: the build refuses the declaration at the empty pointer.
 STEP_OF: dict[tuple[str, str], int | None] = {
     ("jsonio.py", "parse"): None,
+    ("declarations.py", "parse_declaration"): None,
     ("reasons.py", "merged"): None,
     ("reasons.py", "tagged"): None,
     ("read.py", "ReadRequest.from_json"): 0,

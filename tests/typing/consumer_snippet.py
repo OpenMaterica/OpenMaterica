@@ -14,7 +14,9 @@ from materica.core.jsonio import JsonValue, parse
 from materica.core.read import ReadResult
 from materica.core.reasons import Reason
 from materica.core.record import RecordStore
-from materica.shapes import ReadRequest, ReadStatus, ReasonCode
+from materica.core.report import BuildReport
+from materica.shapes import BuildReport as BuildReportJson
+from materica.shapes import Declaration, ReadRequest, ReadStatus, ReasonCode
 
 record = parse(b'{"card": "prose", "body": {"value": 1.0}}')
 assert_type(record, JsonValue | Reason)
@@ -48,3 +50,29 @@ assert_type(shape["status"], ReadStatus)
 shape["status"] = "met"  # type: ignore[typeddict-readonly-mutated]
 assert_type(materica.read(b"{}", store), ReadResult)
 assert_type(materica.read("{}", store), ReadResult)
+
+# A declaration as a consumer's emitter writes it, checked by the build (`declarations.md` section 1).
+declaration: Declaration = {
+    "consumer": {"name": "mime", "version": "0.3.0"},
+    "operating_conditions": {"temperature": {"value": 310.15, "unit": "K"}},
+    "models": [
+        {
+            "model": {"name": "stokes_drag", "version": "0.3.0"},
+            "model_configuration_hash": "sha256:0",
+            "checked_over": {
+                "records": [{"id": "conformance/water", "version": "1.0.0", "content_hash": "sha256:0"}]
+            },
+            "target": {},
+            "reads": ["fluid.dynamic_viscosity"],
+            "consumer_parameters": ["drag.mu"],
+            "families": {},
+            "combinations": [],
+            "chains": [],
+        }
+    ],
+}
+report = materica.check_build(declaration, store)
+assert_type(report, BuildReport)
+assert_type(report.refused, bool)
+assert_type(report.to_json(), BuildReportJson)
+assert_type(materica.check_build(b"{}", store, claims={"plain_read", "build_checks"}), BuildReport)
