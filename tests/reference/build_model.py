@@ -49,12 +49,6 @@ from tests.reference.read_model import (
 from tests.reference.strict_json import JsonObject, JsonValue, NotStrictJson, parse
 
 OPEN_POINTS: Final[Mapping[str, str]] = {
-    "what_one_fault_is": (
-        "a fault is one departure of one member: a member missing that a rule and the shape rule both name "
-        "(a `reason`, a location) is one fault, carrying the first rule's case; a member breaking two "
-        "constraints (a waiver's `label` not registered for its field, and not named by its requirement) is "
-        "two faults, each giving its refusal"
-    ),
     "exactly_one_of": (
         "where a place takes exactly one of two or three members and holds none or more than one, the fault "
         "is the object's, at its pointer, as a missing member's is"
@@ -69,11 +63,6 @@ OPEN_POINTS: Final[Mapping[str, str]] = {
         "field that is not registered, an implied condition's `token` or an accepted difference's `value` "
         "beside a fact that is none of section 6.2's, a distribution's parameters beside a token that is "
         "none of section 4's, a `trainable` entry's location beside a broken `checked_over`"
-    ),
-    "pick_located_at_a_region": (
-        "a pick's location members are `record`, `region` and `interval`; one naming none of them is "
-        "BC-037's, and one naming a region or an interval alone is located, which item 12 refuses where the "
-        "build does not claim the scene suite"
     ),
     "combination_sections": "a combination's fields are from pairwise different sections",
     "chain_ends": (
@@ -100,8 +89,29 @@ OPEN_POINTS: Final[Mapping[str, str]] = {
     "item_7_pointers": (
         "item 7 refuses an engine model at pointers the text does not fix: BC-040 is a rule the model does "
         "not place, certain over records or a path, and where the pinned crosswalk is outside `materica/` "
-        "and none is passed (a build-check case passes none), else unknown; a fault inside `engine`, or at "
-        "an engine model's requirement's `want`, which item 7 may name first, is not placed either"
+        "and none is passed (a build-check case passes none), else unknown (an engine model over a domain "
+        "with another `want` is refused by the text, and unknown here too); a fault inside `engine`, or at "
+        "an engine model's requirement's `want`, which item 7 may name first, is not placed either. A "
+        "clause that fixes the pointers comes with S7a-1b's fix round (maintainer, 2026-10-24): an engine "
+        "model over records is refused at its `engine` member, which the model then places"
+    ),
+    "claimed_suite_hides_refusals": (
+        "a declaration holding a member a suite the build claims checks further gives no verdict, even where "
+        "the model places a certain refusal beside it (a BC-004 beside a claimed domain): the fail-closed "
+        "choice, a decision (maintainer, 2026-10-24), at the cost that no case compares the refusals of a "
+        "build that claims a suite"
+    ),
+    "token_operating_condition": (
+        "a token condition in `operating_conditions` or `region_conditions` is refused at it: the text gives "
+        "an operating condition for a numeric one alone"
+    ),
+    "families_values": (
+        "a `families` value, the family version, is not judged: the text gives it no type and no list, and "
+        "only the key, a parameter-set field, is checked"
+    ),
+    "waiver_label_beside_an_unregistered_field": (
+        "a waiver's `label` beside a `field` that is not registered is refused by item 4 (no requirement for "
+        "that field names it) as well as the field's own fault: two faults at two members"
     ),
     "basis_on_other_kinds": (
         "a `basis` on an acceptance of a kind other than extrapolation, nominal and distribution is a member "
@@ -117,7 +127,11 @@ OPEN_POINTS: Final[Mapping[str, str]] = {
 }
 
 # declarations.md:155-157 "A fault more than one rule names carries the case of the first of: items 3, 4, 7
-# and 8, the" and "section 4.1 item 4 [BC-050]; item 12 [BC-051]; this paragraph [BC-048]"
+# and 8, the" and "section 4.1 item 4 [BC-050]; item 12 [BC-051]; this paragraph [BC-048]". A fault is one
+# member at fault (declarations.md:144-145 "The pointer names the member at fault"): a member two rules name,
+# a waiver's `label` that item 4 and the token rule both refuse, is one fault carrying both, as the
+# build-check suite's README says of it ("a fault the token rule names too"), and one refusal (maintainer,
+# 2026-10-24).
 ORDER: Final = ("BC-004", "BC-005", "BC-040", "BC-044", "BC-043", "BC-037", "BC-050", "BC-051", "BC-048")
 SHAPE: Final = "BC-048"
 
@@ -223,8 +237,10 @@ SHAPES: Final[Mapping[str, Place]] = {
 
 # An acceptance's place, by its kind: declarations.md:343-345 "names the `field` it covers (an
 # `accepted_difference` names its `section` in place of a field" and declarations.md:347 "| `acceptance` |
-# Location | Own members | Effect |", each kind's Location and Own members columns (Open point:
-# pick_located_at_a_region).
+# Location | Own members | Effect |", each kind's Location and Own members columns. A pick is located by its
+# `record` alone, a `region` or an `interval` being named beside it: declarations.md:349 "`record` (pinned by
+# hash): the target's, or an overlay the read applies to the field" and "a pick that also names a `region` or
+# an `interval` is not applied in a plain read" (maintainer, 2026-10-24).
 LOCATIONS: Final[Place] = {
     "record": (dict, "located"),
     "region": (str, "located"),
@@ -232,7 +248,7 @@ LOCATIONS: Final[Place] = {
 }
 OPTIONAL_LOCATIONS: Final[Place] = {name: (kind, "no") for name, (kind, _) in LOCATIONS.items()}
 KINDS: Final[Mapping[str, Place]] = {
-    "pick": {**LOCATIONS, "index": (float, "yes")},
+    "pick": {**OPTIONAL_LOCATIONS, "record": (dict, "located"), "index": (float, "yes")},
     "waiver": {**LOCATIONS, "code": (str, "yes"), "condition": (str, "no"), "label": (str, "no")},
     "implied_condition": {**LOCATIONS, "fact": (str, "yes"), "token": (str, "yes"), "implies": (dict, "yes")},
     "accepted_difference": {
@@ -253,6 +269,19 @@ NAMES_NO_FIELD: Final = ("accepted_difference", "overlay_scope")
 # declarations.md:117 "| | `basis` | for `extrapolation`, `nominal` and `distribution` (item 4)"; a basis
 # on another kind is a member not named there (Open point: basis_on_other_kinds).
 NEEDS_BASIS: Final = ("extrapolation", "nominal", "distribution")
+
+
+def acceptance_place(kind: str) -> Place:
+    """The members of an acceptance of `kind`: those every acceptance holds, its kind's own, and its `field`
+    and `basis` where the kind takes them."""
+    place: dict[str, tuple[type, Required]] = {
+        "acceptance": (str, "yes"), "reason": (str, "yes"), **KINDS[kind],
+    }  # fmt: skip
+    if kind not in NAMES_NO_FIELD:
+        place["field"] = (str, "yes")
+    if kind in NEEDS_BASIS:
+        place["basis"] = (str, "yes")
+    return place
 
 
 @dataclass(frozen=True, order=True)
@@ -301,8 +330,8 @@ def first_rule(rules: Iterable[str]) -> str:
 
 
 def refusals_of(faults: Iterable[Fault]) -> frozenset[Refusal]:
-    # declarations.md:157-158 "Two faults with one case and one pointer are one refusal"; Open point:
-    # what_one_fault_is.
+    # declarations.md:157-158 "Two faults with one case and one pointer are one refusal"; a fault holds every
+    # rule that names it and carries the first's case (the comment at `ORDER`).
     return frozenset(Refusal(first_rule(fault.rules), fault.pointer) for fault in faults)
 
 
@@ -324,6 +353,16 @@ def check_build(text: bytes, claims: frozenset[str]) -> Refused | NoVerdict:
 
 def members(value: JsonValue) -> JsonObject:
     return value if isinstance(value, dict) else {}
+
+
+def is_status_object(value: JsonValue) -> bool:
+    # provenance.md:8-9 "an object whose only members are `status` and, optionally, `reason` (a text)"
+    return isinstance(value, dict) and "status" in value and value.keys() <= {"status", "reason"}
+
+
+def in_unit_interval(number: float) -> bool:
+    # declarations.md:183 "`sampling.min_acceptance` is a number in (0, 1]"
+    return 0 < number <= 1
 
 
 def missing_at(pointer: str, name: str) -> str:
@@ -376,7 +415,7 @@ class DeclarationCheck:
 
     def verdict(self) -> Refused | NoVerdict:
         if self.beyond is not None:
-            return NoVerdict(self.beyond)
+            return NoVerdict(self.beyond)  # Open point: claimed_suite_hides_refusals.
         placed: list[Fault] = []
         for one in self.faults:
             if any(
@@ -488,7 +527,13 @@ class DeclarationCheck:
         # declarations.md:85 "for a numeric condition, in its registered unit, `lo` not above `hi`"
         for name, condition in conditions.items():
             row = CONDITIONS.get(name)
-            if row is None or (row.shape == "token" and not implied):
+            if (
+                row is None
+                or (row.shape == "token" and not implied)
+                or (implied and is_status_object(condition))
+            ):
+                # declarations.md:351 "never a status object": an implied condition holding one is the fault,
+                # as a target fact is. Open point: token_operating_condition.
                 self.fault(at(pointer, name))
             elif row.shape == "token":
                 # declarations.md:351 "and `{"token"}`, with a token of its row, for a token one: a record
@@ -511,7 +556,8 @@ class DeclarationCheck:
                     self.fault(at(pointer, "range", index))
             low, high = [*ends, 0.0, 0.0][:2]
             if len(ends) != 2 or (isinstance(low, float) and isinstance(high, float) and low > high):
-                # declarations.md:137 "a `range` whose `lo` is above its `hi`"
+                # declarations.md:137 "a `range` whose `lo` is above its `hi`"; one of other than two ends is
+                # not declarations.md:85 "`{"range": [lo, hi], "unit"}`"
                 self.fault(at(pointer, "range"))
 
     def model_entry(self, entry: JsonValue, pointer: str) -> None:
@@ -530,7 +576,7 @@ class DeclarationCheck:
                 self.fault(at_index)
         for name in members(typed.get("families")):
             # declarations.md:96 "| | `families` | yes, `{}` allowed | parameter-set field to the family
-            # version"
+            # version"; Open point: families_values.
             if name not in FIELDS or "parameter_set" not in FIELDS[name].forms:
                 self.fault(at(pointer, "families", name))
         if "mixing" in typed:
@@ -605,7 +651,9 @@ class DeclarationCheck:
         """A fact of provenance.md section 6.2: declarations.md:92 "a fact of `provenance.md` section 6.2 to
         its shape there without `basis`, its text members (`label`, `text`) optional"."""
         row = FACTS.get(name)
-        if row is None:
+        if row is None or (not basis_allowed and is_status_object(value)):
+            # declarations.md:92 "never a status object": the member is the fault, and nothing inside it is
+            # checked (the comment at `ORDER`).
             self.fault(pointer)
             return
         kinds = {"integer": float, "number": float, "range": list}
@@ -618,7 +666,7 @@ class DeclarationCheck:
         if basis_allowed:
             # Open point: accepted_difference_basis.
             place.update(basis=(str, "no"), inferred_from=(str, "no"))
-        typed = self.shaped(value, pointer, place)  # declarations.md:92 "never a status object"
+        typed = self.shaped(value, pointer, place)
         for member, held in (typed or {}).items():
             kind = row.members.get(member)
             if kind == "token":
@@ -767,18 +815,14 @@ class DeclarationCheck:
         rules = {"reason": ("BC-005", SHAPE), "basis": ("BC-005", SHAPE)}
         if not isinstance(kind, str) or kind not in KINDS:
             # Open point: acceptance_of_an_unknown_kind.
-            place: dict[str, tuple[type, Required]] = {name: (object, "no") for name in members(value)}
-            place.update(acceptance=(str, "yes"), reason=(str, "yes"))
-            typed = self.shaped(value, pointer, place, rules) or {}
+            unknown: dict[str, tuple[type, Required]] = {name: (object, "no") for name in members(value)}
+            unknown.update(acceptance=(str, "yes"), reason=(str, "yes"))
+            typed = self.shaped(value, pointer, unknown, rules) or {}
             if "acceptance" in typed:
                 self.token(typed["acceptance"], at(pointer, "acceptance"), KINDS)
             self.texts(typed, pointer, "reason")
             return
-        place = {"acceptance": (str, "yes"), "reason": (str, "yes"), **KINDS[kind]}
-        if kind not in NAMES_NO_FIELD:
-            place["field"] = (str, "yes")
-        if kind in NEEDS_BASIS:
-            place["basis"] = (str, "yes")
+        place = acceptance_place(kind)
         typed = self.shaped(value, pointer, place, rules) or {}
         self.texts(typed, pointer, "reason", "basis", "law")
         name = typed.get("field")
@@ -787,8 +831,11 @@ class DeclarationCheck:
             self.shaped(typed["record"], at(pointer, "record"), REFERENCE)
         if "interval" in typed:
             self.unplace(SHAPE, "an interval location's shape (S7b)")  # Open point: interval_location.
-        if (members(value).keys() & {"region", "interval"}) and "region" in place:
-            # declarations.md:200-201 "an acceptance or `trainable` entry located at a region or an interval"
+        locations = {name for name, (_, required) in place.items() if required == "located"}
+        unlocated = bool(locations) and not locations & members(value).keys()
+        if (members(value).keys() & {"region", "interval"}) and "region" in place and not unlocated:
+            # declarations.md:200-201 "an acceptance or `trainable` entry located at a region or an interval";
+            # a pick naming a region and no `record` is unlocated, BC-037's alone.
             if self.lacks(
                 "scene_documents", "an acceptance at a region or an interval under the scene suite (S7b)"
             ):
@@ -861,16 +908,21 @@ class DeclarationCheck:
             self.token(typed["condition"], at(pointer, "condition"), CONDITIONS)
         if "label" not in typed:
             return
-        if name is not None:
-            # Open point: member_judged_beside_a_faulty_one.
-            self.token(typed["label"], at(pointer, "label"), label_of(name))
+        label = typed["label"]
+        # A label that is none of the field's is the token rule's fault (Open point:
+        # member_judged_beside_a_faulty_one: none is judged beside a field that is not registered).
+        registered = name is None or label in label_of(name)
         # declarations.md:380-381 "the build refuses it at build unless the requirement for its field names
         # that `label` and holds `review: "reviewed"`"; declarations.md:148-149 "for a waiver naming a `label`
-        # that section 4.1 item 4 refuses, that waiver's `label`"
+        # that section 4.1 item 4 refuses, that waiver's `label`". Item 4 and the token rule name one member:
+        # one fault holding both (the comment at `ORDER`). Open point:
+        # waiver_label_beside_an_unregistered_field.
         held = typed.get("field")
         requirement = requirements.get(held, {}) if isinstance(held, str) else {}
-        if requirement.get("label") != typed["label"] or requirement.get("review") != "reviewed":
-            self.fault(at(pointer, "label"), "BC-050")
+        if requirement.get("label") != label or requirement.get("review") != "reviewed":
+            self.fault(at(pointer, "label"), "BC-050", *(() if registered else (SHAPE,)))
+        elif not registered:
+            self.fault(at(pointer, "label"))
 
     def accepted_difference(self, typed: JsonObject, pointer: str) -> None:
         if "section" in typed:
@@ -998,7 +1050,7 @@ class DeclarationCheck:
             typed = self.shaped(value, "/sampling", SHAPES["sampling"], item, item) or {}
             self.texts(typed, "/sampling", "reason")
             minimum = typed.get("min_acceptance")
-            if isinstance(minimum, float) and not 0 < minimum <= 1:
+            if isinstance(minimum, float) and not in_unit_interval(minimum):
                 self.fault("/sampling/min_acceptance", *item_8)
             for at_index, entry in self.entries(typed, "independence", "/sampling"):
                 independence = self.shaped(entry, at_index, SHAPES["independence entry"]) or {}
@@ -1009,7 +1061,7 @@ class DeclarationCheck:
             # declarations.md:151-152 "`sampling`, a requirement's `represents` or `population_level`"
             self.fault("/sampling", "BC-051")
         minimum = members(value).get("min_acceptance")
-        item_8_refuses = sampled and not (isinstance(minimum, float) and 0 < minimum <= 1)
+        item_8_refuses = sampled and not (isinstance(minimum, float) and in_unit_interval(minimum))
         for pointer, requirement in self.sampling_members:
             # declarations.md:205-206 "where item 8 or that rule refuses the declaration over a requirement,
             # that requirement gives none"
