@@ -156,6 +156,13 @@ DATA_RULES = (
         tests=("tests/reference/test_cases.py",),
     ),
     DataRule(
+        "the declaration's text, from which the build model's order of refusals is read",
+        r"docs/specification/declarations\.md",
+        "the build model's order check reads the paragraph that lists the refusals in order, so a change to "
+        "it runs the tests that import the helper that reads it",
+        readers=("tests/reference/direct.py",),
+    ),
+    DataRule(
         "a schema",
         r"src/materica/schema/.+",
         "the schemas and the vocabulary are read by the reader and held to the specification, and the frozen "
