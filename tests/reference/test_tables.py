@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The reference model's tables, written from the specification's text, against the vocabulary the generator
-writes from the same text (`schema/0.1/vocabulary/`), so that a drift of either fails here. The vocabulary is
+writes from the same text (`schema/0.1/vocabulary/`), so that a drift of either fails here; and so the build
+model's own token lists, those of its shape table that the vocabulary holds. The vocabulary is
 read as a file, not through `materica`; the control drifts a copy of it one table at a time."""
 
 import copy
@@ -9,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.reference import read_model
+from tests.reference import build_model, read_model
 from tests.reference.read_model import StatusUnit
 from tests.reference.strict_json import JsonObject, JsonValue, parse
 
@@ -173,4 +174,67 @@ def drifted(path: tuple[str, ...], value: JsonValue) -> dict[str, JsonObject]:
 )
 def test_a_drift_of_a_table_fails(path: tuple[str, ...], value: JsonValue, table: str) -> None:
     found = drift(drifted(path, value))
+    assert [entry.partition(":")[0] for entry in found] == [table]
+
+
+def build_drift(vocabulary: Vocabulary) -> list[str]:
+    """Each token list of the build model's shape table that differs from the vocabulary's: the acceptance
+    kinds, a requirement's `review`, a distribution's tokens, the facts an implied condition may name, and the
+    reason codes that name a condition. Its registered names (fields, conditions, facts, reasons, labels,
+    `represents` and levels) are the read model's tables, held above."""
+    reasons = vocabulary["reasons"]["reasons"]
+    facts = vocabulary["specimen_facts"]["facts"]
+    assert isinstance(reasons, dict)
+    assert isinstance(facts, dict)
+    condition_codes = [code for code in reasons if code.startswith("condition_")]
+    pairs: list[tuple[str, JsonValue, JsonValue]] = [
+        ("KINDS", list(build_model.KINDS), vocabulary["acceptances"]["kinds"]),
+        ("REVIEWS", list(build_model.REVIEWS), tokens(vocabulary, "provenance", "review_result")),
+        (
+            "DISTRIBUTION_PARAMETERS",
+            list(build_model.DISTRIBUTION_PARAMETERS),
+            tokens(vocabulary, "statistics", "distribution"),
+        ),
+        (
+            "TOKEN_FACTS",
+            list(build_model.TOKEN_FACTS),
+            [name for name, row in facts.items() if isinstance(row, dict) and row.get("tokens")],
+        ),
+        (
+            "CODES_NAMING_A_CONDITION",
+            list(build_model.CODES_NAMING_A_CONDITION),
+            [
+                *condition_codes,
+                *(code for code in ("outside_range", "at_edge", "range_unstated") if code in reasons),
+            ],
+        ),
+    ]
+    return [
+        f"{table}: the model has {model!r}, the vocabulary {given!r}"
+        for table, model, given in pairs
+        if model != given
+    ]
+
+
+def test_the_build_model_s_token_lists_are_the_vocabulary_s() -> None:
+    assert build_drift(vocabulary()) == []
+
+
+@pytest.mark.parametrize(
+    ("path", "value", "table"),
+    [
+        (("acceptances", "kinds"), ["pick", "waiver"], "KINDS"),
+        (("provenance", "$defs", "review_result", "enum"), ["reviewed", "checked"], "REVIEWS"),
+        (("statistics", "$defs", "distribution", "enum"), ["normal"], "DISTRIBUTION_PARAMETERS"),
+        (("specimen_facts", "facts", "lot", "tokens"), ["one"], "TOKEN_FACTS"),
+        (("reasons", "reasons", "at_edge"), None, "CODES_NAMING_A_CONDITION"),
+    ],
+)
+def test_a_drift_of_a_build_token_list_fails(path: tuple[str, ...], value: JsonValue, table: str) -> None:
+    changed = drifted(path, value)
+    if value is None:
+        host = changed[path[0]][path[1]]
+        assert isinstance(host, dict)
+        del host[path[2]]
+    found = build_drift(changed)
     assert [entry.partition(":")[0] for entry in found] == [table]

@@ -27,11 +27,11 @@ from typing import Final
 
 import pytest
 
-from tests.reference import read_model
+from tests.reference import build_model, read_model
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 SPECIFICATION = REPOSITORY / "docs" / "specification"
-MODEL_SOURCES = ("read_model.py", "strict_json.py")
+MODEL_SOURCES = ("read_model.py", "strict_json.py", "build_model.py")
 EVALUATOR_SOURCE = REPOSITORY / "tests" / "reference" / "table_evaluator.py"
 SOURCES = [*(REPOSITORY / "tests" / "reference" / name for name in MODEL_SOURCES), EVALUATOR_SOURCE]
 # The test modules that cite the text, in the strings, comments and docstrings they hold it in.
@@ -57,6 +57,8 @@ NO_LINE_IN_THE_TEXT: Final[Mapping[str, str]] = {
 }
 SEEDED_FAULTS_SOURCE = REPOSITORY / "tests" / "reference" / "mutants.py"
 MUTANT_KILLS_SOURCE = REPOSITORY / "tests" / "property" / "test_model_mutants.py"
+# The open points of both models, the read's and the build's, which share no name.
+OPEN_POINTS: Final[Mapping[str, str]] = {**read_model.OPEN_POINTS, **build_model.OPEN_POINTS}
 # A quote's text: characters but `"` and a backtick, and code spans, which may hold `"`.
 QUOTED = r'"((?:[^"`]|`[^`]*`)+)"'
 REFERENCE = re.compile(r"(?P<file>[A-Za-z_]+\.md):(?P<start>\d+)(?:-(?P<end>\d+))?")
@@ -242,7 +244,7 @@ def test_every_seeded_fault_cites_the_text_or_names_the_open_point_it_rests_on()
     }
     assert len(rules) == len(mutants)
     assert len(rules) > 120
-    assert seeded_fault_problems(rules, read_model.OPEN_POINTS, NO_LINE_IN_THE_TEXT) == []
+    assert seeded_fault_problems(rules, OPEN_POINTS, NO_LINE_IN_THE_TEXT) == []
     assert all(reason.strip() for reason in NO_LINE_IN_THE_TEXT.values())
 
 
@@ -292,8 +294,15 @@ def test_the_model_cites_the_text_for_its_rules() -> None:
 
 
 def test_every_open_point_is_listed_once_and_named_where_it_is_applied() -> None:
-    assert open_point_problems(model_prose(), read_model.OPEN_POINTS) == []
-    assert all(choice.strip() for choice in read_model.OPEN_POINTS.values())
+    assert open_point_problems(model_prose(), OPEN_POINTS) == []
+    assert all(choice.strip() for choice in OPEN_POINTS.values())
+
+
+def test_the_two_models_list_their_open_points_apart() -> None:
+    """The read model's points and the build model's share no name, so that one listed twice is seen."""
+    assert read_model.OPEN_POINTS.keys().isdisjoint(build_model.OPEN_POINTS)
+    build_texts = prose((REPOSITORY / "tests" / "reference" / "build_model.py").read_text(encoding="utf-8"))
+    assert open_point_problems(build_texts, build_model.OPEN_POINTS) == []
 
 
 @pytest.mark.parametrize(
