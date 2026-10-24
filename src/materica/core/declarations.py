@@ -71,9 +71,12 @@ class Value:
 
 @dataclass(frozen=True)
 class Object:
-    """An object whose members are those `SHAPE` names at `place`."""
+    """An object whose members are those `SHAPE` names at `place`; with `never_status`, one that is never a
+    status object (a target's fact, an implied condition's value), where one is a fault of the member alone,
+    nothing inside it checked (maintainer, 2026-10-24: one fault is one member at fault)."""
 
     place: str
+    never_status: bool = False
 
 
 @dataclass(frozen=True)
@@ -206,7 +209,7 @@ _CONDITIONS = VOCABULARY.conditions
 _NUMERIC = tuple(name for name, spec in _CONDITIONS.items() if spec.shape == "numeric")
 _OPERATING = Map(dict.fromkeys(_NUMERIC, Object("operating condition")))
 _IMPLIED: dict[str, Holds] = {
-    name: Object("implied numeric" if spec.shape == "numeric" else "implied token")
+    name: Object("implied numeric" if spec.shape == "numeric" else "implied token", never_status=True)
     for name, spec in _CONDITIONS.items()
 }
 
@@ -222,7 +225,7 @@ SHAPE: dict[str, tuple[Member, ...]] = {
         Member("model_configuration_hash", "yes", _STRING),
         Member("region_conditions", "no", Map(_OPERATING)),
         Member("checked_over", "yes", Object("checked over")),
-        Member("target", "yes", Map({name: Object(f"fact {name}") for name in _FACTS})),
+        Member("target", "yes", Map({name: Object(f"fact {name}", never_status=True) for name in _FACTS})),
         Member("reads", "yes", List(_NAME, least=1)),
         Member("consumer_parameters", "yes", List(_STRING)),
         Member("requirements", "no", List(Object("requirement"))),
@@ -502,7 +505,8 @@ def _visit(place: str, value: JsonObject, pointer: str, key: str | None) -> Iter
 
 def _inside(holds: Holds, value: JsonValue, pointer: str, key: str | None) -> Iterator[Visit]:
     if isinstance(holds, Object) and isinstance(value, dict):
-        yield from _visit(holds.place, value, pointer, key)
+        if not (holds.never_status and _status_object(value)):
+            yield from _visit(holds.place, value, pointer, key)
     elif isinstance(holds, List) and isinstance(value, list):
         for index, item in enumerate(value):
             yield from _inside(holds.items, item, _join(pointer, index), key)
@@ -545,10 +549,14 @@ def _shape(declaration: JsonObject) -> list[Finding]:
         for name, member in members.items():
             if member.required == "yes" and name not in visit.value:
                 found.append(Finding("BC-048", at, f"{name!r} missing", name))
+        # None of a place's exclusive alternatives is a member missing; two of them, a fault of the member
+        # holding them, at it.
         alternatives = [name for name, member in members.items() if member.required == "one"]
         given = [name for name in alternatives if name in visit.value]
-        if alternatives and len(given) != 1:
-            found.append(Finding("BC-048", at, f"{len(given)} of {alternatives}", "|".join(alternatives)))
+        if alternatives and not given:
+            found.append(Finding("BC-048", at, f"none of {alternatives}", "|".join(alternatives)))
+        elif len(given) > 1:
+            found.append(Finding("BC-048", at, f"two or more of {alternatives}"))
     return found
 
 
@@ -562,6 +570,8 @@ def _holds(holds: Holds, value: JsonValue, pointer: str) -> list[Finding]:
             return [Finding("BC-048", pointer, f"not a {holds.type}")]
         problem = None if holds.constraint is None else holds.constraint(value)
         return [] if problem is None else [Finding("BC-048", pointer, problem)]
+    if isinstance(holds, Object) and holds.never_status and isinstance(value, dict) and _status_object(value):
+        return [Finding("BC-048", pointer, "a status object, where none is taken")]
     if isinstance(holds, Object) or (isinstance(holds, Map) and not isinstance(value, dict)):
         return [] if isinstance(value, dict) else [Finding("BC-048", pointer, "not an object")]
     if isinstance(holds, List):
@@ -633,7 +643,7 @@ def _tokens(declaration: JsonObject) -> list[Finding]:
                 check(value["label"], f"{at}/label", _labels_of(value.get("field")), "a label of its field")
         elif place == "requirement condition" and key in _CONDITIONS:
             spec, wrong = _CONDITIONS[key], "accept" if _CONDITIONS[key].shape == "numeric" else "tolerance"
-            if wrong in value:
+            if wrong in value and len({"tolerance", "accept"} & value.keys()) == 1:
                 found.append(Finding("BC-048", f"{at}/{wrong}", f"no {wrong} for {key}"))
             if spec.shape == "token":
                 each(value.get("accept"), f"{at}/accept", spec.tokens, f"a token of {key}")
@@ -855,43 +865,39 @@ def _labels(declaration: JsonObject) -> list[Finding]:
 def _suites(declaration: JsonObject, claims: Collection[Suite]) -> list[Finding]:
     """Items 7 and 8 and the `population_level` rule, then item 12, member by member (section 1).
 
-    - BC-040, item 7: a model with `engine` checked over a path or records; one whose requirement wants
-      anything but `value`; a declared engine value without `reason` or `basis`; a pinned crosswalk not
-      passed, as every crosswalk is to this version's build, which takes none.
+    - BC-040, item 7: a model with `engine` checked over a path or records, one whose requirement wants
+      anything but `value`, one with a declared engine value without `reason` or `basis`, and one whose
+      crosswalk is pinned and not passed, as every crosswalk is to this version's build, which takes none; at
+      the model's `engine`, as the S7 design's answer 41 places an engine model over records.
     - BC-044, item 8: a requirement samples (holds `represents`), and `sampling.min_acceptance` is missing or
       not a number in (0, 1].
     - BC-043, the `population_level` rule: `represents` `population` without `population_level`, and a
       `population_level` beside another `represents` (maintainer, 2026-10-24).
-    - BC-051, item 12: what a suite the build does not claim checks, at the member that needs it, or at the
-      acceptance or `trainable` entry itself; but no model's `engine` that item 7 refuses, and no member of a
-      requirement over which item 8 or the `population_level` rule refuses the declaration.
+    - BC-051, item 12: each member a suite the build does not claim checks (`_suite_members`); but no model's
+      `engine` that item 7 refuses, and no member of a requirement over which item 8 or the `population_level`
+      rule refuses the declaration.
     """
     found: list[Finding] = []
-    item7: set[int] = set()
+    item7: set[str] = set()
     for index, model in _entries(declaration, "models"):
-        if "engine" not in model:
-            continue
-        at, before = f"/models/{index}", len(found)
-        for name in ("path", "records"):
-            if name in _object(model.get("checked_over")):
-                found.append(Finding("BC-040", f"{at}/checked_over/{name}", f"an engine model over a {name}"))
-        for position, requirement in _entries(model, "requirements"):
-            want = requirement.get("want")
-            if isinstance(want, str) and want != "value":
-                found.append(
-                    Finding("BC-040", f"{at}/requirements/{position}/want", "an engine reads values")
-                )
-        engine = _object(model.get("engine"))
-        if "crosswalk" in engine:
-            found.append(
-                Finding("BC-040", f"{at}/engine/crosswalk", "a pinned crosswalk not passed to the build")
-            )
-        for here, value in _engine_values(engine, f"{at}/engine"):
-            for member in ("reason", "basis"):
-                if member not in value:
-                    found.append(Finding("BC-040", here, f"an engine value without its {member}", member))
-        if len(found) > before:
-            item7.add(index)
+        at = f"/models/{index}/engine"
+        checked_over, engine = _object(model.get("checked_over")), _object(model.get("engine"))
+        faults = [f"an engine model over a {name}" for name in ("path", "records") if name in checked_over]
+        faults += [
+            f"an engine model's requirement wants {requirement['want']!r}"
+            for _, requirement in _entries(model, "requirements")
+            if isinstance(requirement.get("want"), str) and requirement["want"] != "value"
+        ]
+        faults += ["its pinned crosswalk is not passed to the build"] if "crosswalk" in engine else []
+        faults += [
+            f"the engine value {here} without its {member}"
+            for here, value in _engine_values(engine, at)
+            for member in ("reason", "basis")
+            if member not in value
+        ]
+        if "engine" in model and faults:
+            found += [Finding("BC-040", at, fault) for fault in faults]
+            item7.add(at)
     sampled = [
         (f"/models/{index}/requirements/{position}", requirement)
         for index, model in _entries(declaration, "models")
@@ -925,50 +931,48 @@ def _suites(declaration: JsonObject, claims: Collection[Suite]) -> list[Finding]
                     Finding("BC-043", f"{at}/population_level", f"a population level beside {represents}")
                 )
                 spared.add(at)
-    if "scene_documents" not in claims:
-        found += _scene_members(declaration)
-    for index, model in _entries(declaration, "models"):
-        if "usd_read" not in claims and "engine" in model and index not in item7:
-            found.append(Finding("BC-051", f"/models/{index}/engine", "an engine model, without USD read"))
-    if "sampling" in claims:
-        return found
-    if "sampling" in declaration:
-        found.append(Finding("BC-051", "/sampling", "sampling, without the sampling suite"))
-    for index, model in _entries(declaration, "models"):
-        for position, requirement in _entries(model, "requirements"):
-            at = f"/models/{index}/requirements/{position}"
-            for member in ("represents", "population_level"):
-                if member in requirement and at not in spared:
-                    found.append(Finding("BC-051", f"{at}/{member}", f"{member}, without the sampling suite"))
-        for position, acceptance in _entries(model, "acceptances"):
-            if acceptance.get("acceptance") == "distribution":
-                at = f"/models/{index}/acceptances/{position}"
-                found.append(Finding("BC-051", at, "a distribution, without the sampling suite"))
+    for suite, members in _suite_members(declaration).items():
+        for at, detail in members:
+            if suite not in claims and at not in item7 and at.rpartition("/")[0] not in spared:
+                found.append(Finding("BC-051", at, f"{detail}, without {suite}"))
     return found
 
 
-def _scene_members(declaration: JsonObject) -> list[Finding]:
-    """Item 12's scene part: a model checked over a domain or a path, `region_conditions`, and an acceptance
-    or `trainable` entry located at a region or an interval."""
-    found: list[Finding] = []
+def _suite_members(declaration: JsonObject) -> dict[str, list[tuple[str, str]]]:
+    """The members each suite a build may not claim checks (section 1 item 12), by pointer and in words: the
+    scene suite, a model checked over a domain or a path, `region_conditions`, and an acceptance or
+    `trainable` entry located at a region or an interval, at the entry; USD read, a model's `engine`; the
+    sampling suite, `sampling`, a requirement's `represents` and `population_level`, and a `distribution`
+    acceptance. A pick naming no `record` is located at none, whatever else it names (maintainer, 2026-10-24):
+    `_locations` refuses it, as unlocated."""
+    members: dict[str, list[tuple[str, str]]] = {suite: [] for suite in _NOT_BUILT}
+    scene, sampling = members["scene_documents"], members["sampling"]
+    if "sampling" in declaration:
+        sampling.append(("/sampling", "sampling"))
     for index, model in _entries(declaration, "models"):
         at = f"/models/{index}"
-        for name in ("domain", "path"):
-            if name in _object(model.get("checked_over")):
-                found.append(
-                    Finding("BC-051", f"{at}/checked_over/{name}", f"a {name}, without the scene suite")
-                )
-        if "region_conditions" in model:
-            found.append(
-                Finding("BC-051", f"{at}/region_conditions", "region conditions, without the scene suite")
-            )
+        scene += [
+            (f"{at}/checked_over/{name}", name)
+            for name in ("domain", "path")
+            if name in _object(model.get("checked_over"))
+        ]
+        scene += [(f"{at}/region_conditions", "region_conditions")] if "region_conditions" in model else []
+        members["usd_read"] += [(f"{at}/engine", "an engine model")] if "engine" in model else []
         for member in ("acceptances", "trainable"):
             for position, entry in _entries(model, member):
-                located = member == "trainable" or entry.get("acceptance") in _LOCATED_KINDS
+                kind = entry.get("acceptance")
+                located = member == "trainable" or (
+                    kind in _LOCATED_KINDS and (kind != "pick" or "record" in entry)
+                )
                 if located and {"region", "interval"} & entry.keys():
-                    detail = "located at a region or an interval, without the scene suite"
-                    found.append(Finding("BC-051", f"{at}/{member}/{position}", detail))
-    return found
+                    scene.append((f"{at}/{member}/{position}", "located at a region or an interval"))
+                if kind == "distribution":
+                    sampling.append((f"{at}/{member}/{position}", "a distribution"))
+        for position, requirement in _entries(model, "requirements"):
+            for name in ("represents", "population_level"):
+                if name in requirement:
+                    sampling.append((f"{at}/requirements/{position}/{name}", name))
+    return members
 
 
 def _engine_values(engine: JsonObject, at: str) -> Iterator[tuple[str, JsonObject]]:
@@ -1016,7 +1020,7 @@ CLAIMS: frozenset[Suite] = frozenset({"plain_read", "hash", "build_checks"})
 """The suites a build claims unless told otherwise: plain read, the hash suite and the build checks."""
 
 SUITES: frozenset[str] = frozenset(get_args(Suite))
-# The suites item 12 refuses without, which this version does not build: a claim of one raises.
+# The suites item 12 refuses without, which this version does not build, and the piece that builds each.
 _NOT_BUILT = {
     "scene_documents": "S7b builds the scene suite's build checks",
     "usd_read": "S11 builds an engine model's build checks",
@@ -1026,19 +1030,26 @@ _NOT_BUILT = {
 
 def check_claims(claims: Collection[Suite]) -> frozenset[Suite]:
     """The claims, as a set. `ValueError` for claims no implementation makes: a suite not in the README's
-    list, or claims without plain read or without the build checks, which every build claims.
-    `NotImplementedError` for a claim of the scene suite, USD read or the sampling suite, which this version
-    does not build."""
+    list, or claims without plain read or without the build checks, which every build claims."""
     claimed = frozenset(claims)
     if not claimed <= SUITES:
         raise ValueError(f"not suites: {sorted(claimed - SUITES)}")
     for suite in ("plain_read", "build_checks"):
         if suite not in claimed:
             raise ValueError(f"every build claims {suite}")
-    for suite, piece in _NOT_BUILT.items():
-        if suite in claimed:
-            raise NotImplementedError(f"a build claiming {suite}: {piece}")
     return claimed
+
+
+def _fail_closed(declaration: JsonObject, claims: Collection[Suite]) -> None:
+    """Raise `NotImplementedError` where the build claims the scene suite, USD read or the sampling suite and
+    the declaration holds a member that suite checks, whatever else is wrong with it: item 12 does not refuse
+    it, and this version cannot check it (the S7 design's 1.3; maintainer, 2026-10-24)."""
+    for suite, members in _suite_members(declaration).items():
+        if suite in claims and members:
+            held = ", ".join(at for at, _ in members)
+            raise NotImplementedError(
+                f"a build claiming {suite}, of a declaration holding {held}: {_NOT_BUILT[suite]}"
+            )
 
 
 def parse_declaration(declaration: DeclarationInput) -> JsonValue | Reason:
@@ -1113,13 +1124,15 @@ class Declaration:
     ) -> "Declaration | tuple[BuildRefusal, ...]":
         """The declaration, or every refusal of it, one per fault (section 1). The claims are checked first
         (`check_claims`). A text that is not JSON, or a declaration that is not an object, is refused at the
-        empty pointer, and nothing else is checked."""
+        empty pointer, and nothing else is checked. A declaration holding a member a suite checks that the
+        build claims and this version does not build raises `NotImplementedError` (`_fail_closed`)."""
         claimed = check_claims(claims)
         value = parse_declaration(declaration)
         if isinstance(value, Reason):
             return _precedence([Finding("BC-048", "", f"not JSON: {value.detail}")])
         if not isinstance(value, dict):
             return _precedence([Finding("BC-048", "", "the declaration is not an object")])
+        _fail_closed(value, claimed)
         found = [
             *_shape(value),
             *_tokens(value),

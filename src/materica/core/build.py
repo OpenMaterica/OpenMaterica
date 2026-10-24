@@ -34,9 +34,10 @@ def check_build(
 
     `declaration` is JSON text, a `str` or bytes-like, or a value, read as `read` reads a request. The claims
     are checked first: `ValueError` for claims no implementation makes (a suite not in the README's list, or
-    claims without plain read or without the build checks), and `NotImplementedError` for a claim of the scene
-    suite, USD read or the sampling suite. A declaration that departs from its shape, or breaks a rule of
-    section 1, gives a report of its refusals alone, and nothing is read. Any other raises
+    claims without plain read or without the build checks). Where the build claims the scene suite, USD read
+    or the sampling suite and the declaration holds a member that suite checks, it raises
+    `NotImplementedError`, whatever else is wrong. A declaration that departs from its shape, or breaks a rule
+    of section 1, gives a report of its refusals alone, and nothing is read. Any other raises
     `NotImplementedError` in this version, naming each acceptance and the piece that reads it.
     """
     checked = Declaration.from_json(declaration, claims)

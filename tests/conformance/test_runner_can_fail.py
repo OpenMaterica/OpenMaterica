@@ -910,7 +910,7 @@ def unknown_member_ignored(monkeypatch: pytest.MonkeyPatch) -> Executor:
 def scene_accepted(monkeypatch: pytest.MonkeyPatch) -> Executor:
     """A model checked over a domain read as one checked over no records: its domain taken."""
     return _filtered(
-        monkeypatch, "_scene_members", lambda finding, _: finding.pointer.endswith("/checked_over/domain")
+        monkeypatch, "_suites", lambda finding, _: finding.pointer.endswith("/checked_over/domain")
     )
 
 

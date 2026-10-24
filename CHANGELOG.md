@@ -23,7 +23,8 @@ every family entry goes in `families/CHANGELOG.md`.
   BC-044, BC-048, BC-050, BC-051). A refused declaration gives a `BuildReport` of its refusals alone
   (`core/report.py`); one that passes raises `NotImplementedError`, naming each acceptance and the piece that
   reads it, until S7a-2 builds the reads and the verdict. Claims no implementation makes raise `ValueError`;
-  a claim of the scene suite, USD read or the sampling suite raises `NotImplementedError`. The conformance
+  a declaration holding a member that a claimed scene suite, USD read or sampling suite checks raises
+  `NotImplementedError` (maintainer, 2026-10-24: the build fails closed there). The conformance
   runner gains the `check_build` executor, the build comparison (refusals as a set, under `rules_compared`
   where named) and the build's two configurations of claims, and runs S7a-1's 54 build-check files, which
   pass; its broken builds, seven the S7 design names and one per clause of 2026-10-24, each fail one.

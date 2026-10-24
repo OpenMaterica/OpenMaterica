@@ -46,6 +46,21 @@ def acceptances(declaration: Json) -> list[JsonValue]:
 
 
 WATER = cast(Json, acceptances(VALID)[0])["record"]
+PICK: Json = {"acceptance": "pick", "record": WATER, "field": "fluid.dynamic_viscosity", "index": 0.0}
+PICK["reason"] = "the stored alternative the model was calibrated against"
+
+
+def condition(declaration: Json, name: str) -> Json:
+    requirement = cast(list[Json], model(declaration)["requirements"])[0]
+    return cast(Json, cast(Json, requirement["conditions"])[name])
+
+
+def tolerance(declaration: Json) -> Json:
+    return cast(Json, condition(declaration, "temperature")["tolerance"])
+
+
+def operating(declaration: Json) -> Json:
+    return cast(Json, cast(Json, declaration["operating_conditions"])["shear_rate"])
 
 
 def refusals(declaration: DeclarationInput, claims: frozenset[Suite] | None = None) -> set[tuple[str, str]]:
@@ -119,21 +134,48 @@ def test_a_text_that_is_no_json_and_a_value_that_is_none_are_refused_at_the_empt
 
 
 @pytest.mark.parametrize(
-    ("claims", "raised"),
-    [
-        ({"plain_read", "build_checks", "spelling"}, ValueError),
-        ({"hash", "build_checks"}, ValueError),
-        ({"plain_read", "hash"}, ValueError),
-        ({"plain_read", "build_checks", "scene_documents"}, NotImplementedError),
-        ({"plain_read", "build_checks", "usd_read"}, NotImplementedError),
-        ({"plain_read", "build_checks", "sampling"}, NotImplementedError),
-    ],
+    "claims", [{"plain_read", "build_checks", "spelling"}, {"hash", "build_checks"}, {"plain_read", "hash"}]
 )
-def test_claims_no_implementation_makes_or_this_one_does_not_raise_before_the_declaration_is_read(
-    claims: set[str], raised: type[Exception]
-) -> None:
-    with pytest.raises(raised):
+def test_claims_no_implementation_makes_raise_before_the_declaration_is_read(claims: set[str]) -> None:
+    with pytest.raises(ValueError, match=r"every build claims|not suites"):
         check_build("{", store(), claims=cast(set[Suite], claims))
+
+
+def domain(declaration: Json) -> None:
+    model(declaration)["checked_over"] = {"domain": "lumen"}
+
+
+def engine(declaration: Json) -> None:
+    pin: Json = {"id": "a crosswalk", "version": "1", "sha256": "a hash"}
+    model(declaration)["engine"] = {"crosswalk": pin, "values": {}}
+
+
+def sampled_requirement(declaration: Json) -> None:
+    cast(list[Json], model(declaration)["requirements"])[0]["represents"] = "measurement"
+
+
+@pytest.mark.parametrize(
+    ("suite", "change"),
+    [("scene_documents", domain), ("usd_read", engine), ("sampling", sampled_requirement)],
+)
+def test_a_claimed_suite_this_version_does_not_build_fails_closed_where_the_declaration_holds_its_member(
+    suite: Suite, change: Callable[[Json], None]
+) -> None:
+    """Item 12 does not refuse what a claimed suite checks, and this version cannot check it: it raises,
+    whatever else is wrong (maintainer, 2026-10-24). A declaration holding no such member is judged as without
+    the claim."""
+    claims: frozenset[Suite] = frozenset({"plain_read", "build_checks", suite})
+
+    def faulty_with(declaration: Json) -> None:
+        change(declaration)
+        declaration.pop("consumer")
+
+    faulty = a_declaration(faulty_with)
+    with pytest.raises(NotImplementedError, match=suite):
+        check_build(faulty, store(), claims=claims)
+    without = a_declaration(lambda d: d.pop("consumer"))
+    assert refusals(without, claims) == refusals(without) == {("BC-048", "")}
+    assert isinstance(Declaration.from_json(VALID, claims), Declaration)
 
 
 def test_the_claims_a_build_makes_by_default_and_without_hash_judge_alike() -> None:
@@ -287,7 +329,145 @@ def test_the_raise_names_each_pick_and_overlay_and_the_piece_that_applies_them()
     with pytest.raises(NotImplementedError) as raised:
         check_build(declaration, store())
     said = str(raised.value)
-    for index, kind in ((1, "pick"), (2, "overlay"), (3, "pick"), (4, "overlay_scope"), (5, "overlay")):
-        assert f"the {kind} /models/0/acceptances/{index}" in said
-    assert "S7c reads" in said
-    assert "S7a-2 reads the waiver /models/0/acceptances/0" in said
+    named = ", ".join(
+        f"the {kind} /models/0/acceptances/{index}"
+        for index, kind in ((1, "pick"), (2, "overlay"), (3, "pick"), (4, "overlay_scope"), (5, "overlay"))
+    )
+    assert f"S7c reads {named})" in said
+    assert "(S7a-2 reads the waiver /models/0/acceptances/0; " in said
+
+
+# The Holds constraints and the exclusive alternatives, which no build-check file plants.
+
+
+HOLDS: list[tuple[Callable[[Json], object], str | None]] = [
+    (
+        lambda d: tolerance(d).update(value=-1.0),
+        "/models/0/requirements/0/conditions/temperature/tolerance/value",
+    ),
+    (lambda d: tolerance(d).update(value=-0.0), None),
+    (lambda d: operating(d).update(range=[500.0, 50.0]), "/operating_conditions/shear_rate/range"),
+    (lambda d: operating(d).update(range=[50.0]), "/operating_conditions/shear_rate/range"),
+    (
+        lambda d: model(d).update(mixing={"fraction_sum_tolerance": -1e-9, "rules": {}}),
+        "/models/0/mixing/fraction_sum_tolerance",
+    ),
+    (lambda d: acceptances(d).append(PICK | {"index": 0.5}), "/models/0/acceptances/1/index"),
+    (lambda d: acceptances(d).append(PICK | {"index": -1.0}), "/models/0/acceptances/1/index"),
+    (lambda d: acceptances(d).append(PICK | {"index": 3.0}), None),
+    (
+        lambda d: model(d).update(target={"species": {"ncbi_taxon": 9606.5}}),
+        "/models/0/target/species/ncbi_taxon",
+    ),
+    (
+        lambda d: model(d).update(target={"anatomical_site": {"uberon": "UBERON:12a"}}),
+        "/models/0/target/anatomical_site/uberon",
+    ),
+    (
+        lambda d: condition(d, "shear_rate").pop("tolerance"),
+        "/models/0/requirements/0/conditions/shear_rate",
+    ),
+    (lambda d: operating(d).update(value=1.0), "/operating_conditions/shear_rate"),
+]
+
+
+@pytest.mark.parametrize(("change", "pointer"), HOLDS)
+def test_a_value_breaking_its_holds_and_two_or_none_of_its_alternatives_are_refused(
+    change: Callable[[Json], object], pointer: str | None
+) -> None:
+    declaration = a_declaration(change)
+    if pointer is None:
+        assert isinstance(Declaration.from_json(declaration), Declaration)
+    else:
+        assert refusals(declaration) == {("BC-048", pointer)}
+
+
+def test_a_waiver_names_its_condition_exactly_where_its_code_names_one() -> None:
+    def waived(code: str, condition: str | None) -> Json:
+        def change(declaration: Json) -> None:
+            waiver = cast(Json, acceptances(declaration)[0])
+            waiver.pop("condition")
+            waiver["code"] = code
+            if condition is not None:
+                waiver["condition"] = condition
+
+        return a_declaration(change)
+
+    assert refusals(waived("condition_unstated", None)) == {("BC-048", "/models/0/acceptances/0")}
+    assert refusals(waived("no_requirement", "temperature")) == {
+        ("BC-048", "/models/0/acceptances/0/condition")
+    }
+    assert isinstance(Declaration.from_json(waived("no_requirement", None)), Declaration)
+    assert isinstance(Declaration.from_json(waived("at_edge", "temperature")), Declaration)
+
+
+# One fault is one member at fault (maintainer, 2026-10-24): a member two rules name gives one refusal, of the
+# first rule's case; a status object where none is taken is refused at the member, nothing inside it checked.
+
+
+def test_a_requirement_condition_holding_both_alternatives_is_one_fault_at_it() -> None:
+    at = "/models/0/requirements/0/conditions/temperature"
+    both = a_declaration(lambda d: condition(d, "temperature").update(accept=["apparent"]))
+    assert refusals(both) == {("BC-048", at)}
+
+    def accept_alone(declaration: Json) -> None:
+        condition(declaration, "temperature").update(accept=["apparent"])
+        condition(declaration, "temperature").pop("tolerance")
+
+    assert refusals(a_declaration(accept_alone)) == {("BC-048", f"{at}/accept")}
+
+
+def test_a_status_object_where_none_is_taken_is_one_refusal_at_the_member() -> None:
+    target = a_declaration(lambda d: model(d).update(target={"species": {"status": "unstated"}}))
+    assert refusals(target) == {("BC-048", "/models/0/target/species")}
+    implied: Json = {"acceptance": "implied_condition", "record": WATER, "field": "fluid.dynamic_viscosity"}
+    implied |= {
+        "fact": "tissue_state",
+        "token": "in_vivo",
+        "implies": {"temperature": {"status": "unstated"}},
+    }
+    implying = a_declaration(lambda d: acceptances(d).append(implied | {"reason": "a reason"}))
+    assert refusals(implying) == {("BC-048", "/models/0/acceptances/1/implies/temperature")}
+
+
+def test_a_waivers_label_another_fields_and_its_requirements_none_is_one_refusal_of_bc_050() -> None:
+    label = a_declaration(lambda d: cast(Json, acceptances(d)[0]).update(label="materica.magnetic.linear.v1"))
+    assert refusals(label) == {("BC-050", "/models/0/acceptances/0/label")}
+
+
+def test_a_trainable_entry_at_a_record_and_a_region_is_one_refusal_of_item_12() -> None:
+    entry: Json = {"field": "fluid.dynamic_viscosity", "record": WATER, "region": "lumen"}
+    assert refusals(a_declaration(lambda d: model(d).update(trainable=[entry]))) == {
+        ("BC-051", "/models/0/trainable/0")
+    }
+
+
+# A pick's location is its record (maintainer, 2026-10-24).
+
+
+@pytest.mark.parametrize("claims", [frozenset({"plain_read", "build_checks"}), None])
+def test_a_pick_naming_a_region_and_no_record_is_unlocated_whatever_the_build_claims(
+    claims: frozenset[Suite] | None,
+) -> None:
+    pick: Json = {"acceptance": "pick", "region": "lumen", "field": "fluid.dynamic_viscosity", "index": 0}
+    declaration = a_declaration(lambda d: acceptances(d).append(pick | {"reason": "a reason"}))
+    expected = {("BC-037", "/models/0/acceptances/1")}
+    assert refusals(declaration, frozenset({"plain_read", "build_checks", "scene_documents"})) == expected
+    assert refusals(declaration, claims) == expected
+
+
+def test_a_pick_at_its_record_and_a_region_is_item_12s() -> None:
+    declaration = a_declaration(lambda d: acceptances(d).append(PICK | {"region": "lumen"}))
+    assert refusals(declaration) == {("BC-051", "/models/0/acceptances/1")}
+
+
+#  Item 7 in this version: every engine model's pinned crosswalk is one not passed, at the model's `engine`,
+# where the S7 design's answer 41 places an engine model over records.
+
+
+def test_an_engine_model_is_refused_by_item_7_at_its_engine_once() -> None:
+    def over_records_wanting_bounds(declaration: Json) -> None:
+        engine(declaration)
+        cast(list[Json], model(declaration)["requirements"])[0]["want"] = "bounds"
+
+    assert refusals(a_declaration(over_records_wanting_bounds)) == {("BC-040", "/models/0/engine")}
