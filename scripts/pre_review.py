@@ -354,9 +354,10 @@ DATA_RULES = (
     DataRule(
         "the input coverage's baseline",
         r"tests/property/input_coverage_baseline\.json",
-        "the checker reads its selections and compares a run with it; its tests hold its form",
+        "the checker reads its selections and compares a run with it, the measure workflow's cut kind splits "
+        "them by its timing; their tests hold its form",
         tests=("tests/unit/test_input_coverage.py",),
-        readers=("scripts/input_coverage.py",),
+        readers=("scripts/input_coverage.py", "scripts/measure.py"),
     ),
     DataRule(
         "the confidential digests and the hook that runs the scan",
@@ -423,6 +424,11 @@ TREE_READERS = (
         "the input coverage's tests copy the plugin into trees of their own and run it there, and read every "
         "test module under `tests/` for the strategy modules it imports",
         ("tests/unit/test_input_coverage.py",),
+    ),
+    TreeReader(
+        r"tests/property/input_coverage\.py",
+        "the measure workflow's cut kind's tests copy the plugin into trees of their own and run it there",
+        ("tests/unit/test_measure_cuts.py",),
     ),
     TreeReader(
         r"tests/.+\.py",

@@ -12,13 +12,14 @@ import os
 import shutil
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from scripts import input_coverage
-from scripts.input_coverage import cuts_of, problems, result_of
+from scripts.input_coverage import cuts_of, merged_reports, problems, result_of
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 PLUGIN = REPOSITORY / "tests" / "property" / "input_coverage.py"
@@ -158,7 +159,12 @@ def tree(root: Path, modules: dict[str, str]) -> Path:
 
 
 def check(
-    root: Path, command: str, module: str, baseline: dict[str, Any] | None = None, report: str = "report.json"
+    root: Path,
+    command: str,
+    module: str,
+    baseline: dict[str, Any] | None = None,
+    report: str = "report.json",
+    options: Sequence[str] = (),
 ) -> tuple[int, dict[str, Any], str]:
     """The checker run on `module`'s draws over its tests, a process a cut: its exit, report and output."""
     (root / "baseline.json").write_text(
@@ -169,6 +175,7 @@ def check(
     )
     arguments = [command, "fixture", "--baseline", str(root / "baseline.json"), "--root", str(root)]
     arguments += ["--workers", "0", "--parallel", "4", "--report", str(root / report), "--timeout", "120"]
+    arguments += options
     completed = subprocess.run(
         [sys.executable, str(REPOSITORY / "scripts" / "input_coverage.py"), *arguments],
         capture_output=True,
@@ -492,6 +499,118 @@ def test_what_the_patterns_leave_out_is_in_the_baseline_and_a_new_draw_through_i
     )
 
 
+HELD_A = "tests/test_holds.py::drawn::st.sampled_from(['a', 'b']) :: drop 'a'"
+NOT_HELD_B = "tests/test_holds.py::drawn::st.sampled_from(['a', 'b']) :: drop 'b'"
+
+
+@pytest.mark.parametrize(
+    ("options", "ran", "status"),
+    [
+        ((), {HELD_A: "held", NOT_HELD_B: "not held"}, 1),
+        (("--slice", "0/2"), {HELD_A: "held", NOT_HELD_B: None}, 0),
+        (("--slice", "1/2"), {HELD_A: None, NOT_HELD_B: "not held"}, 1),
+        (("--scope", "*drop 'a'"), {HELD_A: "held", NOT_HELD_B: None}, 0),
+        (("--scope", "*drop 'a'", "*drop 'b'", "--slice", "1/2"), {HELD_A: None, NOT_HELD_B: "not held"}, 1),
+    ],
+    ids=["whole", "first-slice", "second-slice", "scope", "scope-and-slice"],
+)
+def test_a_share_runs_its_own_cuts_and_is_judged_on_them_alone(
+    tmp_path: Path, options: tuple[str, ...], ran: dict[str, str | None], status: int
+) -> None:
+    root = tree(tmp_path, {"test_holds.py": HOLDS_A})
+    found, report, output = check(root, "run", "test_holds.py", options=options)
+    assert {name: cut.get("result") for name, cut in report["cuts"].items()} == ran
+    assert found == status, output
+    # The cut of another share is not run, and is not reported as not run.
+    assert "not run" not in output
+    assert ("not held, and not in the baseline" in output) == (ran[NOT_HELD_B] == "not held")
+
+
+def test_a_report_of_another_share_or_a_slice_past_its_count_is_refused(tmp_path: Path) -> None:
+    root = tree(tmp_path, {"test_holds.py": HOLDS_A})
+    check(root, "list", "test_holds.py", options=("--slice", "0/2"))
+    # A slice past its count is refused before anything runs: no report is written.
+    with pytest.raises(FileNotFoundError):
+        check(root, "list", "test_holds.py", report="missing.json", options=("--slice", "2/2"))
+    completed = subprocess.run(
+        [
+            *(sys.executable, str(REPOSITORY / "scripts" / "input_coverage.py"), "run", "fixture"),
+            *("--baseline", str(root / "baseline.json"), "--root", str(root), "--workers", "0"),
+            *("--report", str(root / "report.json"), "--slice", "1/2"),
+        ],
+        capture_output=True,
+        text=True,
+        cwd=root,
+        timeout=600,
+        check=False,
+    )
+    assert completed.returncode == 1
+    assert "is a report of another selection, profile or share" in completed.stderr
+
+
+def test_a_whole_selection_takes_what_its_patterns_leave_out(tmp_path: Path) -> None:
+    root = tree(tmp_path, {"lower.py": LOWER, "test_own.py": OWN})
+    _, narrowed, _ = check(root, "list", "test_own.py", LEAVING_OUT, report="narrowed.json")
+    _, whole, output = check(
+        root, "list", "test_own.py", LEAVING_OUT, report="whole.json", options=("--whole",)
+    )
+    assert narrowed["left_out"] == OWN_LEFT
+    assert whole["left_out"] == {"sites": 0, "cuts": 0, "uncut": 0}, output
+    assert whole["selection"]["sites"] == ["tests/test_own.py::*"]
+    lower = {name for name in whole["cuts"] if name not in narrowed["cuts"]}
+    assert len(lower) == OWN_LEFT["cuts"]
+    assert all(" > tests/lower.py::numbers::" in name for name in lower)
+    assert len(whole["uncut"]) == len(narrowed["uncut"]) + OWN_LEFT["uncut"]
+
+
+def sliced(part: int, count: int, **found: str) -> dict[str, Any]:
+    cuts = {f"s :: {name}": {"site_id": "s", "change": "drop", "key": name} for name in ("a", "b", "c")}
+    for name, result in found.items():
+        cuts[f"s :: {name}"]["result"] = result
+    return {
+        "selection": {"name": "x", "tests": ["t"], "sites": ["*"]},
+        "profile": "ci",
+        "share": {"scope": None, "slice": [part, count]},
+        "sites": {"s": {}},
+        "cuts": cuts,
+        "uncut": {},
+        "left_out": {"sites": 0, "cuts": 0, "uncut": 0},
+    }
+
+
+@pytest.mark.parametrize(
+    ("reports", "merged", "found"),
+    [
+        ([sliced(0, 2, a="held", c="not held"), sliced(1, 2, b="held")], ["held", "held", "not held"], []),
+        ([sliced(0, 2, a="held", c="not held")], ["held", None, "not held"], ["slice 1 of 2: no report"]),
+        (
+            [
+                sliced(0, 2, a="held", c="not held"),
+                sliced(0, 2, a="held", c="not held"),
+                sliced(1, 2, b="held"),
+            ],
+            ["held", "held", "not held"],
+            ["slice 0 of 2: 2 reports"],
+        ),
+        # A result outside a report's share is not taken from it.
+        ([sliced(0, 2, a="held", b="error"), sliced(1, 2)], ["held", None, None], []),
+        (
+            [sliced(0, 2), {**sliced(1, 2), "uncut": {"u": "text"}}],
+            [None, None, None],
+            ["slice 1 recorded other cuts, uncut draws or left-out counts than the first"],
+        ),
+    ],
+    ids=["whole", "missing", "doubled", "outside-its-share", "recorded-apart"],
+)
+def test_the_slices_of_a_selection_merge_into_its_report(
+    reports: list[dict[str, Any]], merged: list[str | None], found: list[str]
+) -> None:
+    report, problems_found = merged_reports(reports)
+    assert [report["cuts"][f"s :: {name}"].get("result") for name in ("a", "b", "c")] == merged
+    assert problems_found == found
+    assert report["share"] == {"scope": None, "slice": None}
+
+
 OWNERS = ("everything", "other")
 
 
@@ -754,8 +873,17 @@ def test_the_baseline_names_tests_that_exist_and_gives_each_entry_its_reason() -
     baseline = json.loads(input_coverage.BASELINE.read_text(encoding="utf-8"))
     assert baseline
     for name, selection in baseline.items():
-        assert set(selection) == {"tests", "sites", "excused", "left_out", "cuts", "uncut"}, name
+        assert set(selection) == {"tests", "sites", "excused", "timing", "left_out", "cuts", "uncut"}, name
         assert set(selection["left_out"]) == {*input_coverage.LEFT_OUT, "reason"}, name
+        # What the cut kind of `measure.yml` splits a selection's cuts by: their count and the longest
+        # measured, with where and how it was measured.
+        timing = selection["timing"]
+        assert set(timing) == {"cuts", "seconds", "measured"}, name
+        assert isinstance(timing["cuts"], int), name
+        assert timing["cuts"] > 0, name
+        assert isinstance(timing["seconds"], float), name
+        assert timing["seconds"] > 0, name
+        assert timing["measured"].strip(), name
         assert selection["left_out"]["reason"].strip(), name
         assert selection["tests"], name
         assert selection["sites"], name
@@ -1147,10 +1275,15 @@ def test_a_report_of_another_selection_or_profile_is_refused(tmp_path: Path) -> 
     given = {"name": None, "tests": ["tests/a.py"], "sites": ["*"]}
     report.write_text(json.dumps({"selection": given, "profile": "dev"}), encoding="utf-8")
     arguments = ["check", "--tests", "tests/a.py", "--sites", "*", "--report", str(report)]
-    with pytest.raises(SystemExit, match="another selection or profile"):
+    with pytest.raises(SystemExit, match="another selection, profile or share"):
         input_coverage.main(arguments)
-    with pytest.raises(SystemExit, match="another selection or profile"):
+    with pytest.raises(SystemExit, match="another selection, profile or share"):
         input_coverage.main(["check", "--tests", "tests/a.py", "--sites", "tests/*", "--report", str(report)])
+    # The control: the same report, of the profile asked for, is read; a slice of it is another share.
+    report.write_text(json.dumps({"selection": given, "profile": "ci", "sites": {}, "cuts": {}, "uncut": {}}))
+    assert input_coverage.main(arguments) == 1
+    with pytest.raises(SystemExit, match="another selection, profile or share"):
+        input_coverage.main([*arguments, "--slice", "0/2"])
 
 
 def test_every_test_module_importing_a_selections_strategies_is_named_or_excused() -> None:

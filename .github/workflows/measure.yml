@@ -1,11 +1,11 @@
 # The measurements a property piece makes before review, run as a matrix of jobs on CI rather than one after
 # another on the shared laptop (maintainer, 2026-10-23): floors at the variance measured, the kills' drift over
-# streams, regions of a base against the head, and a fuzz control's rate. The runs, their counts and their
-# judgement are the repository's own; only the machine changes. Dispatched by hand; tests/README.md,
-# "Measurements on CI", says how to ask for one and how to read its table. A pull request that changes this
-# workflow or its script runs the self-test instead (`SELF_TEST` in scripts/measure.py), each kind at its rule's
-# count on one small selection, with the answer it must give: GitHub dispatches a workflow only from the default
-# branch's copy of it, so a draft could not run its own workflow otherwise.
+# streams, regions of a base against the head, a fuzz control's rate, and the input coverage's cuts. The runs,
+# their counts and their judgement are the repository's own; only the machine changes. Dispatched by hand;
+# tests/README.md, "Measurements on CI", says how to ask for one and how to read its table. A pull request
+# that changes this workflow or its script runs the self-test instead (`SELF_TEST` in scripts/measure.py), each
+# kind on one small selection, with the answer it must give: GitHub dispatches a workflow only from the
+# default branch's copy of it, so a draft could not run its own workflow otherwise.
 # Every input is checked by the request job, and the jobs after it read the checked values alone; each reaches
 # its steps through the environment, never through a script's text. tests/unit/test_ci_workflows.py holds each
 # of these.
@@ -20,18 +20,18 @@ on:
       kind:
         description: What to measure
         type: choice
-        options: [floors, drift, regions, fuzz]
+        options: [floors, drift, regions, fuzz, cuts]
         default: floors
       selection:
-        description: "Paths or nodes under tests/property, space-separated (floors, regions: property tests; drift: mutant searches); for fuzz, controls of scripts/measure.py's CONTROLS, each alone or as NAME:none"
+        description: "Paths or nodes under tests/property, space-separated (floors, regions: property tests; drift: mutant searches); for fuzz, controls of scripts/measure.py's CONTROLS, each alone or as NAME:none; for cuts, all or selections of the input coverage's baseline, each alone or as NAME:whole"
         type: string
         required: true
       count:
-        description: "Streams (floors, drift, regions) or runs (fuzz); empty for the rule's: 20, 40, 18, 10"
+        description: "Streams (floors, drift, regions) or runs (fuzz); empty for the rule's: 20, 40, 18, 10; empty for cuts"
         type: string
         default: ""
       per_job:
-        description: "Streams a job (floors, drift, regions); empty for all of a test function's in one job"
+        description: "Streams a job (floors, drift, regions); empty for all of a test function's in one job; empty for cuts"
         type: string
         default: ""
       base:
@@ -106,7 +106,8 @@ jobs:
       # pytest collects the selection at `ci`, and the script keeps what the kind measures (property tests, or
       # mutant searches), one job a test function and chunk of streams, and resolves the base to its commit:
       # a selection that holds none, a base that is no commit, or more jobs than a matrix holds fail here,
-      # before any job starts.
+      # before any job starts. The cut kind splits each selection's cuts into slices by its baseline's
+      # `timing`.
       - name: The selection, as jobs
         id: jobs
         env:
@@ -138,7 +139,8 @@ jobs:
     name: ${{ matrix.job.id }}
     needs: request
     runs-on: ubuntu-24.04
-    # A fuzz job is one run of up to 900 s with its corpus written first; another job a test function's
+    # A fuzz job is one run of up to 900 s with its corpus written first; a cut job a slice of a selection's
+    # cuts, two at once on two workers each, planned at half these minutes; another job a test function's
     # streams, split among a worker per vCPU. The measurement is interrupted three minutes before this, counted
     # from the job's start, so that the job keeps the record of what it measured.
     timeout-minutes: ${{ matrix.job.kind == 'fuzz' && 30 || 120 }}
@@ -216,8 +218,10 @@ jobs:
           path: ${{ runner.temp }}/records
       # The records counted first, one for each job of the matrix (a missing one named as that), then merged
       # into one table a kind, on the run's page and kept as an artifact; fails where a record is missing or
-      # duplicated, a job failed, a self-test job gave another answer than its own, or the run is not on its
-      # first attempt (scripts/measure.py, `summary`). To measure again, dispatch anew.
+      # duplicated, a job failed, a self-test job gave another answer than its own, a selection's slices do not
+      # make one report, a self-test's cuts disagree with the baseline, or the run is not on its first attempt
+      # (scripts/measure.py, `summary`). To measure again, dispatch anew. The report job reads the input
+      # coverage's runner from the checkout.
       - name: The table
         id: table
         env:

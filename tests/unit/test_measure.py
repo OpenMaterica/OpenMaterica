@@ -479,6 +479,7 @@ def test_the_self_test_resolves_to_a_job_of_each_kind_with_its_answer() -> None:
     request = {"kind": "self", "selection": "", "count": "", "per_job": "", "base": "", "python": "3.15"}
     jobs = measure.matrix(request)
     assert sorted({(job.kind, job.side, job.expect) for job in jobs}) == [
+        ("cuts", "head", "baseline"),
         ("drift", "head", "recorded"),
         ("floors", "head", "counted"),
         ("fuzz", "head", "finds"),

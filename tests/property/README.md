@@ -2028,6 +2028,18 @@ selections below that is cut has more than nine). A cut changes every draw after
 choices), so its run is a new derandomized sample: a `held` rests on one run, at a test whose message the
 report keeps, and a `not held` says that no test needed the value in that run.
 
+On CI the cuts run as `measure.yml`'s cut kind (maintainer, 2026-10-23 and 2026-10-24; `tests/README.md`,
+"Measurements on CI"). A dispatch names selections of the baseline, or `all`, each as `NAME:whole` to run the
+cuts its `!` patterns leave out too, and the request job splits each selection's cuts into slices of about
+equal time by the baseline's `timing`: the cuts the selection makes and its longest cut measured (on two
+workers a cut, four cuts at once, run locally), so that a slice's cuts fill at most half of its
+job's 120 minutes at two at once, the rest left to the selection's recording and a slower runner. Each job
+records the selection and runs its slice (`--slice K/N`); the report merges the slices into the selection's
+report, each slice there once and every slice recording the same cuts, and holds it to the baseline, a
+disagreement a flag. `measure.py fetch RUN --out DIR` downloads the records, and `input_coverage.py check NAME
+--records DIR` holds them to the baseline here. The workflow's self-test holds the cuts of one site of S3c's
+to the baseline.
+
 "Drop each value" is finer than the hand rule's "cut the list to one value": two values of one kind, each
 held by the kind's mutant, pass a drop each, where a cut to one value fails. The baseline calls such a pair
 "equivalent" where no list or comparison in the code tells them apart, and "a gap" where one could: S3c's
