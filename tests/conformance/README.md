@@ -10,11 +10,14 @@ The implementation runs under several configurations of claims (`CONFIGURATIONS`
 and the hash suite, as a read claims by default; plain read alone, as a reader without the hash suite; and
 with the fits and reference data suite too, whose `want`s step 0 then accepts. A read under the last ends by
 step 10 or raises, and steps 1 to 10 check the same under it as without it, so that claim gives no answer a
-step not built yet could change. `materica` claims no table evaluation (TE): the last configuration, the TE suite
-alone, is the test-only reference evaluator's (`tests/reference/table_evaluator.py`, the S3 design's S3Q15),
-which runs each TE file four times, in `binary64` and `binary32`, declaring each side (`EVALUATOR_CLAIMS`).
-Each case file runs under every configuration that claims its suite and agrees with every claim it states, and
-gets one outcome, decided in this order:
+step not built yet could change. Then a build's: the build checks with plain read and the hash suite, as a
+build claims by default, and with plain read alone; a build claims neither the scene suite, USD read nor the
+sampling suite yet. A read case runs under these too, since they claim plain read. `materica` claims no table
+evaluation (TE): the last configuration, the TE suite alone, is the test-only reference evaluator's
+(`tests/reference/table_evaluator.py`, the S3 design's S3Q15), which runs each TE file four times, in
+`binary64` and `binary32`, declaring each side (`EVALUATOR_CLAIMS`). Each case file runs under every
+configuration that claims its suite and agrees with every claim it states, and gets one outcome, decided in
+this order:
 
 1. **not yet runnable**: no executor exists for its operation (`EXECUTORS` in `runner.py`), or a step of the
    implementation its arm needs is not done: `tests/spec_sync/case_steps.json` maps each case file to the step
@@ -51,8 +54,8 @@ so nothing that did not run can show as a pass or a skip. `test_cases.py` assert
 | reads S7a-4 runs (plain read): under a `trainable` acceptance | 1 | not yet runnable: S7a-4, which runs it, is not done |
 | `evaluate` (TE-002 to TE-012) | 35 | run, verified against the reference evaluator under each of its four configurations |
 | record checks (`check`: RC-031, RC-032, RC-220 to RC-226) and `quote_sha256` (RC-033's vectors) | 184 and 13 | not yet runnable: no executor; C2, with S5's record checks, adds them |
-| build checks (`check_build`: BC-004, BC-005, BC-037, BC-048, BC-050, BC-051), a declaration checked on its own and refused | 54 | not yet runnable: no executor; S7a-1, which builds the declaration's own check, adds it |
-| build checks (`check_build`: BC-001, BC-002, BC-003, BC-006, BC-009, BC-010, BC-016, BC-017, BC-019, BC-020, BC-027, BC-028, BC-038, BC-049, BC-053), a declaration over records that passes its own check: the results and the verdict | 57 | not yet runnable: no executor before S7a-1, and S7a-2, which builds the results, is not done |
+| build checks (`check_build`: BC-004, BC-005, BC-037, BC-048, BC-050, BC-051), a declaration checked on its own and refused | 54 | run, passed |
+| build checks (`check_build`: BC-001, BC-002, BC-003, BC-006, BC-009, BC-010, BC-016, BC-017, BC-019, BC-020, BC-027, BC-028, BC-038, BC-049, BC-053), a declaration over records that passes its own check: the results and the verdict | 57 | not yet runnable: S7a-2, which builds the results, is not done |
 
 Each read is counted by the step whose code runs it (`case_steps.json`), not by what it reads:
 `PR-044.alternatives_beside_value` holds alternatives and is S2a-4's, and `PR-007.target_is_overlay` ends at
@@ -80,10 +83,10 @@ which the S7 design gives S7a-2, is S2a-2's: since the S7 specification the read
 refuses a requirement's `label`, and S2a-2's step 0 runs PR-330's other requirement arms.
 
 Of the 1634 case files, 1276 agree with plain read and the hash suite, 1218 with plain read alone, and 1276
-with the fits and reference data suite too; the 35 of the table evaluation suite agree with the reference
-evaluator's configuration alone, since this implementation claims no evaluator, the 197 of the record-check
-suite agree with none, since it claims no record checks, and the 111 of the build-check suite agree with none,
-since it claims no build checks.
+with the fits and reference data suite too; 1387 with the build checks, plain read and the hash suite, and
+1329 with the build checks and plain read alone, the 111 of the build-check suite among each; the 35 of the
+table evaluation suite agree with the reference evaluator's configuration alone, since this implementation
+claims no evaluator, and the 197 of the record-check suite agree with none, since it claims no record checks.
 
 A read executor reads the case's request, or the file `inputs.request` names, among the files `inputs.records`
 names (`materica.load_records`), and passes its result through JSON text, as a consumer would receive it. Each
@@ -94,7 +97,11 @@ the evaluator claims, and holds one run per claim; its numbers stay Python float
 NaN, which JSON text cannot hold. An evaluator may raise its refusal in place of reporting it, since "a raised
 refusal counts as reported" (`read_side_contract.md` section 7 item 7): the executor adapts a raised `Refusal`
 (`runner.py`) to the refusal reported, at that axis value. It adapts no other exception, which fails the case
-as any executor's does, so that a crash never passes as a refusal.
+as any executor's does, so that a crash never passes as a refusal. The `check_build` executor builds the
+declaration the file `inputs.declaration` names, its bytes as they are, so that one that breaks
+`record_format.md` section 1 item 6 can be given, over the files `inputs.records` names, and passes the report
+through JSON text; each report validates against `build_report.json` too (`test_cases.py`, with a control). A
+declaration that passes its own check raises `NotImplementedError` until S7a-2, so its files wait there.
 
 ## How a result is compared
 
@@ -121,6 +128,14 @@ readable range each number may be absent or NaN; an expected derivative of 0 pas
 sign; and numbers are compared at the tolerance of the run's precision. A JSON `null` in place of a number is
 no number returned, and reads as absent everywhere, beside a refusal too. `test_comparator.py` feeds this
 comparison wrong answers of each kind.
+
+A build-check case compares a build's report by the specification's README ("Case files") and the S7 design's
+5.1: `refusals` as a set of each refusal's `item` and `pointer`, never its `detail`, and only those of the
+rules `compare.rules_compared` names where the case names any; and a member `compare` names and `expected`
+omits or gives empty must be absent or empty, as a refused declaration's `results`, `watches` and `unused`
+are. A case that expects results, watches or unused acceptances is a defect until S7a-2 builds their
+comparison (`CaseFileError`), so that none can pass unread. `test_comparator.py` holds each arm, and
+`test_runner_can_fail.py` S7a-1's broken builds, each caught by an S7a-1 file.
 
 ## The case files themselves
 
