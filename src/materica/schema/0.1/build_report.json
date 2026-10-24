@@ -3,7 +3,7 @@
   "$id": "https://w3id.org/materica/schema/0.1/build_report.json",
   "$comment": "Hand-edited. The package's typed shapes are generated from it. tests/spec_sync/test_declaration_schema.py holds a field result's read members to read_result.json's, and case.json's build result and watch to this file's, member for member.",
   "title": "BuildReport",
-  "description": "The build's report (declarations.md section 2): consumer, as declared; records, every record a read resolved; declaration, as given; refusals, the declaration's own (section 1); results, every field result of section 2 and every combination result of section 3 item 6; watches (section 8); and unused (section 2 item 9). watches is optional, so that a build that does not yet emit watches omits it rather than hold an empty list; every other list is required, and may be empty. A declaration the build refuses on its own gives no results, no watches and nothing unused, so a report holding a refusal holds those lists empty, and its consumer and declaration, where it holds them, as given, whatever their shape: the text says what a refused declaration's report compares and nothing of the rest. A report holding no refusal holds its consumer and a declaration valid against declaration.json.",
+  "description": "The build's report (declarations.md section 2): consumer, as declared; records, every record a read resolved; declaration, as given; refusals, the declaration's own (section 1); results, every field result of section 2 and every combination result of section 3 item 6; watches (section 8); and unused (section 2 item 9). watches is optional, so that a build that does not yet emit watches omits it rather than hold an empty list; every other list is required, and may be empty. A declaration the build refuses on its own gives no results, no watches and nothing unused, so a report holding a refusal holds those lists empty, its declaration as given where its text is JSON, and its consumer where the declaration declares one, whatever their shape. A report holding no refusal holds its consumer and a declaration valid against declaration.json.",
   "type": "object",
   "required": ["records", "refusals", "results", "unused"],
   "properties": {
@@ -26,14 +26,15 @@
   "allOf": [{"$ref": "#/$defs/refusal_rule"}],
   "$defs": {
     "refusal_rule": {
-      "description": "A report holding a refusal holds no results, no watches and nothing unused (section 2); one holding none holds its consumer, as declared, and its declaration, valid against declaration.json.",
+      "description": "A report holding a refusal holds no results, no watches and nothing unused (section 2), and holds the declaration as given where its text is JSON and its consumer where the declaration declares one; one holding none holds its consumer, as declared, and its declaration, valid against declaration.json.",
       "if": {"properties": {"refusals": {"minItems": 1}}},
       "then": {
         "properties": {
           "results": {"maxItems": 0},
           "watches": {"maxItems": 0},
           "unused": {"maxItems": 0}
-        }
+        },
+        "allOf": [{"$ref": "#/$defs/refused_declaration_rule"}, {"$ref": "#/$defs/refused_consumer_rule"}]
       },
       "else": {
         "required": ["consumer", "declaration"],
@@ -42,6 +43,25 @@
           "declaration": {"$ref": "declaration.json"}
         }
       }
+    },
+    "refused_declaration_rule": {
+      "description": "A refused report holds the declaration as given, but where its text is not JSON (section 2). Such a text is refused at the empty pointer alone (section 1); a schema cannot tell it from a declaration whose one fault is refused there too (one that is not an object, or lacks a member of the declaration's place), so a report whose refusals are that one refusal may omit the declaration.",
+      "if": {
+        "required": ["refusals"],
+        "properties": {
+          "refusals": {
+            "maxItems": 1,
+            "items": {"required": ["item", "pointer"], "properties": {"item": {"const": "BC-048"}, "pointer": {"const": ""}}}
+          }
+        }
+      },
+      "else": {"required": ["declaration"]}
+    },
+    "refused_consumer_rule": {
+      "description": "A refused report holds its consumer exactly where the declaration it holds declares one (section 2).",
+      "if": {"required": ["declaration"], "properties": {"declaration": {"type": "object", "required": ["consumer"]}}},
+      "then": {"required": ["consumer"]},
+      "else": {"not": {"required": ["consumer"]}}
     },
     "build_refusal": {
       "title": "BuildRefusalJson",

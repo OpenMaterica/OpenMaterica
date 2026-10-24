@@ -51,7 +51,7 @@ so nothing that did not run can show as a pass or a skip. `test_cases.py` assert
 | reads S7a-4 runs (plain read): under a `trainable` acceptance | 1 | not yet runnable: S7a-4, which runs it, is not done |
 | `evaluate` (TE-002 to TE-012) | 35 | run, verified against the reference evaluator under each of its four configurations |
 | record checks (`check`: RC-031, RC-032, RC-220 to RC-226) and `quote_sha256` (RC-033's vectors) | 184 and 13 | not yet runnable: no executor; C2, with S5's record checks, adds them |
-| build checks (`check_build`: BC-004, BC-005, BC-037, BC-048, BC-050, BC-051), a declaration checked on its own and refused | 51 | not yet runnable: no executor; S7a-1, which builds the declaration's own check, adds it |
+| build checks (`check_build`: BC-004, BC-005, BC-037, BC-048, BC-050, BC-051), a declaration checked on its own and refused | 54 | not yet runnable: no executor; S7a-1, which builds the declaration's own check, adds it |
 | build checks (`check_build`: BC-001, BC-002, BC-003, BC-006, BC-009, BC-010, BC-016, BC-017, BC-019, BC-020, BC-027, BC-028, BC-038, BC-049, BC-053), a declaration over records that passes its own check: the results and the verdict | 57 | not yet runnable: no executor before S7a-1, and S7a-2, which builds the results, is not done |
 
 Each read is counted by the step whose code runs it (`case_steps.json`), not by what it reads:
@@ -79,10 +79,10 @@ before S7a-4. PR-330's arm of a requirement holding `review` (`PR-330.review_in_
 which the S7 design gives S7a-2, is S2a-2's: since the S7 specification the read refuses it at step 0, as it
 refuses a requirement's `label`, and S2a-2's step 0 runs PR-330's other requirement arms.
 
-Of the 1631 case files, 1276 agree with plain read and the hash suite, 1218 with plain read alone, and 1276
+Of the 1634 case files, 1276 agree with plain read and the hash suite, 1218 with plain read alone, and 1276
 with the fits and reference data suite too; the 35 of the table evaluation suite agree with the reference
 evaluator's configuration alone, since this implementation claims no evaluator, the 197 of the record-check
-suite agree with none, since it claims no record checks, and the 108 of the build-check suite agree with none,
+suite agree with none, since it claims no record checks, and the 111 of the build-check suite agree with none,
 since it claims no build checks.
 
 A read executor reads the case's request, or the file `inputs.request` names, among the files `inputs.records`

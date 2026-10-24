@@ -61,7 +61,7 @@ model that reads material fields.
 | `target` | the specimen facts the model stands for, each in the record's fact shape (`provenance.md` section 6.2) without `basis`; differences are computed against it (section 3) |
 | `reads` | every field the model reads |
 | `consumer_parameters` | every consumer parameter a record feeds; each needs a derivation in the sheet (section 9) |
-| `requirements` | per field: `want` (`read_side_contract.md` section 6), required; `conditions`, per condition either `tolerance` (absolute, in the condition's unit) or `accept` (a token list), each with its `reason` and, where known, its `consequence`; optionally `label`, the label the model assumes; and `represents`, the spread its question needs where it samples (`uncertainty.md`); and, where `represents` is `population` and the field is sampled, `population_level`: `{"level", "within"}` as in `uncertainty.md` section 1, or `{"level", "balanced_over": <level>}` for a balanced draw from an ensemble [BC-043]; and optionally `review`, `reviewed` where the model needs a value someone checked against its source (item 11) [BC-049] |
+| `requirements` | per field: `want` (`read_side_contract.md` section 6), required; `conditions`, per condition either `tolerance` (absolute, in the condition's unit) or `accept` (a token list), each with its `reason` and, where known, its `consequence`; optionally `label`, the label the model assumes; and `represents`, the spread its question needs where it samples (`uncertainty.md`); and, where `represents` is `population` and the field is sampled, `population_level`, never beside another `represents`: `{"level", "within"}` as in `uncertainty.md` section 1, or `{"level", "balanced_over": <level>}` for a balanced draw from an ensemble [BC-043]; and optionally `review`, `reviewed` where the model needs a value someone checked against its source (item 11) [BC-049] |
 | `families` | for each parameter-set field, the family version the model's evaluator implements (`model_families.md`) |
 | `mixing` | `fraction_sum_tolerance`, set by the model's precision, and per field the rule the model applies in a cell holding more than one material: `identity`, a named rule, or `refuse` (`mixing_rules.md`) |
 | `combinations` | lists of fields of one material, from different sections, that the model combines into one quantity (section 3) |
@@ -106,7 +106,7 @@ the build's version registers. [BC-048]
 | | `label` | no | a label registered for the field (`record_format.md` section 4.1) |
 | | `review` | no | `reviewed` (item 11) |
 | | `represents` | no: a requirement holding it samples (item 12) | a token of `uncertainty.md` section 1 |
-| | `population_level` | where `represents` is `population` (the members table) | the object the members table gives |
+| | `population_level` | where `represents` is `population`, and never beside another (the members table) | the object the members table gives |
 | requirement condition | `tolerance` or `accept` | exactly one | `{"value", "unit"}`, not below zero, in the condition's unit, for a numeric condition; at least one token of the condition's row, for a token one |
 | | `reason` | yes (item 3) | a string of at least one character |
 | | `consequence` | no | a string |
@@ -114,7 +114,7 @@ the build's version registers. [BC-048]
 | | `record`, `region`, `interval` | as its kind's row in section 4.1 says | a material reference; a region's name; an interval |
 | | `field` | yes, but an `accepted_difference` names `section` and an `overlay_scope` neither | a registered field |
 | | `reason` | yes (item 4) | a string of at least one character |
-| | `basis` | for `extrapolation`, `nominal` and `distribution` (item 4) | a string of at least one character |
+| | `basis` | for `extrapolation`, `nominal` and `distribution` (item 4); no other kind holds it | a string of at least one character |
 | | its kind's own members | as section 4.1's row gives them: required; or, where the row gives a condition ("where the code names one"), required where it holds and refused where it does not; or optional where the row says "optionally" | a pick's `index`, a whole number not below zero; a waiver's `code`, a reason of `read_side_contract.md` section 4 (a code names a condition where its reasons always carry one: the six `condition_*` codes, `outside_range`, `at_edge` and `range_unstated`; a waiver whose `code` is no reason names no condition), and `label` as above; an implied condition's `fact` and `token`, of `provenance.md` section 6.2, and its `implies`, per registered condition as section 4.1's row gives it, in the condition's registered unit, `lo` not above `hi`, a `basis` there ignored; an extrapolation's `method`, `constant` or `consumer_law`, and its `law`, a string of at least one character; an accepted difference's `section`, a registered section, and `fact`, a fact of `provenance.md` section 6.2, its `value` that fact's shape (its `basis` and text members optional), a status object or `"any"`; a nominal's `value` or `params`, exactly one, `params` only for a field whose row allows the form `parameter_set` (`read_side_contract.md` section 1); a distribution's `distribution`, a token of `uncertainty.md` section 4, `distribution_parameters`, that token's parameters, named as there, and `space`, `identity` or `log` (section 4.3); an overlay's and an `overlay_scope`'s `overlay`, a material reference; an `overlay_scope`'s `accepts`, at least one of `consumer`, `model` and `configuration`, none twice |
 | trainable entry | `field` and one of `record`, `region`, `interval` | yes | a field in `reads`, at a location the model is checked over |
 | material reference | `id`, `version`, `content_hash` | yes | strings |
@@ -256,10 +256,12 @@ The build gives one report:
 - `watches` (section 8);
 - `unused` (item 9).
 
-A declaration the build refuses on its own gives no results, no watches and nothing unused. The build refuses
-to build while the report holds a refusal, as it does while a result is not accepted (item 5). The material
-input sheet (section 9) holds the report's `consumer`, `records`, `declaration`, `results` and `watches` under
-those names, and adds its own; `refusals` and `unused` are the report's alone. [BC-010]
+A declaration the build refuses on its own gives no results, no watches and nothing unused; its report holds
+the declaration as given where the text is JSON, and its `consumer` where the declaration declares one.
+[not yet covered] The build refuses to build while the report holds a refusal, as it does while a result is
+not accepted (item 5). The material input sheet (section 9) holds the report's `consumer`, `records`,
+`declaration`, `results` and `watches` under those names, and adds its own; `refusals` and `unused` are the
+report's alone. [BC-010]
 
 6. **Engine results.** A model with `engine` is judged in order: the build reads its fields; the adapter
    writes where those results are accepted (`usd_binding.md` section 10); the stage check runs; and the build
@@ -386,11 +388,12 @@ An acceptance whose kind needs a location and names none is refused. [BC-037]
 ### 4.2 What covers which reason
 
 This table is the only place that says which acceptance covers which reason (other documents cite it). A
-reason not listed is never accepted. [BC-038]
+reason not listed is never accepted, `condition_unknown_name` among them: a condition name the reader does not
+know is a typo or a version mismatch, which the reader's upgrade remedies, not a waiver. [BC-038]
 
 | Reason | Status | Covered by |
 |---|---|---|
-| `condition_unstated`, `condition_unknown_name`, `condition_unchecked`, `condition_uncertain` | unknown | a `waiver` naming that condition and code |
+| `condition_unstated`, `condition_unchecked`, `condition_uncertain` | unknown | a `waiver` naming that condition and code |
 | `no_requirement`, `stated_without_origin`, `outside_check_points`, `fill_in_version_mismatch`, `entries_withheld`, `not_reviewed` | unknown | a `waiver` naming that code |
 | `no_pick` | unknown | a `pick` only |
 | `range_unstated`, `outside_coverage` | unknown | an `extrapolation` only |
@@ -475,8 +478,8 @@ The reader applies a declared overlay and refuses a base mismatch or a conflict 
 
 1. The build emits watches for the results it accepts, and no others: one for every condition entry of an
    accepted result that a tolerance or accept list checked: `{"model", location, "field", "condition", "unit",
-   "source": "tolerance"}` with either `interval` or `accept`. The interval is the set of values the condition
-   may take while the entry stays met:
+   "source": "tolerance"}` with either `interval` or `accept`, and `unit` with an `interval` only, a token
+   condition having none. The interval is the set of values the condition may take while the entry stays met:
    `[r - t, r + t]` for a stated value `r`, `[a - t, b + t]` for a stated range; where the condition's
    `plus_minus` holds a bound u, which narrows the check (`read_side_contract.md` section 5),
    `[r - t + u, r + t - u]` and `[a - t + u, b + t - u]`. Each end is its exact value rounded inward to a
@@ -574,7 +577,7 @@ The sheet is one JSON document per build. [BC-033]
 | BC-040 | build checks | refused at build: a declared engine value without reason or basis, or for an attribute sourced from a field; a pinned crosswalk not passed, or that does not validate; two engine models whose domains share a region; an engine model checked over a path, over records, or over a domain that includes the background; one whose requirement wants anything but `value` |
 | BC-041 | build checks | an explicit mass gives `engine_mass_not_comparable`, which a waiver accepts and nothing else does |
 | BC-042 | build checks | a nominal vector for `ensemble`, `marginals`, `independent` or `interval`: accepted when complete and admissible, and recorded; a missing parameter, an inadmissible vector, or one outside the box is refused; it covers `want_mismatch` on a set with no vector |
-| BC-043 | build checks | a sampled population requirement without `population_level` is refused at build |
+| BC-043 | build checks | a sampled population requirement without `population_level`, or a `population_level` beside another `represents`, is refused at build |
 | BC-044 | build checks | a declaration with a sampled requirement and no `sampling.min_acceptance`, or one outside (0, 1], is refused at build |
 | BC-046 | build checks | a run that samples two fields outside every `sampling.independence` entry is refused at build; the entries are recorded |
 | BC-047 | build checks | a model that evaluates tables or parameter sets without `precision` is refused at build; the precision is recorded |
