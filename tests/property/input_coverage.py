@@ -17,7 +17,10 @@ under `tests/` that is itself being drawn, the site is named after the outermost
 draws, the owner, and the call the owner makes into it (`owner > call > place`): a helper's draw made for a
 composite strategy, and a composite's drawn by another, are the caller's draws, two calls of one helper are
 two draws, and a cut changes each there alone. A test runs in no draw, so a strategy drawn in it under
-`find` or `data.draw` is named after the strategy, not the test.
+`find` or `data.draw` is named after the strategy, not the test. The owner is where the constructor runs, not
+where the strategy is drawn: a strategy built once is the module's (`<module>::...`), shared by all its
+callers, or, built in a cached function, named after the first caller in the process, and a cut of it is held
+by a test of any caller. Naming a draw after the strategy that draws it, at draw time, is for a later piece.
 
 - `--input-coverage-out DIR` runs the tests derandomized, with no example database, and records into `DIR`:
   from each process, what the calls at each site drew from (`sites-*.json`: the values, options, ends and
