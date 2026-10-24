@@ -2004,9 +2004,9 @@ named by its module, the functions around it and its own text, so that it keeps 
 move; a draw a helper makes inside a composite strategy is named after that composite and the call it makes
 into the helper (`owner > call > place`), so that two calls of one helper are two sites, and cut there alone.
 A composite drawn by another, while that one is itself being drawn, is likewise the caller's (`owner >
-draw(...) > place`), so a selection holds the draws of every strategy its own strategies draw (maintainer,
-2026-10-24); a test runs in no draw, so a strategy drawn in a test under `find` or `data.draw` is named after
-the strategy, not the test, and one cut reaches every test that draws it. The plugin
+draw(...) > place`), so a selection whose patterns name its module takes the draws of every strategy its own
+strategies draw (maintainer, 2026-10-24); a test runs in no draw, so a strategy drawn in a test under `find` or
+`data.draw` is named after the strategy, not the test, and one cut reaches every test that draws it. The plugin
 (`input_coverage.py`, loaded only with `-p`) wraps the constructors; loaded with no cut, every draw is the one
 drawn without it (`tests/unit/test_input_coverage.py` compares them). Each cut runs the selection's tests as a
 pytest process of its own, at `ci`, derandomized and with no example database, until the first test fails:
@@ -2016,7 +2016,7 @@ draw. What it cannot cut is listed by site for a person to read, never counted a
 `binary`, `randoms`, `builds`, `recursive`, `from_type` and the like, plain `random`, a range's unbounded
 side, the optional keys of `fixed_dictionaries`, and a site of more than 24 values across its calls (meant for
 a list computed from the draw, whose values differ at every call; the 24 is declared, and no site of the two
-selections below has more than nine). A cut changes every draw after it, not one value alone (a list one value shorter is drawn by other
+selections below that is cut has more than nine). A cut changes every draw after it, not one value alone (a list one value shorter is drawn by other
 choices), so its run is a new derandomized sample: a `held` rests on one run, at a test whose message the
 report keeps, and a `not held` says that no test needed the value in that run.
 
@@ -2028,35 +2028,40 @@ list that lost one would pass. Of the hand rule's other reading, "a draw within 
 origin, its label, a fallback list), a cut of a draw reaches nothing: those are edits of the strategy's code,
 held by hand mutants of it (CONTRIBUTING, "The draws reach what the mutants need").
 
-`input_coverage_baseline.json` names each selection: the tests it runs and the sites (`fnmatch` patterns) they
-are to hold, then every cut not held, with its result and a reason that begins "a gap: " or "equivalent: ",
+`input_coverage_baseline.json` names each selection: the tests it runs and the sites they are to hold
+(`fnmatch` patterns, the last that matches a site deciding, and one beginning with `!` leaving out what it
+matches), then every cut not held, with its result and a reason that begins "a gap: " or "equivalent: ",
 and every draw it cannot cut, with a person's note. The check fails on a cut not held, or an uncut draw, that
 the baseline does not list, and on an entry whose cut is now held or no longer made: an entry cannot outlive
-its gap, and nothing turns the check off. A selection holds every test that draws its sites: S4d's
-(`table_alternatives`) holds HP12's part over tables among alternatives, its searches and the planned
-searches of `test_model_mutant_table.py` over it, since HP12's mutant `a_range_across_the_readable_end_outside`
-holds the operating range's upper end. Each test module that imports a module whose sites a selection holds
-is named by the selection (whole or in part) or excused with a reason under `excused`
+its gap, and nothing turns the check off. Each test module that imports a module whose sites a selection
+holds is named by the selection (whole or in part) or excused with a reason under `excused`
 (`tests/unit/test_input_coverage.py` fails on one that is neither); a test that draws the sites through
-another module is not found so. Two selections are checked so far, run locally on 2026-10-23 (on two workers
-a cut, four cuts at once):
+another module is not found so. S4d's selection (`table_alternatives`) so names HP12's part over tables among
+alternatives, its searches and the planned searches of `test_model_mutant_table.py`; HP12's strategy draws
+S4d's composite inside its own, so those draws are HP12's sites, not S4d's. Two selections are checked so
+far, run locally on 2026-10-23 and 2026-10-24 (on two workers a cut, four cuts at once):
 
 | Selection | Sites | Cuts | Held | Not held: gaps, equivalents | Empty | Uncut | A cut, nothing holding it | A cut held |
 |---|---|---|---|---|---|---|---|---|
-| `table_alternatives` (S4d) | 20 | 63 | 17 | 44, 1 | 1 | 2 | 208 to 373 s | 111 to 238 s |
-| `extrapolation` (S3c) | 21 | 84 | 47 | 13, 24 | 0 | 6 | 90 to 130 s | 16 to 107 s |
+| `table_alternatives` (S4d) | 25 | 77 | 15 | 56, 6 | 5 | 5 | 284 to 342 s | 103 to 369 s |
+| `extrapolation` (S3c) | 64 | 213 | 56 | 127, 30 | 6 | 19 | 77 to 147 s | 16 to 107 s |
 
-Most cuts ran before the sites reached through a helper gained the helper's call (a rename alone where the
-owner calls the helper once) and before S4d's selection gained the planned searches; the cuts these changes
-made new ran after them: S3c's four collections kept off a size, and S4d's `changed`, which S4d's strategy
-calls from two places and so is now two sites. A cut held before stays held with more tests, but 41 of
-S4d's 45 not-held cuts have not yet run again with the planned searches, so their entries rest on the earlier
-run.
-Of S4d's 44 gaps, 41 are S4a's ways, counts, tokens and `want` that S4d's composite draws for the
-alternatives beside the table and for the table set aside at step 10, which S4a's properties hold where
-S4a's own strategy draws them and no S4d test needs; three are S4d's own (the table never stored first, never
-stored last, and no operating range one double wide). Running every property module waits for CI's
-measurement matrix.
+Every cut of S4d's ran on 2026-10-24, after the owner rule; of S3c's, the 80 whose sites the rule left with
+the same calls keep their results of 2026-10-23, and the other 127 ran on 2026-10-24. Under the rule, S4d's
+own sites reach only the draws its own tests make, and the operating range's upper end above the double
+above, held before at HP12's `a_range_across_the_readable_end_outside` through HP12's draws, is held by no
+test in S4d's own draws, by either cut: S4d's review's finding stands there. S3c's `extrapolations` is one
+site a caller: `basis` and `reason` are needed present only where `applied` draws it, the method `constant`
+only where `refused_shapes` does, and `consumer_law` only where `applied` does. Both selections gain S3b-2's
+table reads drawn inside them (S4d 10 cuts, S3c 99). The earlier pieces' table and value strategies that the
+two draw inside them (`tables.py`, `value_field_strategies.py`, `strategies.py`, `records.py`,
+`condition_strategies.py`) are left out by `!` patterns and not yet run: 273 cuts in S4d's and 607 in S3c's,
+about ten hours of one eight-core machine (an estimate from these runs' times).
+Of S4d's 56 gaps, 41 are S4a's ways, counts, tokens and `want` that S4d's composite draws for the
+alternatives beside the table and for the table set aside at step 10, which no S4d test needs; 10 are S3b-2's
+axis, field and side of an edge drawn for S4d's table; five are S4d's own (the table never stored first, never
+stored last, and no operating range one double wide, nor, in S4d's own draws, wider). Running every property
+module waits for CI's measurement matrix.
 
 Two historical runs show the check finding what reviews found by hand, each on a past tree with this branch's
 plugin and runner: before S3c's fix round (`a4c1b281`), every cut of the five draws S3c's review found unheld
