@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The power of the case-agreement check: each seeded fault of the reference model (`mutants.py`) gives some
 case file of a read an outcome the list of exceptions does not (a disagreement, a no verdict no kind lists, or
-an agreement with a listed file), or is listed as a survivor with the reason no case can kill it. A survivor
+an agreement with a listed file), or is listed as a survivor with the reason no case does. A survivor
 the cases come to kill, and a killed fault that comes to survive, both fail, so that the table in `README.md`
 stays true. A fault that makes the model raise on a case file the check reads fails its check with the model's
 traceback: a crash shows that the fault broke the model, not that a case's expected answer tells the fault
@@ -9,13 +9,13 @@ apart, so it is never counted as a kill. The check reads a fault's case files up
 on a later one is not seen there; the faults that once raised are held on the files where they did.
 
 The build model's faults (`BUILD_MUTANTS`) are held to the build-check case files the same way, against
-`BUILD_EXCEPTIONS`."""
+`BUILD_EXCEPTIONS`, and failing those to the direct checks (`direct.py`)."""
 
 from typing import NoReturn
 
 import pytest
 
-from tests.reference import build_model
+from tests.reference import build_model, direct
 from tests.reference.cases import (
     build_case_files,
     build_outcome,
@@ -136,9 +136,10 @@ def test_a_fault_that_makes_the_model_raise_fails_its_check_and_leaves_the_model
 
 
 def build_check(name: str, mutant: Mutant) -> None:
-    """The build-check cases kill the build model's fault, or it is listed as a survivor."""
+    """The build-check cases, or failing those the direct checks, kill the build model's fault, or it is
+    listed as a survivor."""
     with mutant.applied():
-        found = first_build_disagreement()
+        found = first_build_disagreement() or next(iter(direct.problems()), None)
     if mutant.survives is None:
         assert found is not None, f"{name} ({mutant.fault}) gives every build-check file its listed outcome"
     else:
@@ -151,7 +152,7 @@ def test_the_build_cases_kill_the_fault_or_it_is_listed_as_a_survivor(name: str)
 
 
 def test_the_build_table_holds_its_faults_apart_and_says_why_each_survivor_survives() -> None:
-    assert len(BUILD_MUTANTS) >= 60
+    assert len(BUILD_MUTANTS) >= 100
     assert MUTANTS.keys().isdisjoint(BUILD_MUTANTS)
     assert all(mutant.module is build_model for mutant in BUILD_MUTANTS.values())
     assert all(mutant.survives is None or mutant.survives.strip() for mutant in BUILD_MUTANTS.values())
