@@ -2,7 +2,10 @@
 """The case files of a read the reference model does not agree with, grouped by kind, each kind with its
 reason: the exact list `test_cases.py` holds the model to (the maintainer's ruling 3 on S2a-1's open points).
 Every kind is a read outside the model's scope, on which it gives no verdict, never a pass; each kind names
-the detail of that outcome, so that a file the model gives no verdict on for another reason fails."""
+the detail of that outcome, so that a file the model gives no verdict on for another reason fails.
+
+`BUILD_EXCEPTIONS` is the same list for the build-check case files and the build's own model
+(`build_model.py`), which decides the declaration's own check alone."""
 
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -151,5 +154,79 @@ EXCEPTIONS: Final[Mapping[str, Excepted]] = {
         "no verdict",
         frozenset({"PR-339.across_edge_no_value.json"}),
         detail="a trainable acceptance (S7a-4)",
+    ),
+}
+
+
+BUILD_EXCEPTIONS: Final[Mapping[str, Excepted]] = {
+    "past_the_declaration": Excepted(
+        (
+            "A declaration that passes its own check is read, and what the build gives then (results, the "
+            "verdict, `unused`, specimen differences, watches) is S7a-2's to S7a-4's; the model decides the "
+            "declaration's own check alone, and gives no verdict past it."
+        ),
+        "no verdict",
+        frozenset(
+            {
+                "BC-001.condition_outside_at_another_temperature.json",
+                "BC-001.declared_range_against_a_stated_value.json",
+                "BC-001.met_at_the_declared_temperature.json",
+                "BC-002.both_records_listed.json",
+                "BC-002.listed_record_absent_from_the_store.json",
+                "BC-002.one_of_two_records_listed.json",
+                "BC-003.field_read_with_no_requirement.json",
+                "BC-003.field_read_with_no_requirement_waived.json",
+                "BC-006.every_kind_s7a_2_reads.json",
+                "BC-006.nominal_not_met_stays_not_met.json",
+                "BC-006.waived_unknown_stays_unknown.json",
+                "BC-009.extrapolation_applied.json",
+                "BC-009.implied_condition_applied.json",
+                "BC-009.nominal_applied.json",
+                "BC-009.one_waiver_index.json",
+                "BC-009.two_acceptances_indexes.json",
+                "BC-010.all_accepted.json",
+                "BC-010.each_model_judged_by_its_own_acceptances.json",
+                "BC-010.one_accepted_one_not_in_one_model.json",
+                "BC-010.two_models_each_not_accepted.json",
+                "BC-016.label_free_judgement_waiver.json",
+                "BC-016.waiver_at_another_copy_of_the_record.json",
+                "BC-016.waiver_at_one_of_two_records.json",
+                "BC-016.waiver_covers_each_alternatives_reason.json",
+                "BC-016.waiver_for_another_code.json",
+                "BC-016.waiver_for_another_condition.json",
+                "BC-016.waiver_for_another_field.json",
+                "BC-017.fills_an_unstated_condition.json",
+                "BC-017.implied_value_outside_the_tolerance.json",
+                "BC-017.not_checked_condition_not_filled.json",
+                "BC-017.stated_condition_not_filled.json",
+                "BC-019.at_an_edge_extrapolation_unused.json",
+                "BC-019.outside_range_under_an_extrapolation.json",
+                "BC-019.outside_range_without_an_extrapolation.json",
+                "BC-019.want_bounds_refused_though_an_extrapolation_names_it.json",
+                "BC-020.nominal_inside_the_bounds.json",
+                "BC-020.nominal_outside_the_bounds.json",
+                "BC-020.want_mismatch_at_step_0_nominal_unused.json",
+                "BC-020.want_mismatch_its_assumption_does_not_name.json",
+                "BC-027.label_mismatch_beside_condition_outside.json",
+                "BC-027.required_label_absent.json",
+                "BC-027.stored_label_differs.json",
+                "BC-028.one_model_one_record.json",
+                "BC-028.two_models_over_one_record.json",
+                "BC-038.waiver_of_condition_outside.json",
+                "BC-038.waiver_of_form_invalid.json",
+                "BC-038.waiver_of_label_mismatch.json",
+                "BC-038.waiver_of_no_pick.json",
+                "BC-049.absent_record_gives_no_not_reviewed.json",
+                "BC-049.not_checked_gives_not_reviewed.json",
+                "BC-049.not_reviewed_waived.json",
+                "BC-049.reviewed_value.json",
+                "BC-049.reviewed_value_met.json",
+                "BC-049.unknown_review_result_read_as_not_checked.json",
+                "BC-053.implied_condition_given_not_applied.json",
+                "BC-053.unused_per_model.json",
+                "BC-053.waiver_at_another_record.json",
+            }
+        ),
+        detail="past the declaration (S7a-2 to S7a-4)",
     ),
 }
