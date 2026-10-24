@@ -81,6 +81,12 @@
   "excused": {
    "tests/property/test_table_alternatives_mutant_table.py": "reads the ways' names (`INSIDE`, `KEPT_OR_SET_ASIDE`, `REFUSES`) to hold the README's table of S4d's mutants; it draws nothing"
   },
+  "left_out": {
+   "sites": 65,
+   "cuts": 274,
+   "uncut": 10,
+   "reason": "temporary: the earlier pieces' strategies that this one draws inside its own are left out by the `!` patterns and not yet run; the whole-repository run on the CI matrix (the next piece of this tool) runs them first and removes the patterns, and each cut of them not held then gets its reason"
+  },
   "cuts": {
    "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/alternatives_strategies.py::changed::st.sampled_from(others) :: drop 'bulk'": {
     "result": "not held",
@@ -350,6 +356,12 @@
   ],
   "excused": {
    "tests/property/test_extrapolation_mutant_table.py": "reads the ways' names to hold the README's table of S3c's mutants; it draws nothing"
+  },
+  "left_out": {
+   "sites": 165,
+   "cuts": 607,
+   "uncut": 70,
+   "reason": "temporary: the earlier pieces' strategies that this one draws inside its own are left out by the `!` patterns and not yet run; the whole-repository run on the CI matrix (the next piece of this tool) runs them first and removes the patterns, and each cut of them not held then gets its reason"
   },
   "cuts": {
    "tests/property/extrapolation_strategies.py::<module>::st.booleans() :: drop False": {
