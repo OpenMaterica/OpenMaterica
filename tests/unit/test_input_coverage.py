@@ -624,9 +624,29 @@ def pair(draw):
     return flag(draw), flag(draw)
 
 
+@st.composite
+def level(draw):
+    return draw(st.sampled_from(["up", "down"]))
+
+
+@st.composite
+def low(draw):
+    return draw(level())
+
+
+@st.composite
+def high(draw):
+    return draw(level())
+
+
+@st.composite
+def side(draw):
+    return draw(st.sampled_from(["east", "west"]))
+
+
 @DERANDOMIZED
-@given(number(), truth(), order(), items(), fraction(), way(), left(), right(), pair())
-def test_drawn(a, b, c, d, e, f, g, h, i):
+@given(number(), truth(), order(), items(), fraction(), way(), left(), right(), pair(), low(), high())
+def test_drawn(a, b, c, d, e, f, g, h, i, j, k):
     pass
 
 
@@ -676,9 +696,24 @@ def test_right_off():
 
 def test_second_off():
     find(pair(), lambda example: example[1] == "off", settings=FIND)
+
+
+def test_high_down():
+    find(high(), lambda example: example == "down", settings=FIND)
+
+
+@DERANDOMIZED
+@given(st.data())
+def test_side_east(data):
+    assert "east" in [data.draw(side()) for _ in range(20)]
+
+
+def test_side_west():
+    find(side(), lambda example: example == "west", settings=FIND)
 """
 )
 FLAG = "tests/test_kills.py::flag::st.sampled_from(['on', 'off'])"
+LEVEL = "tests/test_kills.py::level::st.sampled_from(['up', 'down'])"
 FRACTION = "fraction::st.floats(0.0, 1.0, exclude_min=True, exclude_max=True)"
 # Each cut, after `tests/test_kills.py::`, and the test that holds it (None: no test does).
 KILLED_AT = {
@@ -711,6 +746,15 @@ KILLED_AT = {
     f"pair > flag(draw) > {FLAG} :: drop 'off'": None,
     f"pair > flag(draw)#2 > {FLAG} :: drop 'on'": None,
     f"pair > flag(draw)#2 > {FLAG} :: drop 'off'": "test_second_off",
+    # One composite drawn by two others, cut for one drawer alone.
+    f"low > draw(level()) > {LEVEL} :: drop 'up'": None,
+    f"low > draw(level()) > {LEVEL} :: drop 'down'": None,
+    f"high > draw(level()) > {LEVEL} :: drop 'up'": None,
+    f"high > draw(level()) > {LEVEL} :: drop 'down'": "test_high_down",
+    # A composite drawn in two tests, under `data.draw` and under `find`, which run in no draw: one site,
+    # named after the composite, whose cuts reach both tests.
+    "side::st.sampled_from(['east', 'west']) :: drop 'east'": "test_side_east",
+    "side::st.sampled_from(['east', 'west']) :: drop 'west'": "test_side_west",
 }
 
 
