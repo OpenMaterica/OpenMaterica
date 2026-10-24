@@ -110,8 +110,15 @@ OPEN_POINTS: Final[Mapping[str, str]] = {
         "only the key, a parameter-set field, is checked"
     ),
     "waiver_label_beside_an_unregistered_field": (
-        "a waiver's `label` beside a `field` that is not registered is refused by item 4 (no requirement for "
-        "that field names it) as well as the field's own fault: two faults at two members"
+        "a waiver's `label` beside a `field` that is not registered, or beside no `field`, is refused by "
+        "item 4 (no requirement for a field of that name names it) as well as the field's own fault, or the "
+        "missing `field`'s: two faults at two members"
+    ),
+    "implied_status_object_pointer": (
+        "a status object as an implied condition's value is refused at the member that holds it, "
+        "`implies/<condition>`, as a target fact's is at `/target/<fact>`: declarations.md:351 gives the "
+        "refusal in the target's words and not the pointer, and the maintainer's ruling of 2026-10-24 on the "
+        "target's is extended to it; nothing inside the object is checked"
     ),
     "basis_on_other_kinds": (
         "a `basis` on an acceptance of a kind other than extrapolation, nominal and distribution is a member "
@@ -128,10 +135,12 @@ OPEN_POINTS: Final[Mapping[str, str]] = {
 
 # declarations.md:155-157 "A fault more than one rule names carries the case of the first of: items 3, 4, 7
 # and 8, the" and "section 4.1 item 4 [BC-050]; item 12 [BC-051]; this paragraph [BC-048]". A fault is one
-# member at fault (declarations.md:144-145 "The pointer names the member at fault"): a member two rules name,
-# a waiver's `label` that item 4 and the token rule both refuse, is one fault carrying both, as the
-# build-check suite's README says of it ("a fault the token rule names too"), and one refusal (maintainer,
-# 2026-10-24).
+# member at fault (declarations.md:144-145 "The pointer names the member at fault"): a member two rules name
+# (a waiver's `label` that item 4 and the token rule both refuse, a `domain` of another JSON type that item 12
+# and the shape rule both name) is one fault carrying both, as the build-check suite's README says of the
+# first ("a fault the token rule names too"), and one refusal, `refusals_of` keeping the first's case
+# (maintainer, 2026-10-24). A missing member is the object's fault, apart from the object's own and from
+# another missing member's: `Fault.apart` names which.
 ORDER: Final = ("BC-004", "BC-005", "BC-040", "BC-044", "BC-043", "BC-037", "BC-050", "BC-051", "BC-048")
 SHAPE: Final = "BC-048"
 
@@ -316,6 +325,7 @@ class Refused:
 class Fault:
     pointer: str
     rules: tuple[str, ...]  # every rule that names it
+    apart: str = ""  # the missing member (or "one of", "a location") an object's fault is about, else ""
 
 
 def at(pointer: str, *tokens: str | int) -> str:
@@ -330,9 +340,13 @@ def first_rule(rules: Iterable[str]) -> str:
 
 
 def refusals_of(faults: Iterable[Fault]) -> frozenset[Refusal]:
-    # declarations.md:157-158 "Two faults with one case and one pointer are one refusal"; a fault holds every
-    # rule that names it and carries the first's case (the comment at `ORDER`).
-    return frozenset(Refusal(first_rule(fault.rules), fault.pointer) for fault in faults)
+    """One refusal for each member at fault, with the case of the first rule that names it (the comment at
+    `ORDER`). The rule is held where the faults are gathered, not at the rule that finds one: every rule
+    that names a member adds its fault, and none refuses it twice."""
+    naming: dict[tuple[str, str], list[str]] = {}
+    for fault in faults:
+        naming.setdefault((fault.pointer, fault.apart), []).extend(fault.rules)
+    return frozenset(Refusal(first_rule(rules), pointer) for (pointer, _), rules in naming.items())
 
 
 def check_build(text: bytes, claims: frozenset[str]) -> Refused | NoVerdict:
@@ -398,8 +412,8 @@ class DeclarationCheck:
         self.picks_or_overlays = False
         self.sampling_members: list[tuple[str, JsonObject]] = []  # requirements holding either member
 
-    def fault(self, pointer: str, *rules: str) -> None:
-        self.faults.append(Fault(pointer, rules or (SHAPE,)))
+    def fault(self, pointer: str, *rules: str, apart: str = "") -> None:
+        self.faults.append(Fault(pointer, rules or (SHAPE,), apart))
 
     def unplace(self, rule: str, why: str, refuses: bool = False) -> None:
         self.unplaced.setdefault(rule, why)
@@ -460,14 +474,14 @@ class DeclarationCheck:
                 self.fault(at(pointer, name), *(mistyped or {}).get(name, (SHAPE,)))
         for name, (_, required) in place.items():
             if required == "yes" and name not in value:
-                self.fault(missing_at(pointer, name), *(missing or {}).get(name, (SHAPE,)))
+                self.fault(missing_at(pointer, name), *(missing or {}).get(name, (SHAPE,)), apart=name)
         alternatives = [name for name, (_, required) in place.items() if required == "one"]
         if alternatives and sum(name in value for name in alternatives) != 1:
-            self.fault(pointer)  # Open point: exactly_one_of.
+            self.fault(pointer, apart="one of")  # Open point: exactly_one_of.
         locations = [name for name, (_, required) in place.items() if required == "located"]
         if locations and not any(name in value for name in locations):
             # declarations.md:359 "An acceptance whose kind needs a location and names none is refused"
-            self.fault(pointer, "BC-037", SHAPE)
+            self.fault(pointer, "BC-037", SHAPE, apart="a location")
         return typed
 
     def token(self, value: JsonValue, pointer: str, tokens: Collection[str]) -> bool:
@@ -533,7 +547,8 @@ class DeclarationCheck:
                 or (implied and is_status_object(condition))
             ):
                 # declarations.md:351 "never a status object": an implied condition holding one is the fault,
-                # as a target fact is. Open point: token_operating_condition.
+                # as a target fact is. Open point: token_operating_condition. Open point:
+                # implied_status_object_pointer.
                 self.fault(at(pointer, name))
             elif row.shape == "token":
                 # declarations.md:351 "and `{"token"}`, with a token of its row, for a token one: a record
@@ -788,7 +803,7 @@ class DeclarationCheck:
         if represents == "population" and "population_level" not in value:
             # declarations.md:64 "and, where `represents` is `population` and the field is sampled,
             # `population_level`"
-            self.fault(pointer, "BC-043")
+            self.fault(pointer, "BC-043", apart="population_level")
         elif "population_level" in value and represents != "population":
             # Open point: population_level_beside_another_represents.
             self.fault(at(pointer, "population_level"), "BC-043")
@@ -901,7 +916,7 @@ class DeclarationCheck:
         # declarations.md:118 "a waiver whose `code` is no reason names no condition"
         names_one = known and code in CODES_NAMING_A_CONDITION
         if names_one and "condition" not in typed:
-            self.fault(pointer)
+            self.fault(pointer, apart="condition")
         elif "condition" in typed and not names_one:
             self.fault(at(pointer, "condition"))
         elif "condition" in typed:
@@ -914,14 +929,14 @@ class DeclarationCheck:
         registered = name is None or label in label_of(name)
         # declarations.md:380-381 "the build refuses it at build unless the requirement for its field names
         # that `label` and holds `review: "reviewed"`"; declarations.md:148-149 "for a waiver naming a `label`
-        # that section 4.1 item 4 refuses, that waiver's `label`". Item 4 and the token rule name one member:
-        # one fault holding both (the comment at `ORDER`). Open point:
+        # that section 4.1 item 4 refuses, that waiver's `label`". Item 4 and the token rule name one member,
+        # which `refusals_of` refuses once (the comment at `ORDER`). Open point:
         # waiver_label_beside_an_unregistered_field.
         held = typed.get("field")
         requirement = requirements.get(held, {}) if isinstance(held, str) else {}
         if requirement.get("label") != label or requirement.get("review") != "reviewed":
-            self.fault(at(pointer, "label"), "BC-050", *(() if registered else (SHAPE,)))
-        elif not registered:
+            self.fault(at(pointer, "label"), "BC-050")
+        if not registered:
             self.fault(at(pointer, "label"))
 
     def accepted_difference(self, typed: JsonObject, pointer: str) -> None:
@@ -1044,7 +1059,7 @@ class DeclarationCheck:
         sampled = "BC-044" in item_8
         value = declaration.get("sampling")
         if "sampling" not in declaration and sampled:
-            self.fault("", "BC-044")
+            self.fault("", "BC-044", apart="sampling")
         if isinstance(value, dict):
             item = {"min_acceptance": item_8}
             typed = self.shaped(value, "/sampling", SHAPES["sampling"], item, item) or {}

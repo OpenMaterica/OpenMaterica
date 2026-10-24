@@ -433,8 +433,13 @@ BC-048, in that order), two faults of one case and pointer one refusal; and the 
 declaration, which holds its refusals and, where the text is JSON, the declaration as given and its
 `consumer`. A fault is one member at fault (maintainer, 2026-10-24; `declarations.md:155-158`, and the suite's
 README, "a fault the token rule names too"): a member two rules name is one fault holding both, so a waiver's
-`label` that item 4 and the token rule both refuse gives BC-050 alone, and a status object as a target fact,
-or as an implied condition's value, gives one refusal at the member, nothing inside it checked. A pick is
+`label` that item 4 and the token rule both refuse gives BC-050 alone, a `domain`, `path` or `sampling` of
+another JSON type, which item 12 and the shape rule both name, gives BC-051 alone where the suite is not
+claimed (and no verdict where it is), and a status object as a target fact, or as an implied condition's
+value, gives one refusal at the member, nothing inside it checked. The rule is held where the faults are
+gathered (`refusals_of`: one refusal for each member at fault, the first case by the text's order); a member
+missing from an object is that object's fault, apart from the object's own and from another missing member's,
+which the text gives their own cases. A pick is
 located by its `record`, a `region` or an `interval` being named beside it: one naming either and no `record`
 is refused as unlocated (BC-037), whatever the build claims (maintainer, 2026-10-24; the pick row,
 `declarations.md:349`, and `declaration.json`, which requires it).
@@ -467,7 +472,8 @@ fail-closed choice, each listed once in its `OPEN_POINTS` and named where it is 
 | `claimed_suite_hides_refusals` | a declaration holding a member a claimed suite checks gives no verdict, even where a certain refusal stands beside it (a decision, maintainer, 2026-10-24) |
 | `token_operating_condition` | a token condition in `operating_conditions` or `region_conditions` is refused at it |
 | `families_values` | a `families` value, the family version, is not judged: only the key, a parameter-set field, is |
-| `waiver_label_beside_an_unregistered_field` | a waiver's `label` beside a `field` that is not registered is refused by item 4 as well as the field's own fault: two faults at two members |
+| `waiver_label_beside_an_unregistered_field` | a waiver's `label` beside a `field` that is not registered, or beside no `field`, is refused by item 4 as well as the field's own fault, or the missing `field`'s: two faults at two members |
+| `implied_status_object_pointer` | a status object as an implied condition's value is refused at the member that holds it, `implies/<condition>`, as a target fact's is at `/target/<fact>`: `declarations.md:351` gives the refusal in the target's words and not the pointer, and the ruling of 2026-10-24 on the target's is extended to it |
 | `basis_on_other_kinds` | a `basis` on another kind of acceptance refused as a member not named there (BC-048) |
 | `population_level_beside_another_represents` | a `population_level` beside another `represents`, or beside none, refused at it by the `population_level` rule (BC-043), item 12 then refusing neither member of that requirement |
 
@@ -504,12 +510,11 @@ reordering of a pair without the shape rule changes no answer it gives, and only
 are the model's own tests, not shared evidence: the seeded faults run against them after the case files, so
 that a fault only they tell apart is a kill.
 
-**The mutant table.** `BUILD_MUTANTS` gives the build's model 100 faults, one for each rule the first table
-and the review's 66 hand mutants named (a rule neither named has none, and the table is no proof that every
-rule has one). Each is run against every build-check file by `test_seeded_faults.py` as the read model's are,
+**The mutant table.** `BUILD_MUTANTS` gives the build's model 104 faults, the hand mutants of the model's rules
+(a rule none of them names has no fault, and the table is no proof that every rule has one). Each is run against every build-check file by `test_seeded_faults.py` as the read model's are,
 against `BUILD_EXCEPTIONS`, and failing those against the direct checks; a fault that makes the model raise
 fails its check (its control: the token check replaced by a function raising `TypeError`, `KeyError` or
-`AssertionError`). 59 are killed, 47 by a case file and 12 by a direct check alone, and 41 survive: for each
+`AssertionError`). 64 are killed, 47 by a case file and 17 by a direct check alone, and 40 survive: for each
 survivor no case file does kill it, and `mutants.py` says why beside it. They are what HP41 and HP42 (S7a-1p)
 must kill. Measured over every build-check file, 2026-10-24: none makes the model raise, and 23 die to one
 case file alone. A fault that over-refuses dies to S7a-2's files too, each of which then gives a refusal its
@@ -524,7 +529,7 @@ listing does not. The table says only whether a fault is killed or survives; a t
 | `build_missing_member_pointed_at_itself` | a missing member's refusal at the member, not its parent | killed |
 | `build_member_of_another_type_taken` | a member of another JSON type taken | killed |
 | `build_empty_list_taken` | an empty list where one entry or more is asked taken | killed |
-| `build_exactly_one_unchecked` | none or two of a place's mutually exclusive members taken | survives |
+| `build_exactly_one_unchecked` | none or two of a place's mutually exclusive members taken | killed |
 | `build_target_basis_taken` | a target fact holding `basis` taken | killed |
 | `build_tokens_compared_without_case` | a token compared without case | killed |
 | `build_token_slips_taken` | a token one slip from its member's taken | killed |
@@ -581,14 +586,18 @@ listing does not. The table says only whether a fault is killed or survives; a t
 | `build_condition_unknown_name_refused` | a waiver of `condition_unknown_name` refused at its `code` | survives |
 | `build_basis_on_any_kind` | a `basis` on another kind of acceptance taken | survives |
 | `build_population_level_beside_any_represents` | a `population_level` beside another `represents` taken | survives |
-| `build_waiver_label_refused_twice` | a waiver's `label` that item 4 and the token rule both refuse given a refusal for each, BC-050 and BC-048 at the one pointer | killed |
+| `build_member_faults_refused_apiece` | two faults at one member, one from each rule that names it (a waiver's `label` that item 4 and the token rule both refuse, a `domain` of another JSON type that item 12 and the shape rule both name), given a refusal each | killed |
+| `build_missing_members_merged` | the faults at one pointer merged whatever they are about, so that two members missing from one object, or one missing and the object's own, give one refusal | killed |
 | `build_status_object_checked_inside` | a status object as a target fact or an implied condition's value checked as an ordinary member, refused at the member and again inside it | killed |
 | `build_target_status_object_taken` | a status object as a target fact taken | killed |
+| `build_status_object_without_a_reason` | a status object holding a `reason` judged an ordinary member | killed |
+| `build_status_object_needing_no_status` | an object holding a `reason` and no `status` taken for a status object | killed |
+| `build_target_status_object_with_a_reason_taken` | a status object holding a `reason` as a target fact taken | killed |
 | `build_pick_located_at_a_region` | a pick naming a region or an interval and no record taken as located | killed |
 | `build_unlocated_pick_refused_by_item_12` | a pick naming a region and no record refused by item 12 beside the location rule, or taken as beyond the model where the build claims the scene suite | killed |
 | `build_order_048_before_050` | a fault two rules name carrying the shape rule's case before item 4's and item 12's | killed |
 | `build_order_005_before_004` | a fault two rules name carrying item 4's case before item 3's | killed |
-| `build_acceptance_at_a_region_taken` | an acceptance at a region taken without the scene suite | killed |
+| `build_acceptance_at_a_region_taken` | an acceptance at a region taken without the scene suite; both legs pinned by direct checks, a pick naming a record and a region and a waiver at a region (with a record and without), each refused unclaimed and no verdict claimed | killed |
 | `build_acceptance_at_an_interval_taken` | an acceptance at an interval taken without the scene suite | survives |
 | `build_trainable_at_a_region_taken` | a `trainable` entry at a region or an interval taken without the scene suite | survives |
 | `build_claimed_suite_beyond_unrecorded` | a member a claimed suite checks taken as if nothing were beyond the model, so that the declaration's other refusals stand | killed |
@@ -630,5 +639,5 @@ uv run pytest tests/reference -n 6
 ```
 
 The whole directory runs in about a minute on eight workers (57 s, 2026-10-22; 61 s with the build's model,
-2026-10-24; 64 s with its direct checks and 100 faults, 2026-10-24), the mutant searches most of it: a survivor's search reads every case file under every
+2026-10-24; 64 s with its direct checks and 100 faults, 69 s with 104, 2026-10-24), the mutant searches most of it: a survivor's search reads every case file under every
 configuration it allows, about 6 s alone.
