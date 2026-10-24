@@ -180,10 +180,10 @@
       "allOf": [{"$ref": "#/$defs/watch_rule"}]
     },
     "watch_rule": {
-      "description": "Exactly one of interval, with the condition's unit, and accept; and a location, the record unless a region.",
+      "description": "Exactly one of interval, with the condition's unit, and accept, with none; and a location, the record unless a region.",
       "if": {"required": ["interval"]},
       "then": {"required": ["unit"], "not": {"required": ["accept"]}},
-      "else": {"required": ["accept"]},
+      "else": {"required": ["accept"], "not": {"required": ["unit"]}},
       "anyOf": [{"required": ["record"]}, {"required": ["region"]}]
     },
     "unused_acceptance": {

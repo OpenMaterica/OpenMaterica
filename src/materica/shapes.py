@@ -2439,7 +2439,8 @@ class Waiver(TypedDict):
     """
     Covers one reason of one result (section 4.2). It names its code's condition where the code names one: a
     code whose reasons always carry one, the six condition_* codes, outside_range, at_edge and range_unstated;
-    any other code, or one that is no reason, names none. Its label is one registered for its field.
+    any other code, or one that is no reason, names none. Its code is never condition_unknown_name, which
+    section 4.2 never accepts. Its label is one registered for its field.
     """
 
     acceptance: Literal["waiver"]

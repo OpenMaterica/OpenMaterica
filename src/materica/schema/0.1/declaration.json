@@ -356,10 +356,10 @@
       "allOf": [{"$ref": "#/$defs/label_binding"}, {"$ref": "#/$defs/population_level_rule"}]
     },
     "population_level_rule": {
-      "description": "population_level, where represents is population, and never beside another represents (the members table).",
+      "description": "population_level, where represents is population, and only there: never beside another represents or none (the members table).",
       "if": {"required": ["represents"], "properties": {"represents": {"const": "population"}}},
       "then": {"required": ["population_level"]},
-      "else": {"if": {"required": ["represents"]}, "then": {"not": {"required": ["population_level"]}}}
+      "else": {"not": {"required": ["population_level"]}}
     },
     "label_binding": {
       "description": "A requirement's or a waiver's label: one registered for its field, by the vocabulary's row for that field.",
@@ -573,7 +573,7 @@
     },
     "waiver": {
       "title": "Waiver",
-      "description": "Covers one reason of one result (section 4.2). It names its code's condition where the code names one: a code whose reasons always carry one, the six condition_* codes, outside_range, at_edge and range_unstated; any other code, or one that is no reason, names none. Its label is one registered for its field.",
+      "description": "Covers one reason of one result (section 4.2). It names its code's condition where the code names one: a code whose reasons always carry one, the six condition_* codes, outside_range, at_edge and range_unstated; any other code, or one that is no reason, names none. Its code is never condition_unknown_name, which section 4.2 never accepts. Its label is one registered for its field.",
       "type": "object",
       "required": ["acceptance", "field", "code", "reason"],
       "properties": {
@@ -582,7 +582,7 @@
         "region": {"type": "string"},
         "interval": {"$ref": "#/$defs/interval_location"},
         "field": {"$ref": "#/$defs/registered_field"},
-        "code": {"$ref": "vocabulary/reasons.json#/$defs/reason_code"},
+        "code": {"$ref": "vocabulary/reasons.json#/$defs/reason_code", "not": {"const": "condition_unknown_name"}},
         "condition": {"$ref": "#/$defs/registered_condition"},
         "label": {"$ref": "vocabulary/fields.json#/$defs/label"},
         "reason": {"$ref": "#/$defs/text"}

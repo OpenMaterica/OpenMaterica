@@ -437,6 +437,7 @@ def token_problems(text: str, schema: Json) -> list[str]:
     mixing = holds(rows, "model entry", "mixing")
     rule = at(defs["mixing"], "properties", "rules", "additionalProperties")
     waiver_rule = at(defs["waiver_condition_rule"], "if", "properties", "code")
+    refused_code = cast(Json, properties(defs["waiver"])["code"].get("not", {}))
     found = {
         "precision": (enum(model["precision"]), codes(holds(rows, "model entry", "precision"))),
         "review": (enum(requirement["review"]), codes(without_asides(holds(rows, "requirement", "review")))),
@@ -457,6 +458,14 @@ def token_problems(text: str, schema: Json) -> list[str]:
             ],
         ),
         "codes that name a condition": (enum(waiver_rule), condition_codes(text, reasons)),
+        "the code no waiver takes, by the table": (
+            enum(refused_code),
+            listed(own, "a reason of `read_side_contract.md` section 4 other than ", ", which section 4.2"),
+        ),
+        "the code no waiver takes, by section 4.2": (
+            enum(refused_code),
+            listed(prose(text), "A waiver whose `code` is ", " is refused at build, at its `code`"),
+        ),
         "kinds": (
             [enum(properties(defs[kind])["acceptance"])[0] for kind in KINDS],
             cast(list[str], vocabulary("acceptances.json")["kinds"]),
@@ -508,6 +517,8 @@ def test_each_member_takes_the_tokens_the_text_gives_it() -> None:
             ", `outside_range` and `at_edge`;",
             "codes that name",
         ),
+        ("section 4 other than `condition_unknown_name`", "section 4 other than `no_pick`", "by the table"),
+        ("whose `code` is `condition_unknown_name` is", "whose `code` is `no_pick` is", "by section 4.2"),
         ("`identity` or `log` (section 4.3)", "`identity` (section 4.3)", "space"),
     ],
 )
@@ -833,9 +844,9 @@ def _a_combination_without(member: str) -> Callable[[Json], None]:
     return change
 
 
-def _a_watch_changed(removed: str | None = None, **given: JsonValue) -> Callable[[Json], None]:
+def _a_watch_changed(*removed: str, **given: JsonValue) -> Callable[[Json], None]:
     def change(report: Json) -> None:
-        watch = {name: held for name, held in WATCH.items() if name != removed} | given
+        watch = {name: held for name, held in WATCH.items() if name not in removed} | given
         report["watches"] = [watch]
 
     return change
@@ -924,8 +935,8 @@ def _unchanged(report: Json) -> None:
         (_a_watch_changed("interval"), False),
         (_a_watch_changed("record"), False),
         (_a_watch_changed("record", region="lumen"), True),
-        (_a_watch_changed("interval", accept=["pycnometer"]), True),
-        (_a_watch_changed("interval", accept=["pycnometer"], unit="K"), True),
+        (_a_watch_changed("interval", "unit", accept=["pycnometer"]), True),
+        (_a_watch_changed("interval", accept=["pycnometer"], unit="K"), False),
         (_a_watch_changed(source="declared"), True),
         (_a_watch_changed(source="measured"), False),
         (_a_refused_report_with("unused", [{"model": "drag", "acceptance": 0}]), False),
@@ -1894,8 +1905,8 @@ PROBES: list[tuple[str, Callable[[Json], None], bool]] = [
         waiver({"code": "outside_range", "condition": "pressure"}),
         False,
     ),
-    # `condition_unknown_name` is never accepted (the maintainer's ruling of 2026-10-24): a waiver of it names
-    # a registered condition, as every waiver does, so none names the condition the reader did not know.
+    # A waiver whose code is `condition_unknown_name` is refused, whatever condition it names (maintainer,
+    # 2026-10-24).
     (
         "a_waiver_of_an_unknown_conditions_name_naming_it",
         waiver({"code": "condition_unknown_name", "condition": "pressure"}),
@@ -1904,6 +1915,11 @@ PROBES: list[tuple[str, Callable[[Json], None], bool]] = [
     (
         "a_waiver_of_an_unknown_conditions_name_naming_a_registered_one",
         waiver({"code": "condition_unknown_name", "condition": "temperature"}),
+        False,
+    ),
+    (
+        "a_waiver_of_an_unstated_condition_naming_a_registered_one",
+        waiver({"code": "condition_unstated", "condition": "temperature"}),
         True,
     ),
     ("a_target_species_by_its_taxon", target({"species": {"ncbi_taxon": 9606}}), True),
@@ -1925,6 +1941,13 @@ PROBES: list[tuple[str, Callable[[Json], None], bool]] = [
         True,
     ),
     ("a_population_level_beside_another_represents", sampled("measurement", level=True), False),
+    (
+        "a_population_level_beside_no_represents",
+        lambda declaration: requirement(declaration).update(
+            population_level={"level": "donor", "within": {"status": "none"}}
+        ),
+        False,
+    ),
     ("a_population_level_beside_population", sampled("population", level=True), True),
     (
         "a_balanced_population_level_with_a_slip",

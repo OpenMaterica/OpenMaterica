@@ -50,9 +50,12 @@ PICK: Json = {"acceptance": "pick", "record": WATER, "field": "fluid.dynamic_vis
 PICK["reason"] = "the stored alternative the model was calibrated against"
 
 
+def conditions(declaration: Json) -> Json:
+    return cast(Json, cast(list[Json], model(declaration)["requirements"])[0]["conditions"])
+
+
 def condition(declaration: Json, name: str) -> Json:
-    requirement = cast(list[Json], model(declaration)["requirements"])[0]
-    return cast(Json, cast(Json, requirement["conditions"])[name])
+    return cast(Json, conditions(declaration)[name])
 
 
 def tolerance(declaration: Json) -> Json:
@@ -240,44 +243,53 @@ def test_details_are_words_no_comparison_reads() -> None:
 # The rulings of 2026-10-24, each beside the change it turns on.
 
 
-WAIVERS: list[tuple[Callable[[Json], object], str | None]] = [
-    # `condition_unknown_name` is never accepted: its waiver names a registered condition, as all do.
-    (lambda waiver: waiver.update(code="condition_unknown_name", condition="pressure"), "/condition"),
-    (lambda waiver: waiver.update(code="condition_unknown_name", condition="temperature"), None),
+WAIVERS: list[tuple[Callable[[Json], object], set[str]]] = [
+    # A waiver whose code is `condition_unknown_name` is refused at its code, whatever condition it names; one
+    # the build does not register is a second member at fault.
+    (lambda waiver: waiver.update(code="condition_unknown_name", condition="temperature"), {"/code"}),
+    (
+        lambda waiver: waiver.update(code="condition_unknown_name", condition="pressure"),
+        {"/code", "/condition"},
+    ),
+    (lambda waiver: waiver.update(code="condition_unstated", condition="temperature"), set()),
     # `basis` on an extrapolation, a nominal and a distribution alone.
-    (lambda waiver: waiver.update(basis="the consumer's judgement"), "/basis"),
+    (lambda waiver: waiver.update(basis="the consumer's judgement"), {"/basis"}),
 ]
 
 
 @pytest.mark.parametrize(("change", "expected"), WAIVERS)
-def test_a_waiver_under_the_rulings(change: Callable[[Json], object], expected: str | None) -> None:
+def test_a_waiver_under_the_rulings(change: Callable[[Json], object], expected: set[str]) -> None:
     declaration = a_declaration(lambda d: change(cast(Json, acceptances(d)[0])))
-    checked = Declaration.from_json(declaration)
-    if expected is None:
-        assert isinstance(checked, Declaration)
+    if not expected:
+        assert isinstance(Declaration.from_json(declaration), Declaration)
     else:
-        assert {(refusal.item, refusal.pointer) for refusal in cast(tuple[BuildRefusal, ...], checked)} == {
-            ("BC-048", f"/models/0/acceptances/0{expected}")
-        }
+        assert refusals(declaration) == {("BC-048", f"/models/0/acceptances/0{at}") for at in expected}
 
 
-def test_a_population_level_is_refused_beside_another_represents_and_taken_beside_population() -> None:
-    def sampled(represents: str) -> Json:
+def test_a_population_level_is_refused_but_beside_population() -> None:
+    """Beside another `represents` or none, at the `population_level`, before item 12; under a claim of the
+    sampling suite, which checks it, the build fails closed."""
+
+    def sampled(represents: str | None) -> Json:
         def change(declaration: Json) -> None:
-            declaration["sampling"] = {"min_acceptance": 0.5, "reason": "a reason", "independence": []}
             requirement = cast(list[Json], model(declaration)["requirements"])[0]
-            requirement["represents"] = represents
             requirement["population_level"] = {"level": "donor", "within": {"status": "none"}}
+            if represents is not None:
+                declaration["sampling"] = {"min_acceptance": 0.5, "reason": "a reason", "independence": []}
+                requirement["represents"] = represents
 
         return a_declaration(change)
 
     at = "/models/0/requirements/0"
     assert refusals(sampled("estimate")) == {("BC-043", f"{at}/population_level"), ("BC-051", "/sampling")}
+    assert refusals(sampled(None)) == {("BC-043", f"{at}/population_level")}
     assert refusals(sampled("population")) == {
         ("BC-051", "/sampling"),
         ("BC-051", f"{at}/represents"),
         ("BC-051", f"{at}/population_level"),
     }
+    with pytest.raises(NotImplementedError, match="sampling"):
+        Declaration.from_json(sampled(None), frozenset({"plain_read", "build_checks", "sampling"}))
 
 
 # The report of a declaration refused on its own (section 2): its consumer and declaration as given, where it
@@ -348,6 +360,11 @@ HOLDS: list[tuple[Callable[[Json], object], str | None]] = [
     (lambda d: tolerance(d).update(value=-0.0), None),
     (lambda d: operating(d).update(range=[500.0, 50.0]), "/operating_conditions/shear_rate/range"),
     (lambda d: operating(d).update(range=[50.0]), "/operating_conditions/shear_rate/range"),
+    (lambda d: operating(d).update(range=[50.0, 50.0, 500.0]), "/operating_conditions/shear_rate/range"),
+    (lambda d: operating(d).update(range=[50.0, 50.0]), None),
+    # An entry of another type is a member deeper down, refused at itself.
+    (lambda d: operating(d).update(range=[50.0, "500"]), "/operating_conditions/shear_rate/range/1"),
+    (lambda d: operating(d).update(range=[True, 500.0]), "/operating_conditions/shear_rate/range/0"),
     (
         lambda d: model(d).update(mixing={"fraction_sum_tolerance": -1e-9, "rules": {}}),
         "/models/0/mixing/fraction_sum_tolerance",
@@ -405,16 +422,38 @@ def test_a_waiver_names_its_condition_exactly_where_its_code_names_one() -> None
 # first rule's case; a status object where none is taken is refused at the member, nothing inside it checked.
 
 
-def test_a_requirement_condition_holding_both_alternatives_is_one_fault_at_it() -> None:
-    at = "/models/0/requirements/0/conditions/temperature"
-    both = a_declaration(lambda d: condition(d, "temperature").update(accept=["apparent"]))
-    assert refusals(both) == {("BC-048", at)}
+def test_a_requirement_condition_holding_both_alternatives_is_two_members_at_fault() -> None:
+    """The condition, for its two exclusive alternatives, and the one of them its kind does not take
+    (maintainer, 2026-10-24)."""
+    at = "/models/0/requirements/0/conditions"
+    numeric = a_declaration(lambda d: condition(d, "temperature").update(accept=["apparent"]))
+    assert refusals(numeric) == {("BC-048", f"{at}/temperature"), ("BC-048", f"{at}/temperature/accept")}
+    both: Json = {"accept": ["rotational_rheometer"], "tolerance": {"value": 1.0, "unit": "K"}}
+    token = a_declaration(lambda d: conditions(d).update(test_method=both | {"reason": "a reason"}))
+    assert refusals(token) == {("BC-048", f"{at}/test_method"), ("BC-048", f"{at}/test_method/tolerance")}
 
     def accept_alone(declaration: Json) -> None:
         condition(declaration, "temperature").update(accept=["apparent"])
         condition(declaration, "temperature").pop("tolerance")
 
-    assert refusals(a_declaration(accept_alone)) == {("BC-048", f"{at}/accept")}
+    assert refusals(a_declaration(accept_alone)) == {("BC-048", f"{at}/temperature/accept")}
+
+
+@pytest.mark.parametrize(
+    ("held", "inside"),
+    [({}, set[str]()), ({"status": "unstated"}, {"/status"}), ({"reason": "r"}, set[str]())],
+)
+def test_a_requirement_condition_holding_neither_alternative_is_bc_048s_alone(
+    held: Json, inside: set[str]
+) -> None:
+    """Item 3 names a tolerance or an accept list: a condition holding neither lacks its alternative, and its
+    `reason` too, as BC-048's members missing, at the condition."""
+    at = "/models/0/requirements/0/conditions/temperature"
+
+    assert refusals(a_declaration(lambda d: conditions(d).update(temperature=held))) == {
+        ("BC-048", at),
+        *(("BC-048", f"{at}{member}") for member in inside),
+    }
 
 
 def test_a_status_object_where_none_is_taken_is_one_refusal_at_the_member() -> None:
@@ -461,8 +500,8 @@ def test_a_pick_at_its_record_and_a_region_is_item_12s() -> None:
     assert refusals(declaration) == {("BC-051", "/models/0/acceptances/1")}
 
 
-#  Item 7 in this version: every engine model's pinned crosswalk is one not passed, at the model's `engine`,
-# where the S7 design's answer 41 places an engine model over records.
+# Item 7 in this version: every engine model's pinned crosswalk is one not passed; one refusal per model, at
+# its `engine` (the refusal paragraph; maintainer, 2026-10-24).
 
 
 def test_an_engine_model_is_refused_by_item_7_at_its_engine_once() -> None:

@@ -81,10 +81,12 @@ class Object:
 
 @dataclass(frozen=True)
 class List:
-    """A list of at least `least` entries, each held as `items`."""
+    """A list of at least `least` entries, each held as `items`, and what its Holds cell states of the list
+    beyond them: a function giving what is wrong, or None."""
 
     items: "Holds"
     least: int = 0
+    constraint: Callable[[list[JsonValue]], str | None] | None = None
 
 
 @dataclass(frozen=True)
@@ -123,10 +125,16 @@ def _whole(value: JsonValue) -> str | None:
     return "not a whole number" if isinstance(value, float) and not value.is_integer() else None
 
 
-def _range(value: JsonValue) -> str | None:
-    if not (isinstance(value, list) and len(value) == 2 and all(isinstance(end, float) for end in value)):
-        return "not a range [lo, hi] of two numbers"
-    return "a range whose lo is above its hi" if cast(float, value[0]) > cast(float, value[1]) else None
+def _range(value: list[JsonValue]) -> str | None:
+    """A range `[lo, hi]`: two entries, `lo` not above `hi`; an entry that is no number is refused at it."""
+    if len(value) != 2:
+        return "not a range [lo, hi]"
+    lo, hi = value
+    return (
+        "a range whose lo is above its hi"
+        if isinstance(lo, float) and isinstance(hi, float) and lo > hi
+        else None
+    )
 
 
 def _one_character(value: JsonValue) -> str | None:
@@ -155,7 +163,7 @@ _NUMBER = Value("number")
 _ANY = Value("any")
 _TEXT = Value("string")  # a `reason` or `basis`: `_reasons` holds it to at least one character
 _NAME = Value("string")  # a token or a registered name: `_tokens` holds it to its list
-_RANGE = Value("any", _range)
+_RANGE = List(_NUMBER, least=2, constraint=_range)
 _REFERENCE = Object("material reference")
 
 # A target's facts: each its shape in `provenance.md` section 6.2 without `basis`, its text members (`label`,
@@ -395,7 +403,8 @@ TOKENS: dict[tuple[str, str], tuple[str, ...]] = {
     ("population level", "balanced_over"): VOCABULARY.token_lists["level"],
     ("model entry", "precision"): ("binary32", "binary64"),
     ("mixing", "rules"): ("identity", "arithmetic", "harmonic", "wood", "refuse"),
-    ("waiver", "code"): tuple(VOCABULARY.reasons),
+    # A reason, but `condition_unknown_name`, which section 4.2 never accepts (maintainer, 2026-10-24).
+    ("waiver", "code"): tuple(code for code in VOCABULARY.reasons if code != "condition_unknown_name"),
     ("extrapolation", "method"): VOCABULARY.token_lists["extrapolation_method"],
     ("distribution", "distribution"): VOCABULARY.token_lists["distribution"],
     ("distribution", "space"): ("identity", "log"),
@@ -578,6 +587,8 @@ def _holds(holds: Holds, value: JsonValue, pointer: str) -> list[Finding]:
         if not isinstance(value, list):
             return [Finding("BC-048", pointer, "not a list")]
         found = [Finding("BC-048", pointer, f"fewer than {holds.least}")] if len(value) < holds.least else []
+        problem = None if holds.constraint is None else holds.constraint(value)
+        found += [] if problem is None else [Finding("BC-048", pointer, problem)]
         for index, item in enumerate(value):
             found += _holds(holds.items, item, _join(pointer, index))
         return found
@@ -643,7 +654,7 @@ def _tokens(declaration: JsonObject) -> list[Finding]:
                 check(value["label"], f"{at}/label", _labels_of(value.get("field")), "a label of its field")
         elif place == "requirement condition" and key in _CONDITIONS:
             spec, wrong = _CONDITIONS[key], "accept" if _CONDITIONS[key].shape == "numeric" else "tolerance"
-            if wrong in value and len({"tolerance", "accept"} & value.keys()) == 1:
+            if wrong in value:
                 found.append(Finding("BC-048", f"{at}/{wrong}", f"no {wrong} for {key}"))
             if spec.shape == "token":
                 each(value.get("accept"), f"{at}/accept", spec.tokens, f"a token of {key}")
@@ -812,7 +823,11 @@ def _reasons(declaration: JsonObject) -> list[Finding]:
     found: list[Finding] = []
     for visit in _places(declaration):
         value, at, place = visit.value, visit.pointer, visit.place
-        if place == "requirement condition" and "reason" not in value:
+        if (
+            place == "requirement condition"
+            and "reason" not in value
+            and {"tolerance", "accept"} & value.keys()
+        ):
             found.append(Finding("BC-004", at, "a tolerance or accept list without its reason", "reason"))
         if (place in KINDS or place == "acceptance") and "reason" not in value:
             found.append(Finding("BC-005", at, "an acceptance without its reason", "reason"))
@@ -867,12 +882,12 @@ def _suites(declaration: JsonObject, claims: Collection[Suite]) -> list[Finding]
 
     - BC-040, item 7: a model with `engine` checked over a path or records, one whose requirement wants
       anything but `value`, one with a declared engine value without `reason` or `basis`, and one whose
-      crosswalk is pinned and not passed, as every crosswalk is to this version's build, which takes none; at
-      the model's `engine`, as the S7 design's answer 41 places an engine model over records.
+      crosswalk is pinned and not passed, as every crosswalk is to this version's build, which takes none; one
+      refusal per model, at its `engine` (the refusal paragraph).
     - BC-044, item 8: a requirement samples (holds `represents`), and `sampling.min_acceptance` is missing or
       not a number in (0, 1].
     - BC-043, the `population_level` rule: `represents` `population` without `population_level`, and a
-      `population_level` beside another `represents` (maintainer, 2026-10-24).
+      `population_level` beside another `represents` or none (maintainer, 2026-10-24).
     - BC-051, item 12: each member a suite the build does not claim checks (`_suite_members`); but no model's
       `engine` that item 7 refuses, and no member of a requirement over which item 8 or the `population_level`
       rule refuses the declaration.
@@ -898,12 +913,12 @@ def _suites(declaration: JsonObject, claims: Collection[Suite]) -> list[Finding]
         if "engine" in model and faults:
             found += [Finding("BC-040", at, fault) for fault in faults]
             item7.add(at)
-    sampled = [
+    requirements = [
         (f"/models/{index}/requirements/{position}", requirement)
         for index, model in _entries(declaration, "models")
         for position, requirement in _entries(model, "requirements")
-        if "represents" in requirement
     ]
+    sampled = [(at, requirement) for at, requirement in requirements if "represents" in requirement]
     block, item8 = declaration.get("sampling"), len(found)
     if sampled and "sampling" not in declaration:
         found.append(Finding("BC-044", "", "a requirement samples, and no sampling is declared", "sampling"))
@@ -918,15 +933,16 @@ def _suites(declaration: JsonObject, claims: Collection[Suite]) -> list[Finding]
     elif sampled and not isinstance(cast(JsonObject, block)["min_acceptance"], float):
         found.append(Finding("BC-044", "/sampling/min_acceptance", "a min_acceptance that is no number"))
     spared: set[str] = {at for at, _ in sampled} if len(found) > item8 else set()
-    for at, requirement in sampled:
-        represents = requirement["represents"]
+    for at, requirement in requirements:
+        represents = requirement.get("represents", "no represents")
         if represents == "population" and "population_level" not in requirement:
             found.append(
                 Finding("BC-043", at, "a population requirement without its level", "population_level")
             )
             spared.add(at)
-        elif represents in TOKENS["requirement", "represents"] and "population_level" in requirement:
-            if represents != "population":
+        elif "population_level" in requirement and represents != "population":
+            # A `represents` at fault (no token) is its own refusal, and the level beside it is not judged.
+            if "represents" not in requirement or represents in TOKENS["requirement", "represents"]:
                 found.append(
                     Finding("BC-043", f"{at}/population_level", f"a population level beside {represents}")
                 )

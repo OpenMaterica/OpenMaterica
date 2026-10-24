@@ -80,7 +80,7 @@
             "content_hash": "sha256:c21a2c7f46e66bcfb5e74f18d2a08644468d5a92bafb4fa57a03651facf96e2d"
           },
           "field": "fluid.dynamic_viscosity",
-          "condition": "pressure",
+          "condition": "temperature",
           "code": "condition_unknown_name",
           "reason": "the consumer treats water as Newtonian over the operating band; the source states no shear rate"
         }
