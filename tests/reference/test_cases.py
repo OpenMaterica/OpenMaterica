@@ -311,7 +311,7 @@ def test_a_build_model_that_refuses_nothing_disagrees(monkeypatch: pytest.Monkey
     """Control: a model whose check finds no fault gives no verdict on every refusal file, which no kind
     lists."""
 
-    def no_fault(self: build_model.DeclarationCheck, pointer: str, *rules: str) -> None:
+    def no_fault(self: build_model.DeclarationCheck, pointer: str, *rules: str, apart: str = "") -> None:
         return None
 
     monkeypatch.setattr(build_model.DeclarationCheck, "fault", no_fault)

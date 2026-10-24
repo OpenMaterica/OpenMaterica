@@ -2411,7 +2411,7 @@ MUTANTS: Mapping[str, Mutant] = {
 }
 
 
-# The build model's faults: one per rule of the declaration's own check (`build_model.py`), each run against
+# The build model's faults: the hand mutants of the model's rules (`build_model.py`), each run against
 # every build-check case file (`test_seeded_faults.py`). The model's own functions, taken first.
 Check = build.DeclarationCheck
 _build_shaped = Check.shaped
@@ -2843,19 +2843,19 @@ def no_bc_051_at_represents(self: build.DeclarationCheck, fault: build.Fault) ->
     return "BC-051" not in fault.rules or not fault.pointer.endswith("/represents")
 
 
-def label_refused_twice(
-    self: build.DeclarationCheck,
-    typed: JsonObject,
-    pointer: str,
-    name: str | None,
-    requirements: Mapping[str, JsonObject],
-) -> None:
-    """A waiver's `label` that item 4 and the token rule both refuse given one refusal for each rule."""
-    before = len(self.faults)
-    _build_waiver(self, typed, pointer, name, requirements)
-    self.faults[before:] = [
-        build.Fault(fault.pointer, (rule,)) for fault in self.faults[before:] for rule in fault.rules
-    ]
+def refused_apiece(faults: Iterable[build.Fault]) -> frozenset[build.Refusal]:
+    """Each fault refused with its own first case: two faults at one member, one from each rule that names
+    it, give two refusals."""
+    return frozenset(build.Refusal(build.first_rule(fault.rules), fault.pointer) for fault in faults)
+
+
+def missing_members_merged(faults: Iterable[build.Fault]) -> frozenset[build.Refusal]:
+    """One refusal for each pointer, a missing member's fault merged with the object's and with another
+    missing member's."""
+    naming: dict[str, list[str]] = {}
+    for fault in faults:
+        naming.setdefault(fault.pointer, []).extend(fault.rules)
+    return frozenset(build.Refusal(build.first_rule(rules), pointer) for pointer, rules in naming.items())
 
 
 def waiver_dropping(
@@ -2892,6 +2892,23 @@ def unlocated_pick_refused_by_item_12(
     unlocated = held.get("acceptance") == "pick" and "record" not in held
     if unlocated and held.keys() & {"region", "interval"} and self.lacks("scene_documents", "a pick"):
         self.fault(pointer, "BC-051")
+
+
+def status_object_without_a_reason(value: JsonValue) -> bool:
+    """A status object that holds the `status` member alone: the `reason` it may hold not allowed."""
+    return isinstance(value, dict) and value.keys() == {"status"}
+
+
+def status_object_without_a_status(value: JsonValue) -> bool:
+    """An object holding no member but `status` and `reason`, `status` among them or not."""
+    return isinstance(value, dict) and value.keys() <= {"status", "reason"}
+
+
+def target_status_object_with_a_reason_taken(
+    self: build.DeclarationCheck, name: str, value: JsonValue, pointer: str, basis_allowed: bool
+) -> None:
+    if basis_allowed or not (build.is_status_object(value) and "reason" in build.members(value)):
+        _build_fact(self, name, value, pointer, basis_allowed)
 
 
 def acceptance_at_taken(location: str) -> Callable[..., None]:
@@ -3077,9 +3094,6 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
         "a place that takes exactly one of its alternatives holding none or two taken",
         'declarations.md:139 "two of a member\'s mutually exclusive alternatives"',
         {"DeclarationCheck.shaped": reshaped(requirement_relaxed("one", "no"))},
-        "no case holds none or two of a place's mutually exclusive members: `checked_over`'s three, a "
-        "condition's `value` and `range`, a requirement condition's `tolerance` and `accept`, a nominal's "
-        "`value` and `params`",
         module=build,
     ),
     "build_target_basis_taken": Mutant(
@@ -3488,12 +3502,20 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     # The rulings of 2026-10-24 on the review: one fault is one member at fault, and a pick is located by its
     # record
-    "build_waiver_label_refused_twice": Mutant(
-        "a waiver's `label` that item 4 and the token rule both refuse given a refusal for each, BC-050 and "
-        "BC-048 at the one pointer",
+    "build_member_faults_refused_apiece": Mutant(
+        "two faults at one member, one from each rule that names it (a waiver's `label` that item 4 and the "
+        "token rule both refuse, a `domain` of another JSON type that item 12 and the shape rule both name), "
+        "given a refusal each",
         'declarations.md:155-157 "A fault more than one rule names carries the case of the first of: items '
         '3, 4, 7 and 8, the"',
-        {"DeclarationCheck.waiver": label_refused_twice},
+        {"refusals_of": refused_apiece},
+        module=build,
+    ),
+    "build_missing_members_merged": Mutant(
+        "the faults at one pointer merged whatever they are about, so that two members missing from one "
+        "object, or one missing and the object's own, give one refusal",
+        'declarations.md:157-158 "Two faults with one case and one pointer are one refusal"',
+        {"refusals_of": missing_members_merged},
         module=build,
     ),
     "build_status_object_checked_inside": Mutant(
@@ -3507,6 +3529,24 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
         "a status object as a target fact taken",
         'declarations.md:92 "never a status object"',
         {"DeclarationCheck.fact": target_status_object_taken},
+        module=build,
+    ),
+    "build_status_object_without_a_reason": Mutant(
+        "a status object holding a `reason` judged an ordinary member: the `reason` it may hold not allowed",
+        'provenance.md:8-9 "an object whose only members are `status` and, optionally, `reason` (a text)"',
+        {"is_status_object": status_object_without_a_reason},
+        module=build,
+    ),
+    "build_status_object_needing_no_status": Mutant(
+        "an object holding a `reason` and no `status` taken for a status object",
+        'provenance.md:8-9 "an object whose only members are `status` and, optionally, `reason` (a text)"',
+        {"is_status_object": status_object_without_a_status},
+        module=build,
+    ),
+    "build_target_status_object_with_a_reason_taken": Mutant(
+        "a status object holding a `reason` as a target fact taken",
+        'declarations.md:92 "never a status object"',
+        {"DeclarationCheck.fact": target_status_object_with_a_reason_taken},
         module=build,
     ),
     "build_pick_located_at_a_region": Mutant(

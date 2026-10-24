@@ -91,8 +91,13 @@ def pick(**members: JsonValue) -> JsonObject:
     return acceptance("pick", index=0.0, **members)
 
 
+def unlocated(kind: JsonObject, **location: JsonValue) -> JsonObject:
+    """`kind` without its `record`, at the `location`."""
+    return {name: held for name, held in kind.items() if name != "record"} | location
+
+
 def unlocated_pick(**location: JsonValue) -> JsonObject:
-    return {name: held for name, held in pick().items() if name != "record"} | location
+    return unlocated(pick(), **location)
 
 
 @dataclass(frozen=True)
@@ -163,6 +168,36 @@ SUITE_MEMBERS: Final[dict[str, tuple[frozenset[str], Refusals, JsonObject, dict[
     "a model with an engine": (USD, refused(), entry(engine=ENGINE), {}),
     "a sampling block": (SAMPLING, refused(("BC-051", "/sampling")), entry(), {"sampling": SAMPLING_BLOCK}),
 }
+
+
+# A member another JSON type holds and item 12 names: one fault two rules name, so the shape rule's refusal
+# and item 12's are one, with item 12's case where the suite is not claimed (the order puts it first) and no
+# verdict where it is (maintainer, 2026-10-24).
+DOMAIN: Final = f"{MODEL}/checked_over/domain"
+PATH: Final = f"{MODEL}/checked_over/path"
+MISTYPED_GATING_MEMBERS: Final[tuple[tuple[str, frozenset[str], JsonObject, str], ...]] = (
+    (
+        "a model checked over a domain that is a number",
+        SCENE,
+        declaration(entry(checked_over={"domain": 5.0})),
+        DOMAIN,
+    ),
+    (
+        "a model checked over a domain that is an object",
+        SCENE,
+        declaration(entry(checked_over={"domain": {}})),
+        DOMAIN,
+    ),
+    (
+        "a model checked over a path that is a number",
+        SCENE,
+        declaration(entry(checked_over={"path": 5.0})),
+        PATH,
+    ),
+    ("a sampling that is a number", SAMPLING, declaration(sampling=5.0), "/sampling"),
+)
+
+
 CHECKS: Final[tuple[Direct, ...]] = (
     Direct("the declaration the checks start from", declaration(), BUILD, None),
     # One fault is one member at fault (maintainer, 2026-10-24): a waiver's label that item 4 and the token
@@ -226,6 +261,97 @@ CHECKS: Final[tuple[Direct, ...]] = (
         declaration(entry(acceptances=[pick(region="lumen")])),
         SCENE,
         None,
+    ),
+    # An acceptance of any kind at a region is item 12's, as a pick's is (the scene suite not claimed, BC-051;
+    # claimed, no verdict).
+    *(
+        Direct(f"{what}, {label}", declaration(entry(acceptances=[held])), claims, refusals)
+        for what, held in (
+            ("a waiver at a region and no record", unlocated(waiver(), region="lumen")),
+            ("a waiver at a record and a region", waiver(region="lumen")),
+        )
+        for label, claims, refusals in (
+            ("the scene suite not claimed", BUILD, refused(("BC-051", ACCEPTANCE))),
+            ("the scene suite claimed", SCENE, None),
+        )
+    ),
+    # A member two rules name is one fault; a member missing is the object's, apart from the object's own and
+    # from another missing member's.
+    *(
+        check
+        for what, suite, held, pointer in MISTYPED_GATING_MEMBERS
+        for check in (
+            Direct(f"{what}, its suite not claimed", held, BUILD, refused(("BC-051", pointer))),
+            Direct(f"{what}, its suite claimed", held, suite, None),
+        )
+    ),
+    Direct(
+        "a waiver lacking its reason and its code",
+        declaration(
+            entry(
+                acceptances=[
+                    {
+                        name: held
+                        for name, held in waiver().items()
+                        if name not in ("reason", "code", "condition")
+                    }
+                ]
+            )
+        ),
+        BUILD,
+        refused(("BC-005", ACCEPTANCE), ("BC-048", ACCEPTANCE)),
+    ),
+    # A status object is an object whose only members are `status` and, optionally, `reason`
+    # (provenance.md section 6.1): one refusal at the member that holds it. Anything else is judged as the
+    # member it is.
+    *(
+        Direct(
+            what, declaration(held), BUILD, refused(*(("BC-048", f"{pointer}{inside}") for inside in found))
+        )
+        for what, held, pointer, found in (
+            (
+                "a status object with a reason as a target fact",
+                entry(target={"species": {"status": "unstated", "reason": REASON}}),
+                f"{MODEL}/target/species",
+                ("",),
+            ),
+            (
+                "a status object beside another member as a target fact",
+                entry(target={"species": {"status": "unstated", "unit": "K"}}),
+                f"{MODEL}/target/species",
+                ("", "/status", "/unit"),
+            ),
+            (
+                "a reason alone as a target fact",
+                entry(target={"species": {"reason": REASON}}),
+                f"{MODEL}/target/species",
+                ("", "/reason"),
+            ),
+            (
+                "an empty object as a target fact",
+                entry(target={"species": {}}),
+                f"{MODEL}/target/species",
+                ("",),
+            ),
+            (
+                "a status object with a reason as an implied condition's value",
+                entry(
+                    acceptances=[
+                        {**IMPLIED, "implies": {"temperature": {"status": "unstated", "reason": REASON}}}
+                    ]
+                ),
+                f"{ACCEPTANCE}/implies/temperature",
+                ("",),
+            ),
+            (
+                "a status object beside another member as an implied condition's value",
+                entry(
+                    acceptances=[{**IMPLIED, "implies": {"temperature": {"status": "unstated", "unit": "K"}}}]
+                ),
+                f"{ACCEPTANCE}/implies/temperature",
+                ("", "/status"),
+            ),
+        )
     ),
     # A suite the build claims checks its members further: no verdict, never the refusals of the rest.
     *(
