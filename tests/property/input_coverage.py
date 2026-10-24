@@ -12,10 +12,12 @@ A site is a call of a constructor written in a module under `tests/`, named by w
 module, the functions around the call (as Python's `__qualname__` names them), and the call's own text
 (`ast.unparse`, cut at `LABEL_LENGTH`), with `#2`, `#3`... for a later call of the same text in the same
 function. So a site keeps its name when lines around it move, and changes it when its own call changes.
-Where the call runs in a plain function called from another, the site is named after the outermost of that
-chain of calls written under `tests/`, the owner, and the call the owner makes into the chain (`owner > call >
-place`): a helper's draw made for a composite strategy is that composite's draw, two calls of one helper are
-two draws, and a cut changes each there alone.
+Where the call runs in a plain function called from another, or in a strategy drawn by a strategy written
+under `tests/` that is itself being drawn, the site is named after the outermost of that chain of calls and
+draws, the owner, and the call the owner makes into it (`owner > call > place`): a helper's draw made for a
+composite strategy, and a composite's drawn by another, are the caller's draws, two calls of one helper are
+two draws, and a cut changes each there alone. A test runs in no draw, so a strategy drawn in it under
+`find` or `data.draw` is named after the strategy, not the test.
 
 - `--input-coverage-out DIR` runs the tests derandomized, with no example database, and records into `DIR`:
   from each process, what the calls at each site drew from (`sites-*.json`: the values, options, ends and
@@ -48,6 +50,7 @@ from typing import Any, cast
 import pytest
 from hypothesis import Phase, settings, strategies
 from hypothesis.control import currently_in_test_context
+from hypothesis.internal.conjecture.data import ConjectureData
 from hypothesis.strategies import SearchStrategy
 
 TESTS = Path(__file__).resolve().parents[1]
@@ -87,6 +90,8 @@ INVALID = re.compile(
     r"Unsatisfiable|FailedHealthCheck|InvalidArgument|rejected \d+% of its draws|the audits saw no draws"
 )
 AFTER_A_FAILURE = (Phase.shrink, Phase.explain)
+# A draw runs inside this method: `@given`'s, `find`'s, a test's `data.draw` and a composite's `draw`.
+DRAW = ConjectureData.draw.__code__
 LABEL_LENGTH = 72
 KEY_LENGTH = 60
 
@@ -182,10 +187,25 @@ def place_at(code: CodeType, offset: int) -> Place:
 
 
 def owner_of(frame: FrameType) -> FrameType:
-    """The outermost frame of the chain of calls written under `tests/` that `frame` runs in."""
-    while frame.f_back is not None and under_tests(frame.f_back.f_code.co_filename):
-        frame = frame.f_back
-    return frame
+    """The frame whose draw a call in `frame` belongs to: the outermost frame of the chain of calls written
+    under `tests/` that `frame` runs in, and, through Hypothesis's frames, the drawer above it while that
+    drawer is itself inside a draw (a frame of `ConjectureData.draw` above it), and so on up. So a strategy
+    drawn by another strategy is its caller's, as a helper called with `draw` is, while a draw made under
+    `find` or a test's `data.draw` is not named after the test, which runs in no draw."""
+    owner = latest = frame
+    chained = True
+    above = frame.f_back
+    while above is not None:
+        if under_tests(above.f_code.co_filename):
+            latest = above
+            if chained:
+                owner = above
+        else:
+            chained = False
+            if above.f_code is DRAW:
+                owner = latest
+        above = above.f_back
+    return owner
 
 
 def site_name(place: Place, frame: FrameType) -> str:

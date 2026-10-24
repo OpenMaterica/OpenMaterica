@@ -2003,8 +2003,10 @@ kept off it; a permutation held to the order given. A site is a call of a constr
 named by its module, the functions around it and its own text, so that it keeps its name when lines around it
 move; a draw a helper makes inside a composite strategy is named after that composite and the call it makes
 into the helper (`owner > call > place`), so that two calls of one helper are two sites, and cut there alone.
-A composite drawn by another composite is named after itself, not its caller: a selection holds its draws only
-where the selection's patterns name that composite's module. The plugin
+A composite drawn by another, while that one is itself being drawn, is likewise the caller's (`owner >
+draw(...) > place`), so a selection holds the draws of every strategy its own strategies draw (maintainer,
+2026-10-24); a test runs in no draw, so a strategy drawn in a test under `find` or `data.draw` is named after
+the strategy, not the test, and one cut reaches every test that draws it. The plugin
 (`input_coverage.py`, loaded only with `-p`) wraps the constructors; loaded with no cut, every draw is the one
 drawn without it (`tests/unit/test_input_coverage.py` compares them). Each cut runs the selection's tests as a
 pytest process of its own, at `ci`, derandomized and with no example database, until the first test fails:
