@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The reference model, and the reference evaluator of tables beside it, import nothing from `materica`, at
-any depth, so that they never rest on the code they check: neither by the imports their source writes,
-followed through the modules beside them, nor in a fresh interpreter that imports them. The control is a
-throwaway package whose first module reaches `materica` only through its second, and another is the
-evaluator's own source with one import of the core added; both checks must see both."""
+"""The reference model, the reference evaluator of tables beside it and the build's model import nothing
+from `materica`, at any depth, so that they never rest on the code they check: neither by the imports their
+source writes, followed through the modules beside them, nor in a fresh interpreter that imports them. The
+control is a throwaway package whose first module reaches `materica` only through its second, and another is
+the evaluator's own source with one import of the core added; both checks must see both."""
 
 import ast
 import subprocess
@@ -13,7 +13,12 @@ from pathlib import Path
 import pytest
 
 REPOSITORY = Path(__file__).resolve().parents[2]
-MODEL = ("tests.reference.read_model", "tests.reference.strict_json", "tests.reference.table_evaluator")
+MODEL = (
+    "tests.reference.read_model",
+    "tests.reference.strict_json",
+    "tests.reference.table_evaluator",
+    "tests.reference.build_model",
+)
 
 
 def module_file(module: str, root: Path) -> Path | None:
