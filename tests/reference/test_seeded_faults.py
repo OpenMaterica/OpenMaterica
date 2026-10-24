@@ -6,14 +6,26 @@ the cases come to kill, and a killed fault that comes to survive, both fail, so 
 stays true. A fault that makes the model raise on a case file the check reads fails its check with the model's
 traceback: a crash shows that the fault broke the model, not that a case's expected answer tells the fault
 apart, so it is never counted as a kill. The check reads a fault's case files up to its first kill, so a raise
-on a later one is not seen there; the faults that once raised are held on the files where they did."""
+on a later one is not seen there; the faults that once raised are held on the files where they did.
+
+The build model's faults (`BUILD_MUTANTS`) are held to the build-check case files the same way, against
+`BUILD_EXCEPTIONS`."""
 
 from typing import NoReturn
 
 import pytest
 
-from tests.reference.cases import case_files, first_disagreement, outcome, read_case_files
-from tests.reference.mutants import MUTANTS, Mutant
+from tests.reference import build_model
+from tests.reference.cases import (
+    build_case_files,
+    build_outcome,
+    case_files,
+    first_build_disagreement,
+    first_disagreement,
+    outcome,
+    read_case_files,
+)
+from tests.reference.mutants import BUILD_MUTANTS, MUTANTS, Mutant
 
 
 def check(name: str, mutant: Mutant) -> None:
@@ -121,3 +133,59 @@ def test_a_fault_that_makes_the_model_raise_fails_its_check_and_leaves_the_model
     assert any(note.startswith("the model raised reading PR-") for note in notes), notes
     (case_file,) = [found for found in case_files() if found.path.name == "PR-035.linear_label_returned.json"]
     assert outcome(case_file).kind == "agrees"
+
+
+def build_check(name: str, mutant: Mutant) -> None:
+    """The build-check cases kill the build model's fault, or it is listed as a survivor."""
+    with mutant.applied():
+        found = first_build_disagreement()
+    if mutant.survives is None:
+        assert found is not None, f"{name} ({mutant.fault}) gives every build-check file its listed outcome"
+    else:
+        assert found is None, f"{name} is listed as a survivor ({mutant.survives}), but {found}"
+
+
+@pytest.mark.parametrize("name", sorted(BUILD_MUTANTS))
+def test_the_build_cases_kill_the_fault_or_it_is_listed_as_a_survivor(name: str) -> None:
+    build_check(name, BUILD_MUTANTS[name])
+
+
+def test_the_build_table_holds_its_faults_apart_and_says_why_each_survivor_survives() -> None:
+    assert len(BUILD_MUTANTS) >= 60
+    assert MUTANTS.keys().isdisjoint(BUILD_MUTANTS)
+    assert all(mutant.module is build_model for mutant in BUILD_MUTANTS.values())
+    assert all(mutant.survives is None or mutant.survives.strip() for mutant in BUILD_MUTANTS.values())
+    assert all(mutant.fault.strip() and mutant.rule.strip() for mutant in BUILD_MUTANTS.values())
+
+
+def test_a_build_fault_leaves_the_model_as_it_was_once_its_search_is_done() -> None:
+    (case_file,) = [
+        found for found in build_case_files() if found.path.name == "BC-004.tolerance_without_reason.json"
+    ]
+    with BUILD_MUTANTS["build_item_3_unchecked"].applied():
+        assert build_outcome(case_file).kind == "differs"
+    assert build_outcome(case_file).kind == "agrees"
+
+
+def broken_build_model(kind: type[Exception]) -> Mutant:
+    """A fault that breaks the build model rather than a rule of the text: its token check, which every
+    declaration reaches, replaced by a function raising `kind`."""
+
+    def raising(*args: object, **kwargs: object) -> NoReturn:
+        raise kind("the build model broken, not a rule of the text")
+
+    return Mutant(
+        "the build model raises at every token",
+        "none",
+        {"DeclarationCheck.token": raising},
+        module=build_model,
+    )
+
+
+@pytest.mark.parametrize("kind", [TypeError, KeyError, AssertionError])
+def test_a_build_fault_that_makes_the_model_raise_fails_its_check(kind: type[Exception]) -> None:
+    """Control: a search that counted the raise as a kill would pass on it."""
+    with pytest.raises(kind, match="the build model broken") as raised:
+        build_check("broken_build_model", broken_build_model(kind))
+    notes = getattr(raised.value, "__notes__", [])
+    assert any(note.startswith("the build model raised reading BC-") for note in notes), notes

@@ -4,16 +4,20 @@
 pins, which the properties of S2a-4's phase B must kill. The table, with what each one's search found, is
 `README.md`'s.
 
-Each fault replaces one to three of the model's module-level names, which the model looks up when it runs."""
+Each fault replaces one to three of the model's module-level names, which the model looks up when it runs.
+The build model's faults (`BUILD_MUTANTS`, run against every build-check case file) replace its names alike,
+a dotted name reaching a method of its `DeclarationCheck`."""
 
 import dataclasses
 import math
-from collections.abc import Generator, Iterable, Mapping, Sequence
+from collections.abc import Callable, Collection, Generator, Iterable, Mapping, Sequence
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass
 from fractions import Fraction
+from types import ModuleType
 from unittest import mock
 
+from tests.reference import build_model as build
 from tests.reference import read_model as model
 from tests.reference.read_model import (
     ConditionRow,
@@ -28,7 +32,7 @@ from tests.reference.read_model import (
     Status,
     StatusObject,
 )
-from tests.reference.strict_json import JsonObject, JsonValue, NotStrictJson
+from tests.reference.strict_json import JsonObject, JsonValue, NotStrictJson, parse
 
 
 @dataclass(frozen=True)
@@ -37,12 +41,17 @@ class Mutant:
     rule: str  # where the text states the rule the fault breaks
     patches: Mapping[str, object]
     survives: str | None = None  # why no case file kills it, for one none does
+    module: ModuleType = model  # the model whose names the patches replace
 
     @contextmanager
     def applied(self) -> Generator[None, None, None]:
         with ExitStack() as stack:
             for name, replacement in self.patches.items():
-                stack.enter_context(mock.patch.object(model, name, replacement))
+                *path, attribute = name.split(".")
+                host: object = self.module
+                for part in path:
+                    host = getattr(host, part)
+                stack.enter_context(mock.patch.object(host, attribute, replacement))
             yield
 
 
@@ -2396,5 +2405,867 @@ MUTANTS: Mapping[str, Mutant] = {
         "value`, whatever the `want`",
         'record_format.md:359-360 "unless an extrapolation the request carries would cover it"',
         {"read_alternatives": kept_under_any_want},
+    ),
+}
+
+
+# The build model's faults: one per rule of the declaration's own check (`build_model.py`), each run against
+# every build-check case file (`test_seeded_faults.py`). The model's own functions, taken first.
+Check = build.DeclarationCheck
+_build_shaped = Check.shaped
+_build_token = Check.token
+_build_operating_conditions = Check.operating_conditions
+_build_numeric = Check.numeric
+_build_population_level = Check.population_level
+_build_acceptance = Check.acceptance
+_build_own_members = Check.own_members
+_build_waiver = Check.waiver
+_build_trainable = Check.trainable
+_build_engine = Check.engine
+_build_model_entry = Check.model_entry
+_build_sampling = Check.sampling
+_build_lacks = Check.lacks
+_build_fact = Check.fact
+_build_distribution = Check.distribution
+_build_check = build.check_build
+_build_parse = parse
+Rules = Mapping[str, tuple[str, ...]] | None
+
+
+def first_of_an_array(text: bytes) -> JsonValue:
+    value = _build_parse(text)
+    return value[0] if isinstance(value, list) and value else value
+
+
+def refused_text_at_a_member(text: bytes, claims: frozenset[str]) -> build.Refused | model.NoVerdict:
+    given = _build_check(text, claims)
+    if isinstance(given, build.Refused):
+        return build.Refused(
+            frozenset(build.Refusal(one.item, one.pointer or "/") for one in given.refusals), given.unplaced
+        )
+    return given
+
+
+def reshaped(
+    change: Callable[[JsonValue, str, build.Place, Rules], tuple[JsonValue, build.Place, Rules]],
+) -> Callable[..., JsonObject | None]:
+    """`shaped` with its value, place or rules changed first."""
+
+    def shaped(
+        self: build.DeclarationCheck,
+        value: JsonValue,
+        pointer: str,
+        place: build.Place,
+        missing: Rules = None,
+        mistyped: Rules = None,
+    ) -> JsonObject | None:
+        value, place, missing = change(value, pointer, place, missing)
+        return _build_shaped(self, value, pointer, place, missing, mistyped)
+
+    return shaped
+
+
+def unknown_members_dropped(
+    value: JsonValue, pointer: str, place: build.Place, missing: Rules
+) -> tuple[JsonValue, build.Place, Rules]:
+    known = (
+        {name: held for name, held in value.items() if name in place} if isinstance(value, dict) else value
+    )
+    return known, place, missing
+
+
+def requirement_relaxed(
+    required: str, to: build.Required
+) -> Callable[[JsonValue, str, build.Place, Rules], tuple[JsonValue, build.Place, Rules]]:
+    def relax(
+        value: JsonValue, pointer: str, place: build.Place, missing: Rules
+    ) -> tuple[JsonValue, build.Place, Rules]:
+        return (
+            value,
+            {name: (kind, to if held == required else held) for name, (kind, held) in place.items()},
+            missing,
+        )
+
+    return relax
+
+
+def any_type(
+    value: JsonValue, pointer: str, place: build.Place, missing: Rules
+) -> tuple[JsonValue, build.Place, Rules]:
+    return value, {name: (object, held) for name, (_, held) in place.items()}, missing
+
+
+def rule_dropped(
+    rule: str, only_where: str | None = None
+) -> Callable[[JsonValue, str, build.Place, Rules], tuple[JsonValue, build.Place, Rules]]:
+    """The rule taken out of those naming a missing member, everywhere or where the object holds
+    `only_where`."""
+
+    def drop(
+        value: JsonValue, pointer: str, place: build.Place, missing: Rules
+    ) -> tuple[JsonValue, build.Place, Rules]:
+        if missing is None or (only_where is not None and only_where not in build.members(value)):
+            return value, place, missing
+        return (
+            value,
+            place,
+            {name: tuple(one for one in rules if one != rule) for name, rules in missing.items()},
+        )
+
+    return drop
+
+
+def negatives_read_as_positive(
+    value: JsonValue, pointer: str, place: build.Place, missing: Rules
+) -> tuple[JsonValue, build.Place, Rules]:
+    if place in (build.SHAPES["tolerance"], build.SHAPES["mixing"]) and isinstance(value, dict):
+        value = {name: abs(held) if isinstance(held, float) else held for name, held in value.items()}
+    return value, place, missing
+
+
+def families_dropped(
+    value: JsonValue, pointer: str, place: build.Place, missing: Rules
+) -> tuple[JsonValue, build.Place, Rules]:
+    if place == build.SHAPES["model entry"] and isinstance(value, dict) and "families" in value:
+        value = {**value, "families": {}}
+    return value, place, missing
+
+
+def tokens_without_case(
+    self: build.DeclarationCheck, value: JsonValue, pointer: str, tokens: Collection[str]
+) -> bool:
+    if isinstance(value, str) and value.lower() in {token.lower() for token in tokens}:
+        return True
+    return _build_token(self, value, pointer, tokens)
+
+
+def token_slips_taken(
+    self: build.DeclarationCheck, value: JsonValue, pointer: str, tokens: Collection[str]
+) -> bool:
+    if isinstance(value, str) and any(model.one_slip(value, token) for token in tokens):
+        return True
+    return _build_token(self, value, pointer, tokens)
+
+
+def unregistered_conditions_dropped(
+    self: build.DeclarationCheck, conditions: JsonObject, pointer: str, implied: bool = False
+) -> None:
+    registered = {name: held for name, held in conditions.items() if name in model.CONDITIONS}
+    _build_operating_conditions(self, registered, pointer, implied)
+
+
+def never(*given: object) -> bool:
+    return False
+
+
+def always(*given: object) -> bool:
+    return True
+
+
+def nothing(*given: object) -> None:
+    return None
+
+
+def last_rule(rules: Iterable[str]) -> str:
+    return max(rules, key=build.ORDER.index)
+
+
+def every_rule(faults: Iterable[build.Fault]) -> frozenset[build.Refusal]:
+    return frozenset(build.Refusal(rule, fault.pointer) for fault in faults for rule in fault.rules)
+
+
+def trainable_anywhere(
+    self: build.DeclarationCheck, value: JsonValue, pointer: str, reads: list[str], over: object
+) -> None:
+    _build_trainable(self, value, pointer, reads, None)
+
+
+def faults_dropped(
+    method: Callable[..., None], keep: Callable[[build.DeclarationCheck, build.Fault], bool]
+) -> Callable[..., None]:
+    """`method` with the faults it finds that `keep` refuses taken back."""
+
+    def dropped(self: build.DeclarationCheck, *given: object) -> None:
+        before = len(self.faults)
+        method(self, *given)
+        self.faults[before:] = [fault for fault in self.faults[before:] if keep(self, fault)]
+
+    return dropped
+
+
+def label_refusal_at_the_waiver(
+    self: build.DeclarationCheck,
+    typed: JsonObject,
+    pointer: str,
+    name: str | None,
+    requirements: Mapping[str, JsonObject],
+) -> None:
+    before = len(self.faults)
+    _build_waiver(self, typed, pointer, name, requirements)
+    self.faults[before:] = [
+        build.Fault(pointer, fault.rules) if "BC-050" in fault.rules else fault
+        for fault in self.faults[before:]
+    ]
+
+
+def label_rule_without_review(
+    self: build.DeclarationCheck,
+    typed: JsonObject,
+    pointer: str,
+    name: str | None,
+    requirements: Mapping[str, JsonObject],
+) -> None:
+    reviewed = {field: {**requirement, "review": "reviewed"} for field, requirement in requirements.items()}
+    _build_waiver(self, typed, pointer, name, reviewed)
+
+
+def unknown_code_names_a_condition(
+    self: build.DeclarationCheck,
+    typed: JsonObject,
+    pointer: str,
+    name: str | None,
+    requirements: Mapping[str, JsonObject],
+) -> None:
+    _build_waiver(self, typed, pointer, name, requirements)
+    if typed.get("code") not in model.REASONS and "condition" not in typed:
+        self.fault(pointer)
+
+
+def condition_unknown_name_refused(
+    self: build.DeclarationCheck,
+    typed: JsonObject,
+    pointer: str,
+    name: str | None,
+    requirements: Mapping[str, JsonObject],
+) -> None:
+    _build_waiver(self, typed, pointer, name, requirements)
+    if typed.get("code") == "condition_unknown_name":
+        self.fault(build.at(pointer, "code"))
+
+
+def item_12_beside_another_represents(self: build.DeclarationCheck, declaration: JsonObject) -> None:
+    _build_sampling(self, declaration)
+    for pointer, requirement in self.sampling_members:
+        beside_another = "population_level" in requirement and requirement.get("represents") != "population"
+        if beside_another and "sampling" not in self.claims:
+            for name in ("represents", "population_level"):
+                if name in requirement:
+                    self.fault(build.at(pointer, name), "BC-051")
+
+
+def lacks_but(suite: str) -> Callable[[build.DeclarationCheck, str, str], bool]:
+    def lacks(self: build.DeclarationCheck, claimed: str, why: str) -> bool:
+        return False if claimed == suite else _build_lacks(self, claimed, why)
+
+    return lacks
+
+
+def every_suite_lacking(self: build.DeclarationCheck, suite: str, why: str) -> bool:
+    return True
+
+
+def engine_refused_beside_item_7(
+    self: build.DeclarationCheck, entry: JsonObject, typed: JsonObject, pointer: str
+) -> None:
+    _build_engine(self, entry, typed, pointer)
+    if self.refused_unplaced and build.at(pointer, "engine") in self.item_7_scopes:
+        self.item_7_scopes.remove(build.at(pointer, "engine"))
+        self.fault(build.at(pointer, "engine"), "BC-051")
+
+
+def item_7_refusal_dropped(
+    self: build.DeclarationCheck, entry: JsonObject, typed: JsonObject, pointer: str
+) -> None:
+    _build_engine(self, entry, typed, pointer)
+    self.unplaced.pop("BC-040", None)
+    self.refused_unplaced = False
+
+
+def item_7_pointers_placed(
+    self: build.DeclarationCheck, entry: JsonObject, typed: JsonObject, pointer: str
+) -> None:
+    _build_engine(self, entry, typed, pointer)
+    self.item_7_scopes.clear()
+
+
+def engine_withholds_every_member(self: build.DeclarationCheck, entry: JsonValue, pointer: str) -> None:
+    before = len(self.faults)
+    _build_model_entry(self, entry, pointer)
+    if "engine" in build.members(entry):
+        self.faults[before:] = [fault for fault in self.faults[before:] if "BC-051" not in fault.rules]
+
+
+def item_12_before(rule: str) -> Callable[[build.DeclarationCheck, JsonObject], None]:
+    """`sampling` with a requirement that item 8 (`BC-044`) or the `population_level` rule (`BC-043`) refuses
+    over still refused at its `represents` by item 12."""
+
+    def sampling(self: build.DeclarationCheck, declaration: JsonObject) -> None:
+        _build_sampling(self, declaration)
+        minimum = build.members(declaration.get("sampling")).get("min_acceptance")
+        for pointer, requirement in self.sampling_members:
+            if rule == "BC-044":
+                refused = "represents" in requirement and not (
+                    isinstance(minimum, float) and 0 < minimum <= 1
+                )
+            else:
+                refused = (
+                    requirement.get("represents") == "population" and "population_level" not in requirement
+                )
+            if refused and "sampling" not in self.claims:
+                self.fault(build.at(pointer, "represents"), "BC-051")
+
+    return sampling
+
+
+def item_8_unchecked(self: build.DeclarationCheck) -> tuple[str, ...]:
+    return (build.SHAPE,)
+
+
+def target_basis_taken(
+    self: build.DeclarationCheck, name: str, value: JsonValue, pointer: str, basis_allowed: bool
+) -> None:
+    _build_fact(self, name, value, pointer, True)
+
+
+def unit_unchecked(self: build.DeclarationCheck, typed: JsonObject, pointer: str, unit: str | None) -> None:
+    _build_numeric(self, {name: held for name, held in typed.items() if name != "unit"}, pointer, unit)
+
+
+def range_sorted(self: build.DeclarationCheck, typed: JsonObject, pointer: str, unit: str | None) -> None:
+    ends = typed.get("range")
+    if isinstance(ends, list) and all(isinstance(end, float) for end in ends):
+        ordered: list[JsonValue] = [*sorted(end for end in ends if isinstance(end, float))]
+        typed = {**typed, "range": ordered}
+    _build_numeric(self, typed, pointer, unit)
+
+
+def own_members_eased(kind: str, ease: Callable[[JsonObject], JsonObject]) -> Callable[..., None]:
+    def own_members(
+        self: build.DeclarationCheck,
+        given: str,
+        typed: JsonObject,
+        pointer: str,
+        name: str | None,
+        requirements: Mapping[str, JsonObject],
+    ) -> None:
+        _build_own_members(self, given, ease(typed) if given == kind else typed, pointer, name, requirements)
+
+    return own_members
+
+
+def index_rounded(typed: JsonObject) -> JsonObject:
+    index = typed.get("index")
+    return {**typed, "index": float(round(index))} if isinstance(index, float) else typed
+
+
+def accepts_deduplicated(typed: JsonObject) -> JsonObject:
+    accepts = typed.get("accepts")
+    return (
+        {**typed, "accepts": list(dict.fromkeys(accepts))}
+        if isinstance(accepts, list) and all(isinstance(token, str) for token in accepts)
+        else typed
+    )
+
+
+def params_dropped(typed: JsonObject) -> JsonObject:
+    return {name: held for name, held in typed.items() if name != "params"}
+
+
+def parameters_as_the_token_s(self: build.DeclarationCheck, typed: JsonObject, pointer: str) -> None:
+    token = typed.get("distribution")
+    parameters = build.DISTRIBUTION_PARAMETERS.get(token) if isinstance(token, str) else None
+    if parameters is not None and "distribution_parameters" in typed:
+        typed = {**typed, "distribution_parameters": dict.fromkeys(parameters, 0.0)}
+    _build_distribution(self, typed, pointer)
+
+
+def every_label(name: str) -> tuple[str, ...]:
+    return tuple(model.FIELD_LABELS)
+
+
+def no_bc_050(self: build.DeclarationCheck, fault: build.Fault) -> bool:
+    return "BC-050" not in fault.rules
+
+
+def no_bc_043(self: build.DeclarationCheck, fault: build.Fault) -> bool:
+    return "BC-043" not in fault.rules
+
+
+def no_level_beside_another_represents(self: build.DeclarationCheck, fault: build.Fault) -> bool:
+    return not ("BC-043" in fault.rules and fault.pointer.endswith("/population_level"))
+
+
+def no_bc_051_at_a_distribution(self: build.DeclarationCheck, fault: build.Fault) -> bool:
+    return "BC-051" not in fault.rules or not fault.pointer.rsplit("/", 2)[-2] == "acceptances"
+
+
+def no_bc_051_at_represents(self: build.DeclarationCheck, fault: build.Fault) -> bool:
+    return "BC-051" not in fault.rules or not fault.pointer.endswith("/represents")
+
+
+EVERY_STRING = EveryString()
+BUILD_MUTANTS: Mapping[str, Mutant] = {
+    # Not JSON, or not an object
+    "build_array_checked_as_its_first_entry": Mutant(
+        "a declaration that is a JSON array checked as its first entry",
+        'declarations.md:149-150 "for a text that is not valid JSON, or a declaration that is not an object, '
+        'the empty pointer, and nothing else is checked"',
+        {"parse": first_of_an_array},
+        module=build,
+    ),
+    "build_refused_text_pointed_at_a_member": Mutant(
+        "a text that is not valid JSON, or not an object, refused at `/`, not at the empty pointer",
+        'declarations.md:149-150 "for a text that is not valid JSON, or a declaration that is not an object, '
+        'the empty pointer"',
+        {"check_build": refused_text_at_a_member},
+        module=build,
+    ),
+    # The shape
+    "build_unknown_member_ignored": Mutant(
+        "a member the table does not name at its place ignored",
+        'declarations.md:126 "it holds, at any depth, a member the table does not name at that place"',
+        {"DeclarationCheck.shaped": reshaped(unknown_members_dropped)},
+        module=build,
+    ),
+    "build_required_member_taken_missing": Mutant(
+        "a required member missing taken",
+        'declarations.md:124 "a required member is missing, or a member is of another JSON type"',
+        {"DeclarationCheck.shaped": reshaped(requirement_relaxed("yes", "no"))},
+        module=build,
+    ),
+    "build_missing_member_pointed_at_itself": Mutant(
+        "a missing member's refusal pointed at the member, not at the object that should hold it",
+        'declarations.md:145-146 "for a missing member, the object that should hold it"',
+        {"missing_at": build.at},
+        module=build,
+    ),
+    "build_member_of_another_type_taken": Mutant(
+        "a member of another JSON type taken",
+        'declarations.md:153-154 "A member deeper down that holds another JSON type is a member at fault '
+        "like "
+        'any other"',
+        {"DeclarationCheck.shaped": reshaped(any_type)},
+        module=build,
+    ),
+    "build_empty_list_taken": Mutant(
+        "an empty list where the table asks for one entry or more taken",
+        'declarations.md:124-125 "or empty where the table asks for one entry or more"',
+        {"empty": never},
+        module=build,
+    ),
+    "build_exactly_one_unchecked": Mutant(
+        "a place that takes exactly one of its alternatives holding none or two taken",
+        'declarations.md:139 "two of a member\'s mutually exclusive alternatives"',
+        {"DeclarationCheck.shaped": reshaped(requirement_relaxed("one", "no"))},
+        "no case holds none or two of a place's mutually exclusive members: `checked_over`'s three, a "
+        "condition's `value` and `range`, a requirement condition's `tolerance` and `accept`, a nominal's "
+        "`value` and `params`",
+        module=build,
+    ),
+    "build_target_basis_taken": Mutant(
+        "a target fact holding `basis` taken",
+        'declarations.md:92 "a fact of `provenance.md` section 6.2 to its shape there without `basis`"',
+        {"DeclarationCheck.fact": target_basis_taken},
+        module=build,
+    ),
+    # Tokens and registered names
+    "build_tokens_compared_without_case": Mutant(
+        "a token compared without case",
+        'declarations.md:129-130 "a token or a registered name is not one of those its member takes, a slip '
+        "of one, another member's token and one in another case included\"",
+        {"DeclarationCheck.token": tokens_without_case},
+        module=build,
+    ),
+    "build_token_slips_taken": Mutant(
+        "a token one slip from one its member takes taken",
+        'declarations.md:129-130 "a token or a registered name is not one of those its member takes, a slip '
+        'of one"',
+        {"DeclarationCheck.token": token_slips_taken},
+        module=build,
+    ),
+    "build_unregistered_condition_taken": Mutant(
+        "an operating condition the build's version does not register taken",
+        'declarations.md:85 "registered condition to `{"value", "unit"}` or `{"range": [lo, hi], "unit"}`"',
+        {"DeclarationCheck.operating_conditions": unregistered_conditions_dropped},
+        module=build,
+    ),
+    "build_review_unchecked": Mutant(
+        "a requirement's `review` holding any string taken",
+        'declarations.md:192 "A requirement\'s `review` holds `reviewed`, the one token of schema 0.1.0"',
+        {"REVIEWS": EVERY_STRING},
+        module=build,
+    ),
+    "build_want_unchecked": Mutant(
+        "a requirement's `want` left to the read",
+        'declarations.md:104 "a token of `read_side_contract.md` section 6"',
+        {"WANTS": EVERY_STRING},
+        module=build,
+    ),
+    "build_extrapolation_method_unchecked": Mutant(
+        "an extrapolation's `method` unchecked",
+        'declarations.md:118 "an extrapolation\'s `method`, `constant` or `consumer_law`"',
+        {"EXTRAPOLATION_METHODS": EVERY_STRING},
+        module=build,
+    ),
+    "build_waiver_code_unchecked": Mutant(
+        "a waiver's `code` holding any string taken",
+        'declarations.md:118 "a waiver\'s `code`, a reason of `read_side_contract.md` section 4"',
+        {"REASONS": EVERY_STRING},
+        module=build,
+    ),
+    "build_mixing_rule_unchecked": Mutant(
+        "a mixing rule holding any string taken",
+        'declarations.md:97 "field to `identity`, a rule `mixing_rules.md` names, or `refuse`"',
+        {"MIXING_RULES": EVERY_STRING},
+        "no case declares `mixing`",
+        module=build,
+    ),
+    "build_unregistered_label_taken": Mutant(
+        "a label registered for another field taken",
+        'declarations.md:106 "a label registered for the field"',
+        {"label_of": every_label},
+        "the one case whose waiver names a label registered for another field, "
+        "`BC-050.requirement_names_another_label`, compares BC-050's refusals alone",
+        module=build,
+    ),
+    "build_families_unchecked": Mutant(
+        "a `families` entry for a field whose row allows no parameter set taken",
+        'declarations.md:96 "parameter-set field to the family version"',
+        {"DeclarationCheck.shaped": reshaped(families_dropped)},
+        "every case's `families` is empty",
+        module=build,
+    ),
+    # Names twice, and a field or location dangling
+    "build_names_given_twice_taken": Mutant(
+        "a name given twice where the table allows it once taken",
+        'declarations.md:131 "a name is given twice where the table allows it once"',
+        {"given_before": never},
+        module=build,
+    ),
+    "build_unread_field_taken": Mutant(
+        "a requirement or a `trainable` entry for a field not in `reads` taken",
+        'declarations.md:134 "a requirement or a `trainable` entry names a field its model does not list in '
+        '`reads`"',
+        {"read_by": always},
+        module=build,
+    ),
+    "build_trainable_location_unchecked": Mutant(
+        "a `trainable` entry at a location its model is not checked over taken",
+        'declarations.md:134-135 "or a `trainable` entry a location its model is not checked over"',
+        {"DeclarationCheck.trainable": trainable_anywhere},
+        module=build,
+    ),
+    # Holds
+    "build_empty_reason_taken": Mutant(
+        "an empty `reason`, `basis` or `law` taken",
+        'declarations.md:136 "a `reason` or `basis` is not a string of at least one character"',
+        {"DeclarationCheck.texts": nothing},
+        module=build,
+    ),
+    "build_unit_unchecked": Mutant(
+        "a unit other than the registered one taken",
+        'declarations.md:137-138 "a unit other than the registered one"',
+        {"DeclarationCheck.numeric": unit_unchecked},
+        "no case gives a unit other than its condition's",
+        module=build,
+    ),
+    "build_range_order_unchecked": Mutant(
+        "a `range` whose `lo` is above its `hi` taken",
+        'declarations.md:137 "a `range` whose `lo` is above its `hi`"',
+        {"DeclarationCheck.numeric": range_sorted},
+        "no case gives a range upside down",
+        module=build,
+    ),
+    "build_negative_number_taken": Mutant(
+        "a tolerance or a `fraction_sum_tolerance` below zero taken",
+        'declarations.md:138 "other than the registered one, a number below zero"',
+        {"DeclarationCheck.shaped": reshaped(negatives_read_as_positive)},
+        "no case gives a number below zero",
+        module=build,
+    ),
+    "build_fractional_index_taken": Mutant(
+        "a pick's `index` with a fractional part taken",
+        'declarations.md:138 "an `index` with a fractional part"',
+        {"DeclarationCheck.own_members": own_members_eased("pick", index_rounded)},
+        "every pick in the cases has a whole index",
+        module=build,
+    ),
+    "build_combination_unchecked": Mutant(
+        "a combination of fewer than two fields, of one section or of fields not read taken",
+        'declarations.md:98 "lists of two or more fields in `reads`, from different sections"',
+        {"DeclarationCheck.combination": nothing},
+        "every case's `combinations` is empty",
+        module=build,
+    ),
+    "build_distribution_parameters_unchecked": Mutant(
+        "a distribution's parameters other than its token's taken",
+        "declarations.md:140 \"a distribution's parameters other than its token's\"",
+        {"DeclarationCheck.distribution": parameters_as_the_token_s},
+        "the one distribution in the cases holds its token's parameters",
+        module=build,
+    ),
+    "build_repeated_accepts_taken": Mutant(
+        "a repeated `accepts` token taken",
+        'declarations.md:140 "a repeated `accepts` token"',
+        {"DeclarationCheck.own_members": own_members_eased("overlay_scope", accepts_deduplicated)},
+        "the one `overlay_scope` in the cases accepts one member",
+        module=build,
+    ),
+    "build_params_taken": Mutant(
+        "a nominal's `params` for a field whose row allows no parameter set taken",
+        'declarations.md:118 "`params` only for a field whose row allows the form `parameter_set`"',
+        {"DeclarationCheck.own_members": own_members_eased("nominal", params_dropped)},
+        "every nominal in the cases holds a `value`",
+        module=build,
+    ),
+    "build_chains_unchecked": Mutant(
+        "a chain's members unchecked",
+        'declarations.md:100 "`{"from", "event", "to", "state_mapping"}`, all required (section 6)"',
+        {"DeclarationCheck.chain": nothing},
+        "every case's `chains` is empty",
+        module=build,
+    ),
+    # Items 3 and 4, the location rule and section 4.1 item 4
+    "build_item_3_unchecked": Mutant(
+        "a tolerance or an accept list without its `reason` refused as a missing member alone (BC-048)",
+        'declarations.md:166 "A tolerance or accept list MUST carry its reason; the build refuses one '
+        'without"',
+        {"DeclarationCheck.shaped": reshaped(rule_dropped("BC-004"))},
+        module=build,
+    ),
+    "build_item_3_on_tolerances_alone": Mutant(
+        "an accept list without its `reason` refused as a missing member alone (BC-048)",
+        'declarations.md:166 "A tolerance or accept list MUST carry its reason"',
+        {"DeclarationCheck.shaped": reshaped(rule_dropped("BC-004", "accept"))},
+        module=build,
+    ),
+    "build_item_4_unchecked": Mutant(
+        "an acceptance without its `reason` or `basis` refused as a missing member alone (BC-048)",
+        'declarations.md:168 "Every acceptance MUST carry a `reason`"',
+        {"DeclarationCheck.shaped": reshaped(rule_dropped("BC-005"))},
+        module=build,
+    ),
+    "build_basis_unrequired": Mutant(
+        "an extrapolation, a nominal and a distribution taken without `basis`",
+        'declarations.md:168-169 "an extrapolation, a nominal and a distribution also carry the `basis` of '
+        'their number"',
+        {"NEEDS_BASIS": ()},
+        module=build,
+    ),
+    "build_basis_unrequired_of_an_extrapolation": Mutant(
+        "`basis` required of a nominal and a distribution, but not of an extrapolation",
+        'declarations.md:117 "| | `basis` | for `extrapolation`, `nominal` and `distribution` (item 4)"',
+        {"NEEDS_BASIS": ("nominal", "distribution")},
+        module=build,
+    ),
+    "build_basis_required_of_every_kind": Mutant(
+        "`basis` required of every acceptance, a waiver's included",
+        'declarations.md:117 "| | `basis` | for `extrapolation`, `nominal` and `distribution` (item 4)"',
+        {"NEEDS_BASIS": tuple(build.KINDS)},
+        module=build,
+    ),
+    "build_location_rule_unchecked": Mutant(
+        "an acceptance whose kind needs a location taken without one",
+        'declarations.md:359 "An acceptance whose kind needs a location and names none is refused"',
+        {"DeclarationCheck.shaped": reshaped(requirement_relaxed("located", "no"))},
+        module=build,
+    ),
+    "build_accepted_difference_needs_a_location": Mutant(
+        "an accepted difference refused without a location",
+        'declarations.md:352 "| `accepted_difference` | optional: absent, every location the model is '
+        "checked "
+        'over |"',
+        {
+            "KINDS": {
+                **build.KINDS,
+                "accepted_difference": {**build.KINDS["accepted_difference"], **build.LOCATIONS},
+            }
+        },
+        module=build,
+    ),
+    "build_implied_condition_located_optionally": Mutant(
+        "an implied condition taken without a location",
+        'declarations.md:351 "| `implied_condition` | `region`, `interval` or `record` |"',
+        {
+            "KINDS": {
+                **build.KINDS,
+                "implied_condition": {**build.KINDS["implied_condition"], **build.OPTIONAL_LOCATIONS},
+            }
+        },
+        module=build,
+    ),
+    "build_waiver_condition_unrequired": Mutant(
+        "a waiver's `condition` refused for every code",
+        'declarations.md:118 "a code names a condition where its reasons always carry one: the six '
+        '`condition_*` codes"',
+        {"CODES_NAMING_A_CONDITION": ()},
+        module=build,
+    ),
+    "build_unknown_code_names_a_condition": Mutant(
+        "a waiver whose `code` is no reason refused without a `condition`",
+        'declarations.md:118 "a waiver whose `code` is no reason names no condition"',
+        {"DeclarationCheck.waiver": unknown_code_names_a_condition},
+        module=build,
+    ),
+    "build_label_rule_unchecked": Mutant(
+        "a waiver naming a label taken whatever its requirement names",
+        'declarations.md:380-381 "the build refuses it at build unless the requirement for its field names '
+        'that `label` and holds `review: "reviewed"`"',
+        {"DeclarationCheck.waiver": faults_dropped(_build_waiver, no_bc_050)},
+        module=build,
+    ),
+    "build_label_rule_without_review": Mutant(
+        "a waiver naming a label taken where its requirement names the label without `review`",
+        'declarations.md:380-381 "names that `label` and holds `review: "reviewed"`"',
+        {"DeclarationCheck.waiver": label_rule_without_review},
+        module=build,
+    ),
+    "build_label_refusal_at_the_waiver": Mutant(
+        "BC-050's refusal pointed at the waiver, not at its `label`",
+        'declarations.md:148-149 "for a waiver naming a `label` that section 4.1 item 4 refuses, that '
+        "waiver's `label`\"",
+        {"DeclarationCheck.waiver": label_refusal_at_the_waiver},
+        module=build,
+    ),
+    # Items 7, 8 and 12, and the population_level rule
+    "build_item_8_unchecked": Mutant(
+        "a requirement that samples taken without `sampling.min_acceptance`",
+        'declarations.md:184-185 "A declaration in which a requirement samples, without it or with one '
+        "outside "
+        '(0, 1], is refused at build"',
+        {"DeclarationCheck.item_8": item_8_unchecked},
+        module=build,
+    ),
+    "build_population_level_rule_unchecked": Mutant(
+        "a population `represents` taken without `population_level`",
+        'declarations.md:64 "where `represents` is `population` and the field is sampled, '
+        '`population_level`"',
+        {"DeclarationCheck.population_level": faults_dropped(_build_population_level, no_bc_043)},
+        module=build,
+    ),
+    "build_scene_members_taken": Mutant(
+        "a domain, a path, `region_conditions` or a region taken without the scene suite",
+        'declarations.md:199-200 "where it does not claim the scene suite, a model checked over a domain or '
+        'a path, `region_conditions`"',
+        {"DeclarationCheck.lacks": lacks_but("scene_documents")},
+        module=build,
+    ),
+    "build_sampling_members_taken": Mutant(
+        "`sampling`, `represents`, `population_level` or a distribution taken without the sampling suite",
+        "declarations.md:201-203 \"where it does not claim the sampling suite, `sampling`, a requirement's "
+        '`represents` or `population_level`, and a `distribution`"',
+        {"DeclarationCheck.lacks": lacks_but("sampling")},
+        module=build,
+    ),
+    "build_distribution_taken": Mutant(
+        "a distribution acceptance taken without the sampling suite",
+        'declarations.md:202-203 "`represents` or `population_level`, and a `distribution` acceptance"',
+        {"DeclarationCheck.acceptance": faults_dropped(_build_acceptance, no_bc_051_at_a_distribution)},
+        module=build,
+    ),
+    "build_represents_taken": Mutant(
+        "a requirement's `represents` taken without the sampling suite",
+        "declarations.md:202 \"sampling suite, `sampling`, a requirement's `represents` or "
+        '`population_level`"',
+        {"DeclarationCheck.sampling": faults_dropped(_build_sampling, no_bc_051_at_represents)},
+        module=build,
+    ),
+    "build_claimed_suite_lacking": Mutant(
+        "a member a claimed suite checks refused as if the build did not claim it",
+        'declarations.md:199 "A build refuses at build what it cannot check"',
+        {"DeclarationCheck.lacks": every_suite_lacking},
+        "no case holds a scene, engine or sampling member under the suite that checks it; each of BC-051's "
+        "states that the build does not claim it",
+        module=build,
+    ),
+    "build_item_12_before_item_8": Mutant(
+        "a requirement item 8 refuses the declaration over refused at its `represents` by item 12 too",
+        'declarations.md:205-206 "where item 8 or that rule refuses the declaration over a requirement, that '
+        'requirement gives none"',
+        {"DeclarationCheck.sampling": item_12_before("BC-044")},
+        module=build,
+    ),
+    "build_item_12_before_the_population_level_rule": Mutant(
+        "a requirement the `population_level` rule refuses refused at its `represents` by item 12 too",
+        'declarations.md:205-206 "where item 8 or that rule refuses the declaration over a requirement, that '
+        'requirement gives none"',
+        {"DeclarationCheck.sampling": item_12_before("BC-043")},
+        module=build,
+    ),
+    "build_engine_refused_beside_item_7": Mutant(
+        "an engine model item 7 refuses refused at its `engine` by item 12 too",
+        'declarations.md:204-205 "where item 7 refuses a model with `engine`, its `engine` gives no refusal '
+        'under this item"',
+        {"DeclarationCheck.engine": engine_refused_beside_item_7},
+        module=build,
+    ),
+    "build_engine_withholds_every_member": Mutant(
+        "an engine model item 7 refuses giving no refusal under item 12 for any member, its domain's "
+        "included",
+        'declarations.md:204 "come first, member by member"',
+        {"DeclarationCheck.model_entry": engine_withholds_every_member},
+        module=build,
+    ),
+    "build_item_7_refusal_dropped": Mutant(
+        "an engine model checked over records taken",
+        'declarations.md:176-177 "one checked over a path or records, over a domain that includes the '
+        'background, or with another `want`, is refused at build"',
+        {"DeclarationCheck.engine": item_7_refusal_dropped},
+        module=build,
+    ),
+    "build_item_7_pointers_placed": Mutant(
+        "a fault inside an engine model's `engine`, or at its requirement's `want`, placed as its own rule's",
+        "item 7 may name such a fault first, at a pointer the text does not fix (OPEN_POINTS: "
+        "item_7_pointers)",
+        {"DeclarationCheck.engine": item_7_pointers_placed},
+        "no case holds a fault inside an engine model's `engine`, or at its requirement's `want`",
+        module=build,
+    ),
+    # Precedence
+    "build_precedence_reversed": Mutant(
+        "a fault two rules name carrying the last rule's case, not the first's",
+        'declarations.md:155-157 "A fault more than one rule names carries the case of the first of: '
+        "items 3, "
+        '4, 7 and 8, the"',
+        {"first_rule": last_rule},
+        module=build,
+    ),
+    "build_every_rule_reported": Mutant(
+        "a fault two rules name refused under both",
+        'declarations.md:155 "A fault more than one rule names carries the case of the first of"',
+        {"refusals_of": every_rule},
+        module=build,
+    ),
+    # The rulings of 2026-10-24, whose words land with S7a-1b's first commit
+    "build_condition_unknown_name_refused": Mutant(
+        "a waiver of `condition_unknown_name` refused at its `code`, which is a reason, though no waiver "
+        "covers it (section 4.2, S7a-2's)",
+        'declarations.md:118 "a waiver\'s `code`, a reason of `read_side_contract.md` section 4"; '
+        'read_side_contract.md:398 "| `condition_unknown_name` | unknown | 10 | a condition name the reader '
+        'does not know |"',
+        {"DeclarationCheck.waiver": condition_unknown_name_refused},
+        "no case on this branch holds a waiver of `condition_unknown_name`",
+        module=build,
+    ),
+    "build_basis_on_any_kind": Mutant(
+        "a `basis` on a waiver, an implied condition, an accepted difference, a pick or an overlay taken",
+        'declarations.md:117 "| | `basis` | for `extrapolation`, `nominal` and `distribution` (item 4)", the '
+        "maintainer's ruling of 2026-10-24 (OPEN_POINTS: basis_on_other_kinds)",
+        {"KINDS": {kind: {**place, "basis": (str, "no")} for kind, place in build.KINDS.items()}},
+        "no case holds a `basis` on an acceptance of another kind",
+        module=build,
+    ),
+    "build_population_level_beside_any_represents": Mutant(
+        "a `population_level` beside a `represents` that is not `population` taken, and refused by item 12 "
+        "where the build does not claim the sampling suite",
+        "the maintainer's ruling of 2026-10-24 (OPEN_POINTS: population_level_beside_another_represents)",
+        {
+            "DeclarationCheck.population_level": faults_dropped(
+                _build_population_level, no_level_beside_another_represents
+            ),
+            "DeclarationCheck.sampling": item_12_beside_another_represents,
+        },
+        "no case holds a `population_level` beside another `represents`",
+        module=build,
     ),
 }
