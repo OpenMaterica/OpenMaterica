@@ -16,7 +16,7 @@
     "refusals": [
       {
         "item": "BC-048",
-        "pointer": "/models/0/acceptances/0/condition"
+        "pointer": "/models/0/acceptances/0/code"
       }
     ]
   },

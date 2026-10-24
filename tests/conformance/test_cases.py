@@ -63,14 +63,14 @@ def test_every_report_a_run_build_check_file_gets_validates_against_the_report_s
     `read_result.json` takes each read's result. The control: a report holding a result beside its refusals,
     which section 2 does not give, is refused for each."""
     builds = [case_file for case_file in RUN if case_file.operation == "check_build"]
-    assert len(builds) == 54
+    assert len(builds) == 55
     assert results_refused(builds, EXECUTORS, "build_report.json") == []
 
     def with_a_result(case_file: CaseFile, claims: frozenset[Suite]) -> runner.JsonObject:
         report = EXECUTORS["check_build"](case_file, claims)
         return {**report, "results": [{"model": "drag", "fields": ["a.b", "c.d"]}]}
 
-    assert len(results_refused(builds, {"check_build": with_a_result}, "build_report.json")) == 54
+    assert len(results_refused(builds, {"check_build": with_a_result}, "build_report.json")) == 55
 
 
 def test_a_result_the_result_schema_refuses_is_found() -> None:
@@ -83,9 +83,9 @@ def test_a_result_the_result_schema_refuses_is_found() -> None:
 
 def test_every_case_file_is_counted() -> None:
     runs = runner.run_all(CASE_FILES, configurations=CONFIGURATIONS, executors=EXECUTORS)
-    assert len(runs) == 1634
+    assert len(runs) == 1635
     assert Counter(case_run.outcome for case_run in runs) == {
-        Outcome.PASSED: 1235,
+        Outcome.PASSED: 1236,
         Outcome.VERIFIED: 35,
         Outcome.NOT_YET_RUNNABLE: 364,
     }
@@ -94,7 +94,7 @@ def test_every_case_file_is_counted() -> None:
         (Outcome.PASSED, "content_hash"): 51,
         (Outcome.PASSED, "read"): 1105,
         (Outcome.PASSED, "list_records"): 25,
-        (Outcome.PASSED, "check_build"): 54,
+        (Outcome.PASSED, "check_build"): 55,
         (Outcome.VERIFIED, "evaluate"): 35,
         (Outcome.NOT_YET_RUNNABLE, "read"): 110,
         (Outcome.NOT_YET_RUNNABLE, "check"): 184,
@@ -111,8 +111,8 @@ def test_each_configuration_runs_every_case_file_that_holds_for_it() -> None:
         CONFIGURATIONS[0]: 1276,
         CONFIGURATIONS[1]: 1218,
         CONFIGURATIONS[2]: 1276,
-        CONFIGURATIONS[3]: 1387,
-        CONFIGURATIONS[4]: 1329,
+        CONFIGURATIONS[3]: 1388,
+        CONFIGURATIONS[4]: 1330,
         runner.REFERENCE_EVALUATOR: 35,
     }
 

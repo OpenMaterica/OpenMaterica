@@ -1,0 +1,34 @@
+{
+  "case": "BC-051",
+  "variant": "population_level_without_represents",
+  "suite": "build_checks",
+  "schema_version": "0.1.0",
+  "claims": {
+    "sampling": false
+  },
+  "inputs": {
+    "records": [
+      "water_fixture.json"
+    ],
+    "declaration": "bc051_population_level_without_represents.json"
+  },
+  "request": {
+    "operation": "check_build"
+  },
+  "expected": {
+    "refusals": [
+      {
+        "item": "BC-043",
+        "pointer": "/models/0/requirements/0/population_level"
+      }
+    ]
+  },
+  "compare": {
+    "members": [
+      "refusals",
+      "results",
+      "watches",
+      "unused"
+    ]
+  }
+}

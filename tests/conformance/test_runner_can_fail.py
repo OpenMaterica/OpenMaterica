@@ -932,17 +932,9 @@ def duplicate_requirement_taken(monkeypatch: pytest.MonkeyPatch) -> Executor:
 
 
 def waives_an_unknown_condition_name(monkeypatch: pytest.MonkeyPatch) -> Executor:
-    """A waiver of `condition_unknown_name` taking any condition name, the reading the ruling of 2026-10-24
-    set aside: its `condition` unchecked."""
-    original: Rule = vars(declarations)["_kind_tokens"]
-
-    def kind_tokens(kind: str, value: JsonObject, at: str) -> list[declarations.Finding]:
-        found = original(kind, value, at)
-        if value.get("code") == "condition_unknown_name":
-            return [finding for finding in found if finding.pointer != f"{at}/condition"]
-        return found
-
-    monkeypatch.setattr(declarations, "_kind_tokens", kind_tokens)
+    """A waiver whose `code` is `condition_unknown_name` taken, the clause of 2026-10-24 off: that code among
+    those a waiver takes."""
+    monkeypatch.setitem(declarations.TOKENS, ("waiver", "code"), tuple(VOCABULARY.reasons))
     return runner.check_build_executor()
 
 

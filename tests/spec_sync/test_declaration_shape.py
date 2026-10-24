@@ -359,15 +359,23 @@ def test_a_schema_that_drifts_from_the_shape_is_found(files: dict[str, Json], pr
     assert any(found.startswith(problem) for found in schema_problems(SHAPE, files))
 
 
-def tokens_of(node: Json, file: str, files: dict[str, Json] = FILES) -> list[str]:
-    """The tokens a member's schema takes: its `enum` or `const`, through a `$ref`, its items' or map's."""
-    if "$ref" in node:
-        node, file = resolve(cast(str, node["$ref"]), file, files)
-        return tokens_of(node, file, files)
-    for key in ("items", "additionalProperties"):
-        if isinstance(node.get(key), dict):
-            return tokens_of(cast(Json, node[key]), file, files)
+def listed_tokens(node: Json) -> list[str]:
     return cast(list[str], node["enum"]) if "enum" in node else [cast(str, node["const"])]
+
+
+def tokens_of(node: Json, file: str, files: dict[str, Json] = FILES) -> list[str]:
+    """The tokens a member's schema takes: its `enum` or `const`, through a `$ref`, its items' or map's, less
+    those its `not` refuses (a waiver's `code`)."""
+    refused = listed_tokens(cast(Json, node["not"])) if isinstance(node.get("not"), dict) else []
+    if "$ref" in node:
+        target, in_file = resolve(cast(str, node["$ref"]), file, files)
+        taken = tokens_of(target, in_file, files)
+    elif isinstance(node.get("items"), dict) or isinstance(node.get("additionalProperties"), dict):
+        key = "items" if isinstance(node.get("items"), dict) else "additionalProperties"
+        taken = tokens_of(cast(Json, node[key]), file, files)
+    else:
+        taken = listed_tokens(node)
+    return [token for token in taken if token not in refused]
 
 
 TOKEN_DEFINITIONS = {
@@ -415,6 +423,13 @@ def test_declaration_json_takes_shapes_tokens() -> None:
 def test_a_token_list_that_drifts_is_found() -> None:
     assert token_problems(TOKENS | {("distribution", "space"): ("identity",)}) == [
         "the distribution's space takes ['identity', 'log'] in the schema"
+    ]
+    # A waiver's code: the schema's `not` beside the reasons it takes from the vocabulary.
+    codes_taken = changed(
+        "declaration.json", "waiver", lambda d: cast(Json, cast(Json, d["properties"])["code"]).pop("not")
+    )
+    assert [problem.partition(" takes ")[0] for problem in token_problems(TOKENS, codes_taken)] == [
+        "the waiver's code"
     ]
     files = changed(
         "declaration.json",
