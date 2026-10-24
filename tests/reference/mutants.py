@@ -2087,7 +2087,7 @@ MUTANTS: Mapping[str, Mutant] = {
     ),
     "implied_fills_any_condition": Mutant(
         "an implied condition fills a stated condition, or one held as another status object",
-        'declarations.md:361-363 "An implied condition never overrides a stated condition"',
+        'declarations.md:363-365 "An implied condition never overrides a stated condition"',
         {"unstated_or_absent": fills_anything},
     ),
     "disagreeing_implied_conditions_read": Mutant(
@@ -2302,17 +2302,17 @@ MUTANTS: Mapping[str, Mutant] = {
     ),
     "empty_law_accepted": Mutant(
         "an empty `law` accepted",
-        'declarations.md:353 "`law` (text of at least one character, which a reader does not judge)"',
+        'declarations.md:355 "`law` (text of at least one character, which a reader does not judge)"',
         {"is_law": any_string_a_law},
     ),
     "white_space_law_refused": Mutant(
         "a `law` of white space refused",
-        'declarations.md:353 "`law` (text of at least one character, which a reader does not judge)"',
+        'declarations.md:355 "`law` (text of at least one character, which a reader does not judge)"',
         {"is_law": white_space_no_law},
     ),
     "extrapolation_method_unchecked": Mutant(
         "an extrapolation's `method` unchecked",
-        'declarations.md:353 "`method` (`constant` or `consumer_law`)"',
+        'declarations.md:355 "`method` (`constant` or `consumer_law`)"',
         {"EXTRAPOLATION_METHODS": EveryMethod()},
     ),
     "assumption_with_its_basis": Mutant(
