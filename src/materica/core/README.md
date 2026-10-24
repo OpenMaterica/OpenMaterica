@@ -84,6 +84,9 @@ sources ─▶ record.RecordStore.add ─▶ candidates by id and version,      
 | `conditions.py` | step 10: the conditions checked, each against the request by section 5's table, on the exact values of the doubles, with a stated `plus_minus`, and the implied conditions the read applies (`declarations.md` section 4.1); a result's condition entries |
 | `read.py` | the request's own check (step 0), its implied conditions, nominals and extrapolations included, an acceptance of a kind a read does not take refused; the read of a value field, steps 8 to 13 (`read_value_field`), an extrapolation applied at step 11 to a table read outside its readable range (S3c) and a nominal at step 13, and of alternatives at step 7 with no pick and no overlay (S4a), a table alternative set aside, kept or refusing the field by its reasons at step 11 (S4d), each reason found reading one carrying its index; the result (`ReadResult`, `FieldRead`, `ProvenanceSummary`), its members as stored by the generated shapes, each count and index an integer, and the acceptances it applied (`applied`); picks and overlays are not built yet |
 | `evaluate.py` | a table at an operating value of its axis (`record_format.md` section 6, table items 3 and 4; `read_side_contract.md` section 5): its readable range, its edges, the knots that bracket the value, and the table's number there, the exact value rounded once to the nearest double, ties to even (a log-log one under the one assumption `loglog` states); step 11 uses it, in `read.range_report` (its reasons and report) and `read.form_range` (the table's number, at the operating value or, under an extrapolation, at the readable range's nearest end) |
+| `declarations.py` | `declarations.md` section 1: a consumer's declaration checked on its own, by hand, against `SHAPE`, the table of its shape place by place (held to the text and to `schema/0.1/declaration.json` by `tests/spec_sync/test_declaration_shape.py`); each rule one function naming its cases (the shape, tokens and names, BC-048; reasons, BC-004 and BC-005; locations, BC-037; labels, BC-050; items 7, 8, 12 and the `population_level` rule, BC-040, BC-044, BC-043 and BC-051), every fault found, one refusal per fault by the precedence rule; a declaration that passes, typed (`Declaration`, `ModelEntry`, `Requirement`, `Acceptance`) |
+| `report.py` | the build's report (section 2) and a refusal of the declaration (`BuildRefusal`): S7a-1's report is a refused declaration's, its refusals alone, its declaration and consumer as given |
+| `build.py` | `check_build`: the claims, the declaration's own check, a report of its refusals; past the check it raises `NotImplementedError` naming each acceptance and the piece that reads it (S7a-2 to S7a-4, S7c) |
 
 The conformance cases HS-001 to HS-003 check the hash end to end; the plain-read cases, HS-010 and HS-011 the
 read, through step 13 for a constant, an interval, a composition and evidence (`tests/conformance/`). The table evaluation cases, which OpenMaterica claims none of, check
@@ -96,7 +99,9 @@ read, through step 13 for a constant, an interval, a composition and evidence (`
   a misuse of the Python API (`canonicalize` given a value `parse` would never give; claims no reader makes, a
   suite that does not exist or claims without plain read) or a step not built yet: a read whose answer a later
   step would decide raises `NotImplementedError` rather than give one, whatever else is wrong with the request
-  (`tests/property/test_read_properties.py`, `tests/unit/test_read.py`).
+  (`tests/property/test_read_properties.py`, `tests/unit/test_read.py`). The build is alike: a declaration gives
+  a report of its refusals, and one that passes its own check raises until the pieces that read it are built
+  (`tests/unit/test_declarations.py`).
 - **A request is JSON text or a value.** Text is a `str` or bytes-like (`bytes`, `bytearray`, `memoryview`),
   read like a record's bytes; a `str` is always text, as a JSON string is never a request. Any other value is
   read as the JSON text `json.dumps` writes of it.
