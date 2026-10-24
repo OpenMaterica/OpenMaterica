@@ -24,6 +24,7 @@ from typing import Literal, TypedDict
 
 import materica
 from materica.core import hashing, jsonio
+from materica.core.build import check_build
 from materica.core.jsonio import JsonValue
 from materica.core.read import read
 from materica.core.reasons import Reason
@@ -281,6 +282,8 @@ def compare(case_file: CaseFile, result: Mapping[str, JsonValue]) -> list[str]:
     """
     if case_file.operation == "evaluate":
         return _evaluation_runs_differ(case_file, result)
+    if case_file.operation == "check_build":
+        return _build_differs(case_file, result)
     differences: list[str] = []
     for member in case_file.members:
         if member == "labels":
@@ -302,6 +305,44 @@ def compare(case_file: CaseFile, result: Mapping[str, JsonValue]) -> list[str]:
         if difference is not None:
             differences.append(f"{member}: {difference}")
     return differences
+
+
+def _build_differs(case_file: CaseFile, report: Mapping[str, JsonValue]) -> list[str]:
+    """How a build's report differs from a build-check case's expected answer (README, "Case files"):
+    `refusals` as a set of their `item` and `pointer`, `detail` never, and only those of the rules
+    `compare.rules_compared` names where it names any; and a member `compare` names and `expected` omits or
+    gives empty must be absent or empty, as a refused declaration's `results`, `watches` and `unused` are (the
+    S7 design's 5.1). Raises `CaseFileError` for a case that expects results, watches or unused acceptances,
+    whose comparison arrives with S7a-2, the piece that gives them."""
+    differences: list[str] = []
+    for member in case_file.members:
+        expected, got = case_file.expected.get(member, []), report.get(member, [])
+        if member == "refusals":
+            wanted, found = _refusal_set(case_file, expected), _refusal_set(case_file, got)
+            if found != wanted:
+                differences.append(
+                    f"refusals: missing {sorted(wanted - found)}, unexpected {sorted(found - wanted)}"
+                )
+        elif expected != []:
+            raise CaseFileError(f"{case_file.path.name}: comparing a build's {member} arrives with S7a-2")
+        elif got != []:
+            differences.append(f"{member}: must be absent or empty, got {got!r}")
+    return differences
+
+
+def _refusal_set(case_file: CaseFile, refusals: JsonValue) -> set[tuple[str, str]]:
+    """Each refusal's `item` and `pointer`, of the rules compared; a report's refusal lacking either is kept
+    as the refusal it is, so that it differs from every expected one."""
+    found: set[tuple[str, str]] = set()
+    for refusal in refusals if isinstance(refusals, list) else [refusals]:
+        item, pointer = (
+            refusal.get(name) if isinstance(refusal, dict) else None for name in ("item", "pointer")
+        )
+        if not (isinstance(item, str) and isinstance(pointer, str)):
+            found.add(("not a refusal", json.dumps(refusal, sort_keys=True)))
+        elif not case_file.rules or item in case_file.rules:
+            found.add((item, pointer))
+    return found
 
 
 def _labels_differ(case_file: CaseFile, expected_labels: JsonValue, labels: JsonValue) -> str | None:
@@ -523,6 +564,21 @@ def read_executor() -> Executor:
         written = jsonio.parse(json.dumps(read(request, store, claims=claims).to_json()).encode())
         assert not isinstance(written, Reason), written
         return _object(written, "the result")
+
+    return execute
+
+
+def check_build_executor() -> Executor:
+    """A build of the declaration the file `inputs.declaration` names over the records `inputs.records` names,
+    its bytes given as they are, so that a declaration that is not JSON can be. The report goes through JSON
+    text, as a consumer would receive it."""
+
+    def execute(case_file: CaseFile, claims: frozenset[Suite]) -> JsonObject:
+        store = load_records(case_file.input_paths("records"))
+        report = check_build(case_file.input_bytes("declaration"), store, claims=claims)
+        written = jsonio.parse(json.dumps(report.to_json()).encode())
+        assert not isinstance(written, Reason), written
+        return _object(written, "the report")
 
     return execute
 
@@ -778,6 +834,9 @@ def _pair(value: JsonValue, what: str) -> tuple[float, float]:
 # `want_mismatch` for each of the suite's `want`s, which no constant can give, and raises for `fit` on a
 # field holding a fit record, which the suite reads: so claiming it gives no answer a step not built could
 # change.
+# Then a build's: the build checks with plain read and HS, as a build claims by default
+# (`materica.core.declarations.CLAIMS`), and with plain read alone. A build claims neither the scene suite,
+# USD read nor the sampling suite yet, so a build-check case that states those claims false runs under both.
 # Last, the reference evaluator's: the table evaluation suite alone, which `materica` does not claim, at each
 # precision and side (`EVALUATOR_CLAIMS`).
 REFERENCE_EVALUATOR: frozenset[Suite] = frozenset({"table_evaluation"})
@@ -785,11 +844,14 @@ CONFIGURATIONS: tuple[frozenset[Suite], ...] = (
     frozenset({"plain_read", "hash"}),
     frozenset({"plain_read"}),
     frozenset({"plain_read", "hash", "fits_and_reference_data"}),
+    frozenset({"plain_read", "hash", "build_checks"}),
+    frozenset({"plain_read", "build_checks"}),
     REFERENCE_EVALUATOR,
 )
 EXECUTORS: dict[str, Executor] = {
     "content_hash": content_hash_executor(),
     "read": read_executor(),
     "list_records": list_records_executor(),
+    "check_build": check_build_executor(),
     "evaluate": evaluate_executor(),
 }

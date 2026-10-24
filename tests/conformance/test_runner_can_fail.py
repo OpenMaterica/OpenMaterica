@@ -17,12 +17,24 @@ from typing import NamedTuple
 import pytest
 
 from materica import shapes
-from materica.core import canonical, envelope, fields, hashing, jsonio, read, record, resolve, value_shapes
+from materica.core import (
+    canonical,
+    declarations,
+    envelope,
+    fields,
+    hashing,
+    jsonio,
+    read,
+    record,
+    resolve,
+    value_shapes,
+)
 from materica.core.fields import RecordField
 from materica.core.identifiers import MaterialRef
 from materica.core.jsonio import JsonValue
 from materica.core.reasons import Reason
 from materica.core.record import Record, RecordStore
+from materica.core.report import BuildRefusal
 from materica.core.resolve import Refused, ResolvedRecord
 from materica.core.slips import one_slip
 from materica.core.vocabulary import VOCABULARY, ConditionSpec, RecordFieldSpec
@@ -835,6 +847,120 @@ def counts_a_read_over_a_range_as_giving(monkeypatch: pytest.MonkeyPatch) -> Exe
     return EXECUTORS["read"]
 
 
+# Builds with one fault: the declaration's own check, with one rule's findings changed (S7a-1). Each fails an
+# S7a-1 file.
+
+Rule = Callable[..., list[declarations.Finding]]
+
+
+def _filtered(
+    monkeypatch: pytest.MonkeyPatch, rule: str, drop: Callable[[declarations.Finding, JsonObject], bool]
+) -> Executor:
+    """The build with the findings of `rule` that `drop` names left out."""
+    original: Rule = vars(declarations)[rule]
+
+    def filtered(declaration: JsonObject, *rest: object) -> list[declarations.Finding]:
+        return [finding for finding in original(declaration, *rest) if not drop(finding, declaration)]
+
+    monkeypatch.setattr(declarations, rule, filtered)
+    return runner.check_build_executor()
+
+
+def _refusals_changed(
+    monkeypatch: pytest.MonkeyPatch, change: Callable[[tuple[BuildRefusal, ...]], tuple[BuildRefusal, ...]]
+) -> Executor:
+    original: Callable[[list[declarations.Finding]], tuple[BuildRefusal, ...]] = vars(declarations)[
+        "_precedence"
+    ]
+
+    def precedence(found: list[declarations.Finding]) -> tuple[BuildRefusal, ...]:
+        return change(original(found))
+
+    monkeypatch.setattr(declarations, "_precedence", precedence)
+    return runner.check_build_executor()
+
+
+def reason_unchecked(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    def no_reasons(declaration: JsonObject) -> list[declarations.Finding]:
+        return []
+
+    monkeypatch.setattr(declarations, "_reasons", no_reasons)
+    return runner.check_build_executor()
+
+
+def first_fault_only(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    return _refusals_changed(monkeypatch, lambda refusals: refusals[:1])
+
+
+def unknown_member_ignored(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    places: Callable[[JsonObject], Iterable[declarations.Visit]] = vars(declarations)["_places"]
+    members_of: Callable[[str], dict[str, declarations.Member]] = vars(declarations)["_members_of"]
+
+    def unknown(finding: declarations.Finding, declaration: JsonObject) -> bool:
+        return any(
+            finding.pointer == f"{visit.pointer}/{name}"
+            for visit in places(declaration)
+            for name in visit.value
+            if name not in members_of(visit.place)
+        )
+
+    return _filtered(monkeypatch, "_shape", unknown)
+
+
+def scene_accepted(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """A model checked over a domain read as one checked over no records: its domain taken."""
+    return _filtered(
+        monkeypatch, "_suites", lambda finding, _: finding.pointer.endswith("/checked_over/domain")
+    )
+
+
+def pointer_off_by_one(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    def moved(refusal: BuildRefusal) -> BuildRefusal:
+        pointer = re.sub(r"^/models/(\d+)", lambda found: f"/models/{int(found[1]) + 1}", refusal.pointer)
+        return replace(refusal, pointer=pointer)
+
+    return _refusals_changed(monkeypatch, lambda refusals: tuple(map(moved, refusals)))
+
+
+def review_token_unchecked(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    return _filtered(monkeypatch, "_tokens", lambda finding, _: finding.pointer.endswith("/review"))
+
+
+def duplicate_requirement_taken(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    entry = re.compile(r"/models/\d+/requirements/\d+")
+    return _filtered(monkeypatch, "_names", lambda finding, _: entry.fullmatch(finding.pointer) is not None)
+
+
+def waives_an_unknown_condition_name(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """A waiver of `condition_unknown_name` taking any condition name, the reading the ruling of 2026-10-24
+    set aside: its `condition` unchecked."""
+    original: Rule = vars(declarations)["_kind_tokens"]
+
+    def kind_tokens(kind: str, value: JsonObject, at: str) -> list[declarations.Finding]:
+        found = original(kind, value, at)
+        if value.get("code") == "condition_unknown_name":
+            return [finding for finding in found if finding.pointer != f"{at}/condition"]
+        return found
+
+    monkeypatch.setattr(declarations, "_kind_tokens", kind_tokens)
+    return runner.check_build_executor()
+
+
+def takes_basis_on_every_kind(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """`basis` named on a waiver, as the shape table could be read before the ruling of 2026-10-24."""
+    basis = next(member for member in declarations.SHAPE["extrapolation"] if member.name == "basis")
+    monkeypatch.setitem(declarations.SHAPE, "waiver", (*declarations.SHAPE["waiver"], basis))
+    return runner.check_build_executor()
+
+
+def takes_a_population_level_beside_another_represents(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """The `population_level` rule as it read before the ruling of 2026-10-24: its absence refused beside
+    `population`, and its presence beside another `represents` taken."""
+    return _filtered(
+        monkeypatch, "_suites", lambda finding, _: finding.case == "BC-043" and finding.aspect is None
+    )
+
+
 def _without(value: JsonValue, removed: str) -> JsonValue:
     if isinstance(value, list):
         return [_without(item, removed) for item in value]
@@ -861,6 +987,23 @@ def _depth_counting_scalars(value: JsonValue) -> int:
     return 1
 
 
+# S7a-1's broken builds, each against the S7a-1 file that catches it (the S7 design's 6.4, and one for each
+# rule of the clauses of 2026-10-24).
+BUILD_FAULTS: list[tuple[Fault, str]] = [
+    (reason_unchecked, "BC-005.waiver_without_reason.json"),
+    (first_fault_only, "BC-004.two_models_both_listed.json"),
+    (unknown_member_ignored, "BC-048.slip_acceptance_for_acceptances.json"),
+    (scene_accepted, "BC-051.checked_over_domain.json"),
+    (pointer_off_by_one, "BC-005.waiver_without_reason.json"),
+    (review_token_unchecked, "BC-048.review_not_a_token.json"),
+    (duplicate_requirement_taken, "BC-048.two_requirements_for_one_field.json"),
+    (waives_an_unknown_condition_name, "BC-048.waiver_of_an_unknown_condition_name.json"),
+    (takes_basis_on_every_kind, "BC-048.basis_on_a_waiver.json"),
+    (
+        takes_a_population_level_beside_another_represents,
+        "BC-051.population_level_beside_another_represents.json",
+    ),
+]
 FAULTS: list[tuple[Fault, str]] = [
     (keeps_card, "HS-001.top_level_removed.json"),
     (removes_review_outside_provenance, "HS-001.outside_kept.json"),
@@ -931,6 +1074,7 @@ FAULTS: list[tuple[Fault, str]] = [
     (takes_the_first_stored_unit, "PR-013.evidence_unit_of_the_first_that_stays.json"),
     (sets_an_edge_aside, "PR-044.at_edge_under_extrapolation_refuses.json"),
     (counts_a_read_over_a_range_as_giving, "PR-013.two_tables_over_operating_range_want_mismatch.json"),
+    *BUILD_FAULTS,
 ]
 # S4d's broken readers fail S4d's case files alone: each pins a rule no earlier piece's case file reads.
 S4D_FAULTS = (sets_an_edge_aside, counts_a_read_over_a_range_as_giving)
@@ -1374,6 +1518,13 @@ def test_s4ds_broken_readers_fail_s4ds_case_files_alone(
     failed = failed_cases("read", fault(monkeypatch))
     assert failed, fault.__name__
     assert failed <= s4d, sorted(failed - s4d)
+
+
+@pytest.mark.parametrize(
+    ("fault", "catcher"), BUILD_FAULTS, ids=[fault.__name__ for fault, _ in BUILD_FAULTS]
+)
+def test_each_broken_build_is_caught_by_an_s7a_1_file(fault: Fault, catcher: str) -> None:
+    assert runner.steps(CASE_FILES[catcher]) == ("S7a-1",)
 
 
 @pytest.mark.parametrize("operation", sorted(EXECUTORS))

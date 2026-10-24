@@ -581,3 +581,34 @@ requirement's `want` and `conditions`, and the declared operating conditions (`d
 7). Before, item 7 said only which acceptances a read is given; a build that copied the whole requirement into
 its request would have had every read of a requirement holding `label` or `review` refused, since
 `read_side_contract.md` section 1 refuses a request whose requirement holds either (BC-009).
+
+Settled with S7a-1a's open points (maintainer, 2026-10-24, as recommended): `condition_unknown_name` is never
+accepted (`declarations.md` section 4.2). A condition name the reader does not know is a typo or a version
+mismatch, which the reader's upgrade remedies, not a waiver. Before, `declarations.md` section 4.2's first row
+listed it among the reasons a waiver naming that condition and code covers, but such a waiver names its
+condition, which takes only a name the build's version registers (`declarations.md` section 1), so no
+declaration could name the one the reader did not know (BC-038, BC-048).
+
+Settled with the same open points (maintainer, 2026-10-24, as recommended): `basis` is a member of an
+extrapolation, a nominal and a distribution alone (`declarations.md` section 1, the table of the declaration's
+shape). Every other kind of acceptance holding one departs from its shape, as a member the table does not name
+there; a `basis` inside an implied condition's `implies` is still ignored. Before, the table named `basis` at
+the acceptance's place, required "for `extrapolation`, `nominal` and `distribution`", which could be read as
+naming it on every kind, and the declaration's schema took it on all nine (BC-048).
+
+Settled with the same open points (maintainer, 2026-10-24, as recommended): a requirement holding
+`population_level` beside a `represents` that is not `population` is refused at build, by the
+`population_level` rule (`declarations.md` section 1, the members table and the table of the declaration's
+shape), at its `population_level`. Before, that rule refused only a population requirement without one, and a
+`population_level` beside another `represents` was taken (BC-043).
+
+Settled with the same open points (maintainer, 2026-10-24, as recommended): a watch holds `unit` with an
+`interval` only, a token condition having none (`declarations.md` section 8 item 1). Before, the item listed
+`unit` among every watch's members, where an accept-list watch's condition has no unit; the report's schema
+already required `unit` with an `interval` alone (BC-030).
+
+Settled with the same open points (maintainer, 2026-10-24, as recommended): the report of a declaration
+refused on its own holds the declaration as given where its text is JSON, and its `consumer` where the
+declaration declares one (`declarations.md` section 2). Before, `declarations.md` section 2 listed both among
+the report's members with no word on a text that is not JSON, of which neither can be given, and the report's
+schema let a refused report omit both.

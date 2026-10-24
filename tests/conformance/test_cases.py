@@ -34,10 +34,12 @@ def test_case_file(case_file: CaseFile) -> None:
     assert case_run.outcome is runner.passing_outcome(case_file), "\n".join(case_run.differences)
 
 
-def results_refused(case_files: list[CaseFile], executors: Mapping[str, runner.Executor]) -> list[str]:
+def results_refused(
+    case_files: list[CaseFile], executors: Mapping[str, runner.Executor], schema: str = "read_result.json"
+) -> list[str]:
     """Each case file whose result, as `executors` give it under the first configuration that agrees with
-    it, `read_result.json` refuses, with the first reason."""
-    takes_result = validator("read_result.json")
+    it, `schema` refuses, with the first reason."""
+    takes_result = validator(schema)
     refused: list[str] = []
     for case_file in case_files:
         claims = runner.agreeing(case_file, CONFIGURATIONS)[0]
@@ -51,9 +53,24 @@ def test_every_result_a_run_case_file_gets_validates_against_the_result_schema()
     """`read_result.json` takes each result this implementation gives a case file it runs, not only each case
     file's expected answer (S2a-4's review, L1). A table evaluation case is no read: its result holds a run
     for each precision and side the evaluator claims, which the result schema does not describe."""
-    reads = [case_file for case_file in RUN if case_file.operation != "evaluate"]
+    reads = [case_file for case_file in RUN if case_file.operation not in ("evaluate", "check_build")]
     assert len(reads) > 700
     assert results_refused(reads, EXECUTORS) == []
+
+
+def test_every_report_a_run_build_check_file_gets_validates_against_the_report_schema() -> None:
+    """`build_report.json` takes each report this implementation gives a build-check file it runs, as
+    `read_result.json` takes each read's result. The control: a report holding a result beside its refusals,
+    which section 2 does not give, is refused for each."""
+    builds = [case_file for case_file in RUN if case_file.operation == "check_build"]
+    assert len(builds) == 54
+    assert results_refused(builds, EXECUTORS, "build_report.json") == []
+
+    def with_a_result(case_file: CaseFile, claims: frozenset[Suite]) -> runner.JsonObject:
+        report = EXECUTORS["check_build"](case_file, claims)
+        return {**report, "results": [{"model": "drag", "fields": ["a.b", "c.d"]}]}
+
+    assert len(results_refused(builds, {"check_build": with_a_result}, "build_report.json")) == 54
 
 
 def test_a_result_the_result_schema_refuses_is_found() -> None:
@@ -66,21 +83,22 @@ def test_a_result_the_result_schema_refuses_is_found() -> None:
 
 def test_every_case_file_is_counted() -> None:
     runs = runner.run_all(CASE_FILES, configurations=CONFIGURATIONS, executors=EXECUTORS)
-    assert len(runs) == 1631
+    assert len(runs) == 1634
     assert Counter(case_run.outcome for case_run in runs) == {
-        Outcome.PASSED: 1181,
+        Outcome.PASSED: 1235,
         Outcome.VERIFIED: 35,
-        Outcome.NOT_YET_RUNNABLE: 415,
+        Outcome.NOT_YET_RUNNABLE: 364,
     }
     by_operation = Counter((case_run.outcome, case_run.case_file.operation) for case_run in runs)
     assert by_operation == {
         (Outcome.PASSED, "content_hash"): 51,
         (Outcome.PASSED, "read"): 1105,
         (Outcome.PASSED, "list_records"): 25,
+        (Outcome.PASSED, "check_build"): 54,
         (Outcome.VERIFIED, "evaluate"): 35,
         (Outcome.NOT_YET_RUNNABLE, "read"): 110,
         (Outcome.NOT_YET_RUNNABLE, "check"): 184,
-        (Outcome.NOT_YET_RUNNABLE, "check_build"): 108,
+        (Outcome.NOT_YET_RUNNABLE, "check_build"): 57,
         (Outcome.NOT_YET_RUNNABLE, "quote_sha256"): 13,
     }
 
@@ -93,6 +111,8 @@ def test_each_configuration_runs_every_case_file_that_holds_for_it() -> None:
         CONFIGURATIONS[0]: 1276,
         CONFIGURATIONS[1]: 1218,
         CONFIGURATIONS[2]: 1276,
+        CONFIGURATIONS[3]: 1387,
+        CONFIGURATIONS[4]: 1329,
         runner.REFERENCE_EVALUATOR: 35,
     }
 
@@ -131,9 +151,9 @@ def test_a_case_passes_only_where_a_variant_ran() -> None:
     )
     assert len(outcomes) == 148
     assert Counter(outcomes.values()) == {
-        Outcome.PASSED: 97,
+        Outcome.PASSED: 103,
         Outcome.VERIFIED: 10,
-        Outcome.NOT_YET_RUNNABLE: 41,
+        Outcome.NOT_YET_RUNNABLE: 35,
     }
 
 

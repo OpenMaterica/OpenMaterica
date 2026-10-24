@@ -356,9 +356,10 @@
       "allOf": [{"$ref": "#/$defs/label_binding"}, {"$ref": "#/$defs/population_level_rule"}]
     },
     "population_level_rule": {
-      "description": "population_level, where represents is population (the members table).",
+      "description": "population_level, where represents is population, and never beside another represents (the members table).",
       "if": {"required": ["represents"], "properties": {"represents": {"const": "population"}}},
-      "then": {"required": ["population_level"]}
+      "then": {"required": ["population_level"]},
+      "else": {"if": {"required": ["represents"]}, "then": {"not": {"required": ["population_level"]}}}
     },
     "label_binding": {
       "description": "A requirement's or a waiver's label: one registered for its field, by the vocabulary's row for that field.",
@@ -537,7 +538,7 @@
     },
     "declared_acceptance": {
       "title": "DeclaredAcceptance",
-      "description": "An acceptance (section 4.1): one of its nine kinds, each with the members every acceptance holds and its kind's own. Where a kind needs a location (the table's Location column) it names one (section 4.1's location rule); a pick names its record. reason is required of every kind (section 1 item 4), basis of an extrapolation, a nominal and a distribution, and named for every kind. An accepted difference names its section in place of a field, an overlay_scope neither, and an overlay and an overlay_scope no location.",
+      "description": "An acceptance (section 4.1): one of its nine kinds, each with the members every acceptance holds and its kind's own. Where a kind needs a location (the table's Location column) it names one (section 4.1's location rule); a pick names its record. reason is required of every kind (section 1 item 4), and basis of an extrapolation, a nominal and a distribution, which alone hold one. An accepted difference names its section in place of a field, an overlay_scope neither, and an overlay and an overlay_scope no location.",
       "oneOf": [
         {"$ref": "#/$defs/pick"},
         {"$ref": "#/$defs/waiver"},
@@ -566,8 +567,7 @@
         "interval": {"$ref": "#/$defs/interval_location"},
         "field": {"$ref": "#/$defs/registered_field"},
         "index": {"type": "integer", "minimum": 0},
-        "reason": {"$ref": "#/$defs/text"},
-        "basis": {"$ref": "#/$defs/text"}
+        "reason": {"$ref": "#/$defs/text"}
       },
       "additionalProperties": false
     },
@@ -585,8 +585,7 @@
         "code": {"$ref": "vocabulary/reasons.json#/$defs/reason_code"},
         "condition": {"$ref": "#/$defs/registered_condition"},
         "label": {"$ref": "vocabulary/fields.json#/$defs/label"},
-        "reason": {"$ref": "#/$defs/text"},
-        "basis": {"$ref": "#/$defs/text"}
+        "reason": {"$ref": "#/$defs/text"}
       },
       "additionalProperties": false,
       "allOf": [
@@ -635,8 +634,7 @@
         },
         "token": {"type": "string"},
         "implies": {"$ref": "#/$defs/implies"},
-        "reason": {"$ref": "#/$defs/text"},
-        "basis": {"$ref": "#/$defs/text"}
+        "reason": {"$ref": "#/$defs/text"}
       },
       "additionalProperties": false,
       "allOf": [
@@ -709,8 +707,7 @@
           "description": "The fact's shape, its basis and text members optional; a status object; or \"any\".",
           "anyOf": [{"const": "any"}, {"$ref": "record.writer.json#/$defs/status_object"}, {"type": "object"}]
         },
-        "reason": {"$ref": "#/$defs/text"},
-        "basis": {"$ref": "#/$defs/text"}
+        "reason": {"$ref": "#/$defs/text"}
       },
       "additionalProperties": false,
       "allOf": [{"$ref": "#/$defs/difference_value_binding"}]
@@ -815,8 +812,7 @@
         "acceptance": {"const": "overlay"},
         "field": {"$ref": "#/$defs/registered_field"},
         "overlay": {"$ref": "#/$defs/material_reference"},
-        "reason": {"$ref": "#/$defs/text"},
-        "basis": {"$ref": "#/$defs/text"}
+        "reason": {"$ref": "#/$defs/text"}
       },
       "additionalProperties": false
     },
@@ -834,8 +830,7 @@
           "uniqueItems": true,
           "items": {"enum": ["consumer", "model", "configuration"]}
         },
-        "reason": {"$ref": "#/$defs/text"},
-        "basis": {"$ref": "#/$defs/text"}
+        "reason": {"$ref": "#/$defs/text"}
       },
       "additionalProperties": false
     }

@@ -208,6 +208,14 @@ DATA_RULES = (
         tests=("tests/unit/test_read.py",),
     ),
     DataRule(
+        "the build-check inputs the declaration tests load",
+        r"src/materica/data/conformance/build_checks/inputs/"
+        r"(bc016_waiver_at_one_of_two_records|water_fixture)\.json",
+        "the declaration tests load BC-016's declaration and the water fixture directly, as a declaration "
+        "the check takes and the records it is built over",
+        tests=("tests/unit/test_declarations.py",),
+    ),
+    DataRule(
         "an example record",
         r"examples/.+",
         "the example tests check each record against the schemas, its sources and what a read of it gives",
