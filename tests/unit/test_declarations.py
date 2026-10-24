@@ -481,6 +481,41 @@ def test_a_trainable_entry_at_a_record_and_a_region_is_one_refusal_of_item_12() 
     }
 
 
+# A member of another JSON type is refused at itself, and nothing inside it is checked (section 1): a member
+# holding a token, one holding a list of tokens and one keyed by names, each given a container of no tokens.
+
+
+def requirement(declaration: Json) -> Json:
+    return cast(list[Json], model(declaration)["requirements"])[0]
+
+
+OTHER_TYPES: list[tuple[Callable[[Json], object], str]] = [
+    (lambda d: requirement(d).update(want={"status": "unstated"}), "/models/0/requirements/0/want"),
+    (
+        lambda d: cast(Json, acceptances(d)[0]).update(code=["condition_unstate"]),
+        "/models/0/acceptances/0/code",
+    ),
+    (lambda d: model(d).update(reads={"status": "unstated"}), "/models/0/reads"),
+    (
+        lambda d: conditions(d).update(test_method={"accept": {"method": "a_method"}, "reason": "a reason"}),
+        "/models/0/requirements/0/conditions/test_method/accept",
+    ),
+    (lambda d: model(d).update(target=["specie"]), "/models/0/target"),
+    (lambda d: d.update(operating_conditions=["pressure"]), "/operating_conditions"),
+    (
+        lambda d: model(d).update(mixing={"fraction_sum_tolerance": 0.0, "rules": ["fluid.viscosity"]}),
+        "/models/0/mixing/rules",
+    ),
+]
+
+
+@pytest.mark.parametrize(("change", "pointer"), OTHER_TYPES)
+def test_a_member_of_another_json_type_is_refused_at_itself_alone(
+    change: Callable[[Json], object], pointer: str
+) -> None:
+    assert refusals(a_declaration(change)) == {("BC-048", pointer)}
+
+
 # A pick's location is its record (maintainer, 2026-10-24).
 
 

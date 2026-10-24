@@ -216,6 +216,7 @@ def _kind(
 _CONDITIONS = VOCABULARY.conditions
 _NUMERIC = tuple(name for name, spec in _CONDITIONS.items() if spec.shape == "numeric")
 _OPERATING = Map(dict.fromkeys(_NUMERIC, Object("operating condition")))
+_COMBINATION = List(_NAME)
 _IMPLIED: dict[str, Holds] = {
     name: Object("implied numeric" if spec.shape == "numeric" else "implied token", never_status=True)
     for name, spec in _CONDITIONS.items()
@@ -239,7 +240,7 @@ SHAPE: dict[str, tuple[Member, ...]] = {
         Member("requirements", "no", List(Object("requirement"))),
         Member("families", "yes", Map(_STRING)),
         Member("mixing", "no", Object("mixing")),
-        Member("combinations", "yes", List(List(_NAME))),
+        Member("combinations", "yes", List(_COMBINATION)),
         Member("acceptances", "no", List(Object("acceptance"))),
         Member("chains", "yes", List(Object("chain"))),
         Member("trainable", "no", List(Object("trainable entry"))),
@@ -610,46 +611,51 @@ def _tokens(declaration: JsonObject) -> list[Finding]:
         if isinstance(value, str) and value not in allowed:
             found.append(Finding("BC-048", at, _not_listed(value, allowed, what)))
 
-    def each(value: JsonValue, at: str, allowed: Collection[str], what: str, *, keys: bool = False) -> None:
-        """Each entry of a list, each value of an object, or with `keys` each name of an object."""
-        if isinstance(value, list):
+    def each(
+        holds: Holds, value: JsonValue, at: str, allowed: Collection[str], what: str, *, keys: bool = False
+    ) -> None:
+        """The tokens `value` holds where it is of the JSON type `holds` gives it (`SHAPE`'s Holds): itself, a
+        string; each entry of a list; each value of a map, or with `keys` each name of one. Inside a member of
+        another type nothing is checked: it is refused at itself (`_holds`; section 1)."""
+        if isinstance(holds, Value):
+            check(value, at, allowed, what)
+        elif isinstance(holds, List) and isinstance(value, list):
             for index, item in enumerate(value):
                 check(item, _join(at, index), allowed, what)
-        for name, item in _items(value):
-            check(name if keys else item, _join(at, name), allowed, what)
+        elif isinstance(holds, Map) and isinstance(value, dict):
+            for name, item in value.items():
+                check(name if keys else item, _join(at, name), allowed, what)
 
     fields, facts, levels = VOCABULARY.fields, VOCABULARY.facts, VOCABULARY.token_lists["level"]
     for visit in _places(declaration):
         value, at, place, key = visit.value, visit.pointer, visit.place, visit.key
         for (where, member), allowed in TOKENS.items():
             if where == place and member in value:
-                each(value[member], f"{at}/{member}", allowed, f"a {member} token")
-                check(value[member], f"{at}/{member}", allowed, f"a {member} token")
+                each(*_held(visit, member), allowed, f"a {member} token")
         if place == "declaration":
-            each(
-                value.get("operating_conditions"),
-                f"{at}/operating_conditions",
-                _NUMERIC,
-                "numeric",
-                keys=True,
-            )
+            each(*_held(visit, "operating_conditions"), _NUMERIC, "numeric", keys=True)
         elif place == "model entry":
-            each(value.get("reads"), f"{at}/reads", fields, "a registered field")
+            each(*_held(visit, "reads"), fields, "a registered field")
             for region, conditions in _items(value.get("region_conditions")):
-                each(conditions, _join(f"{at}/region_conditions", region), _NUMERIC, "numeric", keys=True)
+                each(
+                    _OPERATING,
+                    conditions,
+                    _join(f"{at}/region_conditions", region),
+                    _NUMERIC,
+                    "numeric",
+                    keys=True,
+                )
             for index, combined in enumerate(_list(value.get("combinations"))):
-                each(combined, f"{at}/combinations/{index}", fields, "a registered field")
+                each(_COMBINATION, combined, f"{at}/combinations/{index}", fields, "a registered field")
             sets = [name for name, spec in fields.items() if "parameter_set" in spec.forms]
-            each(value.get("families"), f"{at}/families", sets, "a parameter-set field", keys=True)
-            each(value.get("target"), f"{at}/target", facts, "a specimen fact", keys=True)
+            each(*_held(visit, "families"), sets, "a parameter-set field", keys=True)
+            each(*_held(visit, "target"), facts, "a specimen fact", keys=True)
         elif place == "mixing":
-            each(value.get("rules"), f"{at}/rules", fields, "a registered field", keys=True)
+            each(*_held(visit, "rules"), fields, "a registered field", keys=True)
         elif place in ("requirement", "trainable entry", "acceptance") or place in KINDS:
             check(value.get("field"), f"{at}/field", fields, "a registered field")
         if place == "requirement":
-            each(
-                value.get("conditions"), f"{at}/conditions", _CONDITIONS, "a registered condition", keys=True
-            )
+            each(*_held(visit, "conditions"), _CONDITIONS, "a registered condition", keys=True)
             if "label" in value:
                 check(value["label"], f"{at}/label", _labels_of(value.get("field")), "a label of its field")
         elif place == "requirement condition" and key in _CONDITIONS:
@@ -657,7 +663,7 @@ def _tokens(declaration: JsonObject) -> list[Finding]:
             if wrong in value:
                 found.append(Finding("BC-048", f"{at}/{wrong}", f"no {wrong} for {key}"))
             if spec.shape == "token":
-                each(value.get("accept"), f"{at}/accept", spec.tokens, f"a token of {key}")
+                each(*_held(visit, "accept"), spec.tokens, f"a token of {key}")
         elif place in ("tolerance", "operating condition", "implied numeric") and key in _NUMERIC:
             check(value.get("unit"), f"{at}/unit", (cast(str, _CONDITIONS[key].unit),), f"{key}'s unit")
         elif place == "implied token" and key in _CONDITIONS:
@@ -681,6 +687,11 @@ def _tokens(declaration: JsonObject) -> list[Finding]:
             if place.startswith("difference ") and "basis" not in fact.fixed:
                 check(value.get("basis"), f"{at}/basis", VOCABULARY.token_lists["basis"], "a basis")
     return found
+
+
+def _held(visit: Visit, member: str) -> tuple[Holds, JsonValue, str]:
+    """What `member` of the object `visit` holds by `SHAPE`, its value there, and its pointer."""
+    return _members_of(visit.place)[member].holds, visit.value.get(member), f"{visit.pointer}/{member}"
 
 
 def _kind_tokens(kind: str, value: JsonObject, at: str) -> list[Finding]:

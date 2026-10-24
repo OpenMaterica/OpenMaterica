@@ -105,6 +105,7 @@
     "BC-048.two_requirements_for_one_field.json": "S7a-1",
     "BC-048.waiver_code_not_a_reason.json": "S7a-1",
     "BC-048.waiver_of_an_unknown_condition_name.json": "S7a-1",
+    "BC-048.want_of_another_json_type.json": "S7a-1",
     "BC-048.want_slip_values.json": "S7a-1",
     "BC-049.absent_record_gives_no_not_reviewed.json": "S7a-2",
     "BC-049.not_checked_gives_not_reviewed.json": "S7a-2",
