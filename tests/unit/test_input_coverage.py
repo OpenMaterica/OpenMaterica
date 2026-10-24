@@ -132,10 +132,23 @@ def test_drawn(example):
 )
 
 
+# Hypothesis's own defaults, whatever the machine's environment: where any variable of its table of CI
+# variables is set (`CI`, `GITHUB_ACTIONS` on GitHub's runners...), Hypothesis loads its built-in `ci` profile
+# (derandomized, no example database), which the controls must not rest on. The repository's conftest does
+# the same for its profiles.
+FIXTURE_CONFTEST = """
+from hypothesis import settings
+
+settings.register_profile("fixture", parent=settings.get_profile("default"))
+settings.load_profile("fixture")
+"""
+
+
 def tree(root: Path, modules: dict[str, str]) -> Path:
     (root / "tests" / "property").mkdir(parents=True)
     # The tree's own root for pytest, whatever lies above it.
     (root / "pytest.ini").write_text("[pytest]\n", encoding="utf-8")
+    (root / "tests" / "conftest.py").write_text(FIXTURE_CONFTEST, encoding="utf-8")
     (root / "tests" / "__init__.py").write_text("", encoding="utf-8")
     (root / "tests" / "property" / "__init__.py").write_text("", encoding="utf-8")
     shutil.copy(PLUGIN, root / "tests" / "property" / "input_coverage.py")
@@ -161,7 +174,6 @@ def check(
         capture_output=True,
         text=True,
         cwd=root,
-        env=fixture_environment(),
         timeout=600,
         check=False,
     )
@@ -189,19 +201,12 @@ def test_a_draw_no_test_holds_is_reported_not_held_and_held_once_a_test_holds_it
     assert status == 0, output
 
 
-def fixture_environment() -> dict[str, str]:
-    """This process's environment without `CI`: a fixture tree has no conftest, and where `CI` is set
-    Hypothesis loads its own `ci` profile there (derandomized, no example database), which the controls
-    must not rest on."""
-    return {name: value for name, value in os.environ.items() if name != "CI"}
-
-
 def pytest_in(root: Path, module: str, *options: str) -> tuple[Path, "subprocess.CompletedProcess[str]"]:
     """pytest run on one module of the tree, Hypothesis's storage (its example database among it) in a
     directory of its own, which it returns, with every test case observed there."""
     storage = root / f"storage-{len(list(root.glob('storage-*')))}"
     environment = {
-        **fixture_environment(),
+        **os.environ,
         "HYPOTHESIS_EXPERIMENTAL_OBSERVABILITY": "1",
         "HYPOTHESIS_EXPERIMENTAL_OBSERVABILITY_NOCOVER": "1",
         "HYPOTHESIS_EXPERIMENTAL_OBSERVABILITY_CHOICES": "1",
@@ -762,7 +767,6 @@ def test_a_selection_that_fails_with_no_cut_is_refused_and_its_failure_printed(
         capture_output=True,
         text=True,
         cwd=root,
-        env=fixture_environment(),
         timeout=600,
         check=False,
     )
