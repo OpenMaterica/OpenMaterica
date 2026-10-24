@@ -16,10 +16,23 @@ from pathlib import Path
 import pytest
 
 from tests.conformance.runner import CaseFile
-from tests.reference import read_model
-from tests.reference.cases import Outcome, agreeing, answer, case_files, judged, outcome, read_case_files
-from tests.reference.exceptions import EXCEPTIONS, Excepted
-from tests.reference.strict_json import JsonObject
+from tests.reference import build_model, read_model
+from tests.reference.build_model import Refusal, Refused
+from tests.reference.cases import (
+    BUILD_CONFIGURATIONS,
+    Outcome,
+    agreeing,
+    answer,
+    build_case_files,
+    build_differences,
+    build_outcome,
+    case_files,
+    judged,
+    outcome,
+    read_case_files,
+)
+from tests.reference.exceptions import BUILD_EXCEPTIONS, EXCEPTIONS, Excepted
+from tests.reference.strict_json import JsonObject, parse
 
 
 @pytest.mark.parametrize("case_file", read_case_files(), ids=lambda case_file: case_file.path.name)
@@ -168,3 +181,157 @@ def test_a_result_holding_a_labels_basis_fails(monkeypatch: pytest.MonkeyPatch) 
     found = next(members_outside_the_table(), None)
     assert found is not None
     assert found.endswith("['label_basis']")
+
+
+# The build-check files, and the build's own model (`build_model.py`), which decides the declaration's own
+# check.
+
+
+@pytest.mark.parametrize("case_file", build_case_files(), ids=lambda case_file: case_file.path.name)
+def test_the_build_model_agrees_with_the_build_case_file(case_file: CaseFile) -> None:
+    problem = judged(case_file.path.name, build_outcome(case_file), BUILD_EXCEPTIONS)
+    assert problem is None, problem
+
+
+def test_the_build_files_are_exactly_those_whose_operation_is_check_build() -> None:
+    names = {case_file.path.name for case_file in build_case_files()}
+    assert names == {
+        case_file.path.name for case_file in case_files() if case_file.operation == "check_build"
+    }
+    assert len(names) >= 108
+
+
+def test_the_model_agrees_with_every_file_of_the_declaration_s_own_check() -> None:
+    """S7a-1's files, the refusal cases, whose expected answer holds refusals and no results (the suite's
+    README, "Reading a case"), each agree, none listed."""
+    own = [case_file for case_file in build_case_files() if "results" not in case_file.expected]
+    assert len(own) >= 51
+    assert all("refusals" in case_file.expected for case_file in own)
+    assert [case_file.path.name for case_file in own if build_outcome(case_file).kind != "agrees"] == []
+    listed = {name for excepted in BUILD_EXCEPTIONS.values() for name in excepted.case_files}
+    assert listed.isdisjoint(case_file.path.name for case_file in own)
+
+
+def test_every_listed_build_file_is_a_build_file_and_every_kind_gives_its_reason() -> None:
+    names = {case_file.path.name for case_file in build_case_files()}
+    for kind, excepted in BUILD_EXCEPTIONS.items():
+        assert excepted.reason.strip(), kind
+        assert excepted.case_files, kind
+        assert excepted.case_files <= names, sorted(excepted.case_files - names)
+        assert excepted.outcome != "no verdict" or excepted.detail is not None, kind
+
+
+def test_a_build_file_runs_under_every_configuration_its_claims_allow() -> None:
+    """A file stating no claim runs under all 32 build configurations; one denying a suite, under the 16
+    without it."""
+    by_name = {case_file.path.name: case_file for case_file in build_case_files()}
+    assert len(BUILD_CONFIGURATIONS) == 32
+    assert len(agreeing(by_name["BC-004.tolerance_without_reason.json"], BUILD_CONFIGURATIONS)) == 32
+    denied = agreeing(by_name["BC-051.checked_over_domain.json"], BUILD_CONFIGURATIONS)
+    assert len(denied) == 16
+    assert all("scene_documents" not in claims for claims in denied)
+
+
+def build_file(name: str) -> CaseFile:
+    (case_file,) = [found for found in build_case_files() if found.path.name == name]
+    return case_file
+
+
+TEMPERATURE = "/models/0/requirements/0/conditions/temperature"
+LABEL = "/models/0/acceptances/0/label"
+
+
+@pytest.mark.parametrize(
+    ("name", "report", "problem"),
+    [
+        ("BC-004.tolerance_without_reason.json", Refused(frozenset({Refusal("BC-004", TEMPERATURE)})), None),
+        (
+            "BC-004.tolerance_without_reason.json",
+            Refused(frozenset({Refusal("BC-048", TEMPERATURE)})),
+            "missing",
+        ),
+        (
+            "BC-004.tolerance_without_reason.json",
+            Refused(frozenset({Refusal("BC-004", TEMPERATURE), Refusal("BC-048", TEMPERATURE)})),
+            "unexpected [('BC-048'",
+        ),
+        (
+            "BC-004.tolerance_without_reason.json",
+            Refused(frozenset({Refusal("BC-004", "/models/0")})),
+            "missing",
+        ),
+        ("BC-004.tolerance_without_reason.json", Refused(frozenset()), "missing"),
+        (
+            "BC-050.requirement_names_another_label.json",
+            Refused(frozenset({Refusal("BC-050", LABEL), Refusal("BC-048", LABEL)})),
+            None,
+        ),
+        (
+            "BC-050.requirement_names_another_label.json",
+            Refused(frozenset({Refusal("BC-048", LABEL)})),
+            "missing",
+        ),
+        ("BC-051.engine_over_records.json", Refused(frozenset(), {"BC-040": "item 7's pointers"}), None),
+        (
+            "BC-051.engine_over_records.json",
+            Refused(frozenset(), {"BC-051": "an engine's own"}),
+            "no verdict",
+        ),
+        (
+            "BC-004.tolerance_without_reason.json",
+            Refused(frozenset(), {"BC-040": "item 7's pointers"}),
+            "no verdict",
+        ),
+    ],
+)
+def test_the_build_comparison_can_fail(name: str, report: Refused, problem: str | None) -> None:
+    """Refusals compared as a set, only those of the rules `compare.rules_compared` names where it names any,
+    and a rule the model does not place compared no verdict, never a pass."""
+    found = build_differences(build_file(name), report)
+    if problem is None:
+        assert found == []
+    elif problem == "no verdict":
+        assert isinstance(found, read_model.NoVerdict)
+    else:
+        assert isinstance(found, list)
+        assert len(found) == 1
+        assert problem in found[0]
+
+
+def test_a_refused_report_compared_where_a_case_expects_results_differs() -> None:
+    """A past-the-declaration file's expected `results`, compared against a refused report, is missing: a
+    build that refuses and still passes as reading would not slip through."""
+    case_file = build_file("BC-003.field_read_with_no_requirement.json")
+    found = build_differences(case_file, Refused(frozenset()))
+    assert isinstance(found, list)
+    assert "results: missing" in found
+
+
+def test_a_build_model_that_refuses_nothing_disagrees(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Control: a model whose check finds no fault gives no verdict on every refusal file, which no kind
+    lists."""
+
+    def no_fault(self: build_model.DeclarationCheck, pointer: str, *rules: str, apart: str = "") -> None:
+        return None
+
+    monkeypatch.setattr(build_model.DeclarationCheck, "fault", no_fault)
+    outcome_found = build_outcome(build_file("BC-004.tolerance_without_reason.json"))
+    assert outcome_found == Outcome("no verdict", "past the declaration (S7a-2 to S7a-4)")
+    assert judged("BC-004.tolerance_without_reason.json", outcome_found, BUILD_EXCEPTIONS) is not None
+
+
+def test_a_refused_report_holds_the_declaration_as_given_and_its_consumer() -> None:
+    """Where the text is JSON, the refused report holds the declaration as given, and its `consumer` where it
+    declares one (the maintainer's ruling of 2026-10-24); a text that is not JSON gives neither."""
+    declared = build_file("BC-004.tolerance_without_reason.json").input_bytes("declaration")
+    report = build_model.check_build(declared, frozenset({"plain_read", "build_checks"}))
+    assert isinstance(report, Refused)
+    given = report.to_json()
+    assert given["declaration"] == parse(declared)
+    assert given["consumer"] == {"name": "conformance_consumer", "version": "1.0.0"}
+    array = build_model.check_build(b"[1.0]", frozenset({"plain_read", "build_checks"}))
+    assert isinstance(array, Refused)
+    assert array.to_json() == {"refusals": [{"item": "BC-048", "pointer": ""}], "declaration": [1.0]}
+    broken = build_model.check_build(b'{"a": 1, "a": 2}', frozenset({"plain_read", "build_checks"}))
+    assert isinstance(broken, Refused)
+    assert broken.to_json() == {"refusals": [{"item": "BC-048", "pointer": ""}]}

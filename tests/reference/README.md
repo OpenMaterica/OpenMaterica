@@ -2,20 +2,24 @@
 
 A test-only model of a read of one field of one record (`docs/specification/read_side_contract.md` sections 1
 to 3), written from the specification's text alone, for the conformance cases, HP12 and the fuzz targets (the
-S2 design's SQ49), as S3 keeps a test-only reference evaluator. It never ships, and imports nothing from
+S2 design's SQ49), as S3 keeps a test-only reference evaluator; and beside it the build's model of a
+declaration checked on its own (`declarations.md` section 1, S7a-1), written from the text by an agent that
+did not read the build's code ("The build's model", below). Neither ships, and neither imports anything from
 `materica`, at any depth.
 
 | File | What it holds |
 |---|---|
 | `strict_json.py` | strict JSON (`record_format.md` section 1 item 6), RFC 8785 and the content hash (section 9), from the standard library |
 | `read_model.py` | the model: the text's tables, steps 0 to 13, the result, `list_records` and `content_hash`; its open points in `OPEN_POINTS` |
-| `cases.py` | every case file of a read run through the model under every configuration of claims it allows, and compared |
-| `exceptions.py` | the case files the model does not agree with, by kind, each kind with its reason: today, reads outside its scope, on which it gives no verdict |
-| `test_cases.py` | the model agrees with every case file of a read, or the case file is listed under its kind |
-| `test_tables.py` | the model's tables against the generated vocabulary, so that a drift of either fails |
-| `test_citations.py` | each quote the model, and the table evaluator beside it, cites is at the line it cites; each open point is listed once and named where it is applied |
-| `test_layering.py` | the model and the table evaluator reach no `materica` module, by the imports they write or in a fresh interpreter |
-| `mutants.py`, `test_seeded_faults.py` | seeded faults of the model, each killed by a case file or listed as a survivor with its reason; not named `test_*mutants*`, since they are no Hypothesis search and run on every Python (`tests/conftest.py`, `PROPERTY_CONTROLS`) |
+| `build_model.py` | the build's model of the declaration's own check: its shape table, written from the text, its refusals by case and pointer under the precedence rule, and `NoVerdict` past it; its open points in its own `OPEN_POINTS` |
+| `cases.py` | every case file of a read run through the model, and every build-check file through the build's model, under every configuration of claims it allows, and compared |
+| `exceptions.py` | the case files each model does not agree with, by kind, each kind with its reason: today, reads outside the read model's scope and build-check files past the declaration, on which each gives no verdict |
+| `test_cases.py` | the read model agrees with every case file of a read, and the build's model with every build-check file, or the case file is listed under its kind |
+| `direct.py`, `test_build_model.py` | the build model held on what no build-check file pins: declarations written there, each with the answer the text and the maintainer's rulings give (one fault is one member at fault, a pick is located by its record, a claimed suite gives no verdict, the order of the cases) |
+| `test_tables.py` | each model's tables against the generated vocabulary, and the build model's shape table and token lists against the declaration's JSON Schema, so that a drift of either fails |
+| `test_citations.py` | each quote the models, and the table evaluator beside them, cite is at the line it cites; each open point is listed once and named where it is applied |
+| `test_layering.py` | the models and the table evaluator reach no `materica` module, by the imports they write or in a fresh interpreter |
+| `mutants.py`, `test_seeded_faults.py` | seeded faults of each model, each killed by a case file (or, for the build's, a direct check) or listed as a survivor with its reason; not named `test_*mutants*`, since they are no Hypothesis search and run on every Python (`tests/conftest.py`, `PROPERTY_CONTROLS`) |
 
 ## What it decides
 
@@ -73,8 +77,8 @@ Each is compared as the specification's README says ("Case files"), by the confo
 The table evaluation suite's 35 files are left out, and so are the record checks' and the build checks', and a
 test holds the files left out to exactly those whose operation is `evaluate`, `check`, `quote_sha256` or
 `check_build`: a table's values at points, as a consumer's own evaluator asks for them, a record's checks, a
-quote's hash and a declaration's build are no read. The build's own model agrees with the build checks' files
-from S7a-1.
+quote's hash and a declaration's build are no read. The build's own model runs the build checks' files
+("The build's model", below).
 
 The model agrees with 1,182 files, under every configuration each allows (9,080 runs), and gives no verdict on
 108, each listed in `exceptions.py` under the kind its outcome names: an overlay (71), a pick (36) and a
@@ -410,11 +414,230 @@ is (`tests/property/test_model_mutants.py`); S2b-2, which reads evidence and nom
 waited for it. The other one is listed there with the reason no read shows it: a shared object never shows
 in JSON.
 
+## The build's model
+
+`build_model.py` models a build's check of a declaration on its own (S7a-1), the refusals `declarations.md`
+section 1 gives before any record is read: the declaration's shape (its table, the departures, the refusal,
+pointer and precedence paragraph), items 3, 4, 7, 8 and 12, the `population_level` rule, and section 4.1's
+location rule and item 4. It was written from the specification's text, with the build-check case files read
+as data, by an agent that never read the build's code, as each piece's part of the build's model is (the S7
+design's 6.1); the two meet at the case files and at HP41's and HP42's properties. Its shape table is written
+from the text's; the names the build's version registers (fields, conditions, facts, reasons, labels, the
+`represents` tokens, levels and distributions) are the read model's tables, and the token lists the shape table
+adds (the acceptance kinds, a requirement's `review`, the distributions, the facts an implied condition names,
+the codes that name a condition) are held to the vocabulary (`test_tables.py`).
+
+**What it decides.** Every refusal of the declaration's own check, by case id and pointer, each fault carrying
+the case of the first rule that names it (BC-004, BC-005, BC-040, BC-044, BC-043, BC-037, BC-050, BC-051 and
+BC-048, in that order), two faults of one case and pointer one refusal; and the report of a refused
+declaration, which holds its refusals and, where the text is JSON, the declaration as given and its
+`consumer`. A fault is one member at fault (maintainer, 2026-10-24; `declarations.md:155-158`, and the suite's
+README, "a fault the token rule names too"): a member two rules name is one fault holding both, so a waiver's
+`label` that item 4 and the token rule both refuse gives BC-050 alone, a `domain`, `path` or `sampling` of
+another JSON type, which item 12 and the shape rule both name, gives BC-051 alone where the suite is not
+claimed (and no verdict where it is), and a status object as a target fact, or as an implied condition's
+value, gives one refusal at the member, nothing inside it checked. The rule is held where the faults are
+gathered (`refusals_of`: one refusal for each member at fault, the first case by the text's order); a member
+missing from an object is that object's fault, apart from the object's own and from another missing member's,
+which the text gives their own cases. A pick is
+located by its `record`, a `region` or an `interval` being named beside it: one naming either and no `record`
+is refused as unlocated (BC-037), whatever the build claims (maintainer, 2026-10-24; the pick row,
+`declarations.md:349`, and `declaration.json`, which requires it).
+
+**What it does not.** A declaration that passes its own check gives `NoVerdict`: what the build gives after
+reading is S7a-2's to S7a-4's, a pick or an overlay S7c's. So does a declaration holding a member a suite the
+build claims checks further (the scene suite, USD read, the sampling suite), whatever else it holds: the
+refusals the model places beside such a member are not reported (the fail-closed choice, maintainer,
+2026-10-24, at the cost that a certain refusal under a claimed suite goes uncompared). Three rules give
+refusals it does not place: item 7's (BC-040), at pointers the text does not fix; an interval location's
+shape, which the text does not give; and an engine's declared values, which its crosswalk shapes. A refused
+report names them, and a case compares it only where `compare.rules_compared` leaves them out, as BC-051's two
+engine files do; else it is no verdict, never a pass.
+
+Where the text leaves a point open, the model takes the maintainer's ruling where there is one, else the
+fail-closed choice, each listed once in its `OPEN_POINTS` and named where it is applied:
+
+| Open point | The model's choice |
+|---|---|
+| `exactly_one_of` | a place holding none, or more than one, of the members it takes exactly one of is at fault at its own pointer, as for a missing member |
+| `acceptance_of_an_unknown_kind` | its `acceptance` refused, its `reason` required as every acceptance's, its other members not judged |
+| `member_judged_beside_a_faulty_one` | a member whose allowed values depend on another member at fault (a label beside an unregistered field, an implied condition's `token` beside an unknown fact, ...) not judged |
+| `combination_sections` | a combination's fields are from pairwise different sections |
+| `chain_ends` | a chain's `from` and `to` hold `family`, a string, and `record`, a material reference; `state_mapping` maps names to strings |
+| `independence_fields` | an independence entry's `fields` each name a registered field and one location, as a `trainable` entry does |
+| `accepted_difference_basis` | an accepted difference's `value` may hold `basis` (`stated` or `inferred`) and `inferred_from` |
+| `trainable_location_in_a_scene` | whether a region or an interval lies in its model's domain or path is the scene suite's (unplaced); over records neither does, nor does a record over a domain or a path |
+| `interval_location` | an interval location's shape unplaced; refused by item 12 where the scene suite is not claimed |
+| `item_7_pointers` | BC-040 unplaced: certain over records or a path, or with a crosswalk outside `materica/` that no case passes, else unknown (an engine model over a domain with another `want` is refused by the text, and unknown here too); a fault inside `engine`, or at an engine model's requirement's `want`, unplaced too. A clause that fixes the pointers comes with S7a-1b's fix round (maintainer, 2026-10-24): an engine model over records is refused at its `engine` member, which the model then places |
+| `claimed_suite_hides_refusals` | a declaration holding a member a claimed suite checks gives no verdict, even where a certain refusal stands beside it (a decision, maintainer, 2026-10-24) |
+| `token_operating_condition` | a token condition in `operating_conditions` or `region_conditions` is refused at it |
+| `families_values` | a `families` value, the family version, is not judged: only the key, a parameter-set field, is |
+| `waiver_label_beside_an_unregistered_field` | a waiver's `label` beside a `field` that is not registered, or beside no `field`, is refused by item 4 as well as the field's own fault, or the missing `field`'s: two faults at two members |
+| `implied_status_object_pointer` | a status object as an implied condition's value is refused at the member that holds it, `implies/<condition>`, as a target fact's is at `/target/<fact>`: `declarations.md:351` gives the refusal in the target's words and not the pointer, and the ruling of 2026-10-24 on the target's is extended to it |
+| `basis_on_other_kinds` | a `basis` on another kind of acceptance refused as a member not named there (BC-048) |
+| `population_level_beside_another_represents` | a `population_level` beside another `represents`, or beside none, refused at it by the `population_level` rule (BC-043), item 12 then refusing neither member of that requirement |
+
+The maintainer's five clauses of 2026-10-24 land with S7a-1b's first commit (`25d8625b` on its branch), after
+this branch's base. The model follows their landed words: a `basis` on another kind is refused ("no other kind
+holds it", that commit's line 117), a `population_level` beside another `represents` is the `population_level`
+rule's (its lines 64 and 109, and BC-043's row), a waiver of `condition_unknown_name` is refused at build by no
+rule (it leaves section 4.2's first row: S7a-2's coverage, not the declaration's shape), a watch's `unit` is
+S7a-4's, and a refused report holds the declaration and its `consumer` (its lines 259 to 261). The last two
+open points become citations once that commit is on `main`; it also moves the lines of `declarations.md` after
+its report paragraph by two, and those after section 4.2's opening by three, and the model's citations of
+section 4 with them.
+
+**Agreement with the cases.** `test_cases.py` runs every build-check file, 108 (51 of S7a-1's and 57 of
+S7a-2's), under each of the 32 build configurations (build checks and plain read, beside any of the hash, the
+fits and reference data suite, the scene suite, USD read and the sampling suite) that its claims allow: 3,272
+runs. The model agrees with every one of S7a-1's 51 files (1,464 runs), none listed, and gives no verdict on
+S7a-2's 57, each listed under `past_the_declaration`. It disagrees with none (measured 2026-10-24 on this
+branch, at `main`'s `8c423d9b`). No file separates the configurations: each of the 108 gives one answer under
+all those its claims allow (measured 2026-10-24), so the 3,272 runs repeat 108 answers. The sweep is design
+for HP41's declarations, which hold a member a suite checks; it is no evidence on these files. What a claimed
+suite gives, no verdict whatever else the declaration holds, is held by the direct checks (`direct.py`), not
+by a file.
+
+**The direct checks.** `direct.py` holds declarations written there, each with the answer the text or the
+maintainer's rulings give, for what no file pins: a waiver's `label` that item 4 and the token rule both
+refuse is one refusal (BC-050), as is a status object as a target fact or an implied condition's value; a pick
+naming a region or an interval and no `record` is BC-037 under every claim, and one naming a record and a
+region is item 12's; a domain, a distribution, an engine and a sampling block, each with its suite claimed and
+one other fault, give no verdict, and refuse without the claim (the control); and the model's order of the
+cases is the order of the paragraph of `declarations.md` that gives it, read from the text (the model builds a
+fault two rules name only as the shape rule beside one other, BC-004, BC-005, BC-044, BC-037 or BC-050; a
+reordering of a pair without the shape rule changes no answer it gives, and only that check kills it). They
+are the model's own tests, not shared evidence: the seeded faults run against them after the case files, so
+that a fault only they tell apart is a kill.
+
+**The mutant table.** `BUILD_MUTANTS` gives the build's model 104 faults, the hand mutants of the model's rules
+(a rule none of them names has no fault, and the table is no proof that every rule has one). Each is run against every build-check file by `test_seeded_faults.py` as the read model's are,
+against `BUILD_EXCEPTIONS`, and failing those against the direct checks; a fault that makes the model raise
+fails its check (its control: the token check replaced by a function raising `TypeError`, `KeyError` or
+`AssertionError`). 64 are killed, 47 by a case file and 17 by a direct check alone, and 40 survive: for each
+survivor no case file does kill it, and `mutants.py` says why beside it. They are what HP41 and HP42 (S7a-1p)
+must kill. Measured over every build-check file, 2026-10-24: none makes the model raise, and 23 die to one
+case file alone. A fault that over-refuses dies to S7a-2's files too, each of which then gives a refusal its
+listing does not. The table says only whether a fault is killed or survives; a test holds it to `mutants.py`.
+
+| Mutant | Fault | Outcome |
+|---|---|---|
+| `build_array_checked_as_its_first_entry` | a JSON array checked as its first entry | killed |
+| `build_refused_text_pointed_at_a_member` | a text not JSON, or not an object, refused at `/` | killed |
+| `build_unknown_member_ignored` | a member not named at its place ignored | killed |
+| `build_required_member_taken_missing` | a required member missing taken | killed |
+| `build_missing_member_pointed_at_itself` | a missing member's refusal at the member, not its parent | killed |
+| `build_member_of_another_type_taken` | a member of another JSON type taken | killed |
+| `build_empty_list_taken` | an empty list where one entry or more is asked taken | killed |
+| `build_exactly_one_unchecked` | none or two of a place's mutually exclusive members taken | killed |
+| `build_target_basis_taken` | a target fact holding `basis` taken | killed |
+| `build_tokens_compared_without_case` | a token compared without case | killed |
+| `build_token_slips_taken` | a token one slip from its member's taken | killed |
+| `build_unregistered_condition_taken` | an unregistered operating condition taken | killed |
+| `build_review_unchecked` | a requirement's `review` of any string taken | killed |
+| `build_want_unchecked` | a requirement's `want` left to the read | killed |
+| `build_extrapolation_method_unchecked` | an extrapolation's `method` unchecked | killed |
+| `build_waiver_code_unchecked` | a waiver's `code` of any string taken | killed |
+| `build_mixing_rule_unchecked` | a mixing rule of any string taken | survives |
+| `build_unregistered_label_taken` | a label registered for another field taken | killed |
+| `build_families_unchecked` | a `families` entry for a field with no parameter set taken | survives |
+| `build_names_given_twice_taken` | a name given twice taken | killed |
+| `build_unread_field_taken` | a requirement or `trainable` entry for a field not read taken | killed |
+| `build_trainable_location_unchecked` | a `trainable` entry at a location not checked over taken | killed |
+| `build_empty_reason_taken` | an empty `reason`, `basis` or `law` taken | killed |
+| `build_unit_unchecked` | a unit other than the registered one taken | survives |
+| `build_range_order_unchecked` | a `range` upside down taken | survives |
+| `build_negative_number_taken` | a tolerance or `fraction_sum_tolerance` below zero taken | survives |
+| `build_fractional_index_taken` | a pick's fractional `index` taken | survives |
+| `build_combination_unchecked` | a combination unchecked | survives |
+| `build_distribution_parameters_unchecked` | a distribution's parameters other than its token's taken | survives |
+| `build_repeated_accepts_taken` | a repeated `accepts` token taken | survives |
+| `build_params_taken` | a nominal's `params` for a field with no parameter set taken | survives |
+| `build_chains_unchecked` | a chain unchecked | survives |
+| `build_item_3_unchecked` | a tolerance or accept list without `reason` refused as BC-048 | killed |
+| `build_item_3_on_tolerances_alone` | an accept list without `reason` refused as BC-048 | killed |
+| `build_item_4_unchecked` | an acceptance without `reason` or `basis` refused as BC-048 | killed |
+| `build_basis_unrequired` | an extrapolation, nominal or distribution taken without `basis` | killed |
+| `build_basis_unrequired_of_an_extrapolation` | `basis` required of a nominal and a distribution alone | killed |
+| `build_basis_required_of_every_kind` | `basis` required of every acceptance | killed |
+| `build_location_rule_unchecked` | an acceptance needing a location taken without one | killed |
+| `build_accepted_difference_needs_a_location` | an accepted difference refused without a location | killed |
+| `build_implied_condition_located_optionally` | an implied condition taken without a location | killed |
+| `build_waiver_condition_unrequired` | a waiver's `condition` refused for every code | killed |
+| `build_unknown_code_names_a_condition` | a waiver whose `code` is no reason refused without a `condition` | killed |
+| `build_label_rule_unchecked` | a label-resting waiver taken whatever its requirement names | killed |
+| `build_label_rule_without_review` | a label-resting waiver taken without its requirement's `review` | killed |
+| `build_label_refusal_at_the_waiver` | BC-050's refusal at the waiver, not at its `label` | killed |
+| `build_item_8_unchecked` | a requirement that samples taken without `min_acceptance` | killed |
+| `build_population_level_rule_unchecked` | a population `represents` taken without `population_level` | killed |
+| `build_scene_members_taken` | a domain, a path or `region_conditions` taken without the scene suite | killed |
+| `build_sampling_members_taken` | a sampling member taken without the sampling suite | killed |
+| `build_distribution_taken` | a distribution acceptance taken without the sampling suite | killed |
+| `build_represents_taken` | a `represents` taken without the sampling suite | killed |
+| `build_claimed_suite_lacking` | a member a claimed suite checks refused as unclaimed | killed |
+| `build_item_12_before_item_8` | a requirement item 8 refuses over refused by item 12 too | killed |
+| `build_item_12_before_the_population_level_rule` | a requirement the `population_level` rule refuses refused by item 12 too | killed |
+| `build_engine_refused_beside_item_7` | an engine model item 7 refuses refused at its `engine` too | killed |
+| `build_engine_withholds_every_member` | item 7's refusal withholding item 12's refusal of the model's domain | killed |
+| `build_item_7_refusal_dropped` | an engine model over records taken | killed |
+| `build_item_7_pointers_placed` | a fault inside an engine model's `engine` or `want` placed | survives |
+| `build_precedence_reversed` | a fault two rules name carrying the last rule's case | killed |
+| `build_every_rule_reported` | a fault two rules name refused under both | killed |
+| `build_condition_unknown_name_refused` | a waiver of `condition_unknown_name` refused at its `code` | survives |
+| `build_basis_on_any_kind` | a `basis` on another kind of acceptance taken | survives |
+| `build_population_level_beside_any_represents` | a `population_level` beside another `represents` taken | survives |
+| `build_member_faults_refused_apiece` | two faults at one member, one from each rule that names it (a waiver's `label` that item 4 and the token rule both refuse, a `domain` of another JSON type that item 12 and the shape rule both name), given a refusal each | killed |
+| `build_missing_members_merged` | the faults at one pointer merged whatever they are about, so that two members missing from one object, or one missing and the object's own, give one refusal | killed |
+| `build_status_object_checked_inside` | a status object as a target fact or an implied condition's value checked as an ordinary member, refused at the member and again inside it | killed |
+| `build_target_status_object_taken` | a status object as a target fact taken | killed |
+| `build_status_object_without_a_reason` | a status object holding a `reason` judged an ordinary member | killed |
+| `build_status_object_needing_no_status` | an object holding a `reason` and no `status` taken for a status object | killed |
+| `build_target_status_object_with_a_reason_taken` | a status object holding a `reason` as a target fact taken | killed |
+| `build_pick_located_at_a_region` | a pick naming a region or an interval and no record taken as located | killed |
+| `build_unlocated_pick_refused_by_item_12` | a pick naming a region and no record refused by item 12 beside the location rule, or taken as beyond the model where the build claims the scene suite | killed |
+| `build_order_048_before_050` | a fault two rules name carrying the shape rule's case before item 4's and item 12's | killed |
+| `build_order_005_before_004` | a fault two rules name carrying item 4's case before item 3's | killed |
+| `build_acceptance_at_a_region_taken` | an acceptance at a region taken without the scene suite; both legs pinned by direct checks, a pick naming a record and a region and a waiver at a region (with a record and without), each refused unclaimed and no verdict claimed | killed |
+| `build_acceptance_at_an_interval_taken` | an acceptance at an interval taken without the scene suite | survives |
+| `build_trainable_at_a_region_taken` | a `trainable` entry at a region or an interval taken without the scene suite | survives |
+| `build_claimed_suite_beyond_unrecorded` | a member a claimed suite checks taken as if nothing were beyond the model, so that the declaration's other refusals stand | killed |
+| `build_claimed_suite_gives_the_refusals` | a declaration holding a member a claimed suite checks given the refusals of the model's own rules, not no verdict | killed |
+| `build_min_acceptance_one_refused` | a `min_acceptance` of 1 refused | survives |
+| `build_min_acceptance_zero_taken` | a `min_acceptance` of 0 taken | survives |
+| `build_any_difference_refused` | an accepted difference of value `"any"` refused | survives |
+| `build_trainable_twice_by_field` | two `trainable` entries for one field at two locations refused | survives |
+| `build_engine_over_a_domain_refused` | an engine model over a domain refused by item 7 as certainly as one over records | survives |
+| `build_interval_location_placed` | an interval location's shape placed, its BC-048 given as for any member | survives |
+| `build_waiver_condition_token_unchecked` | a waiver's `condition` holding any string taken | survives |
+| `build_population_level_beside_none_refused_as_shape` | a `population_level` beside no `represents` refused as BC-048, not BC-043 | survives |
+| `build_independence_entry_shape_unchecked` | an independence entry's members, required and named, unchecked | survives |
+| `build_independence_entry_texts_unchecked` | an independence entry's empty `reason` or `basis` taken | survives |
+| `build_sampling_independence_unrequired` | a `sampling` block without `independence` taken | survives |
+| `build_space_unchecked` | a distribution's `space` holding any string taken | survives |
+| `build_empty_reads_taken` | an empty `reads` taken | survives |
+| `build_consumer_shape_unchecked` | a `consumer` missing a member of `{"name", "version"}`, or holding another, taken | survives |
+| `build_model_name_and_version_unchecked` | a `model` missing a member of `{"name", "version"}`, or holding another, taken | survives |
+| `build_waiver_condition_missing_taken` | a waiver whose `code` names a condition taken without its `condition` | survives |
+| `build_empty_accepts_taken` | an `overlay_scope` accepting nothing taken | survives |
+| `build_blank_reason_refused` | a `reason` or `basis` of whitespace alone refused | survives |
+| `build_empty_condition_reason_is_item_3` | an empty `reason` on a requirement condition refused as item 3, BC-004, not as BC-048 | survives |
+| `build_population_level_shape_unchecked` | a requirement's `population_level` of another shape taken | survives |
+| `build_represents_token_unchecked` | a requirement's `represents` holding any string taken | survives |
+| `build_waiver_label_beside_an_unregistered_field_not_judged` | a waiver's `label` beside a `field` that is not registered not refused by item 4 | survives |
+| `build_precision_unchecked` | a `precision` holding any string taken | survives |
+| `build_consumer_parameters_unchecked` | a `consumer_parameters` entry that is no string taken | killed |
+
+The last three are the 2026-10-24 clauses' rules: S7a-1b's first commit adds a case file for each
+(`BC-048.waiver_of_an_unknown_condition_name`, `BC-048.basis_on_a_waiver`,
+`BC-051.population_level_beside_another_represents`), which come to this model when that commit is on `main`.
+The cases cannot show one refusal given twice: refusals are compared as a set, and the model's are a set.
+
 ## Running
 
 ```sh
 uv run pytest tests/reference -n 6
 ```
 
-The whole directory runs in about a minute on eight workers (57 s, 2026-10-22), the mutant searches most of
-it: a survivor's search reads every case file under every configuration it allows, about 6 s alone.
+The whole directory runs in about a minute on eight workers (57 s, 2026-10-22; 61 s with the build's model,
+2026-10-24; 64 s with its direct checks and 100 faults, 69 s with 104, 2026-10-24), the mutant searches most of it: a survivor's search reads every case file under every
+configuration it allows, about 6 s alone.
