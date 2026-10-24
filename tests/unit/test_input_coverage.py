@@ -277,7 +277,14 @@ def test_fails(number):
 )
 
 
-def test_a_recording_run_is_derandomized_and_keeps_no_example(tmp_path: Path) -> None:
+@pytest.mark.parametrize("variable", [None, "CI", "GITHUB_ACTIONS", "TF_BUILD"])
+def test_a_recording_run_is_derandomized_and_keeps_no_example(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, variable: str | None
+) -> None:
+    # The variable is set here, so that a tree whose conftest did not load Hypothesis's defaults fails on a
+    # plain machine too: Hypothesis loads its derandomized `ci` profile wherever one is set.
+    if variable is not None:
+        monkeypatch.setenv(variable, "true")
     root = tree(tmp_path, {"test_at_random.py": AT_RANDOM, "test_fails.py": FAILS})
     # The controls: without the plugin, two runs draw apart, and a failing example is kept.
     assert observed(root, module="test_at_random.py") != observed(root, module="test_at_random.py")
@@ -374,6 +381,34 @@ def test_a_pattern_beginning_with_an_exclamation_mark_leaves_out_what_it_matches
     assert not [name for name in narrowed["cuts"] if name.startswith(everything)]
     assert set(narrowed["sites"]) == set(report["sites"]) - {everything}
     assert narrowed["uncut"] == report["uncut"]
+
+
+def test_a_pattern_beginning_with_an_exclamation_mark_takes_nothing_that_no_pattern_before_it_took(
+    tmp_path: Path,
+) -> None:
+    root = tree(tmp_path, {"test_everything.py": EVERYTHING})
+    _, everywhere, _ = check(root, "list", "test_everything.py")
+    # The first pattern takes the sites with `sampled_from`; the second leaves out those with `integers` among
+    # them, and takes none of the others (a range, a list, a call of plain `random`...).
+    sites = ["*sampled_from*", "!*integers*"]
+    _, narrowed, output = check(root, "list", "test_everything.py", {"sites": sites}, report="narrowed.json")
+    named = {site for site in everywhere["sites"] if "sampled_from" in site and "integers" not in site}
+    assert named
+    assert named < set(everywhere["sites"])
+    assert set(narrowed["sites"]) == named, output
+    assert narrowed["uncut"] == {}
+
+
+def test_a_pattern_beginning_with_an_exclamation_mark_leaves_out_plain_random(tmp_path: Path) -> None:
+    root = tree(tmp_path, {"test_everything.py": EVERYTHING})
+    call = "tests/test_everything.py::everything::random.Random(1)"
+    _, everywhere, _ = check(root, "list", "test_everything.py")
+    assert everywhere["uncut"][call] == "random"
+    sites = ["tests/test_everything.py::*", "!*random.Random*"]
+    _, narrowed, output = check(root, "list", "test_everything.py", {"sites": sites}, report="narrowed.json")
+    others = {site: why for site, why in everywhere["uncut"].items() if site != call}
+    assert narrowed["uncut"] == others, output
+    assert narrowed["sites"] == everywhere["sites"]
 
 
 OWNERS = ("everything", "other")
@@ -578,6 +613,7 @@ def test_the_baseline_names_tests_that_exist_and_gives_each_entry_its_reason() -
 KILLS = (
     HEADER
     + """
+import functools
 import math
 
 FIND = settings(derandomize=True, database=None, max_examples=200, deadline=None)
@@ -662,6 +698,54 @@ def high(draw):
 def side(draw):
     return draw(st.sampled_from(["east", "west"]))
 
+@st.composite
+def bottom(draw):
+    return draw(st.sampled_from(["x", "y"]))
+
+
+@st.composite
+def middle(draw):
+    return draw(bottom())
+
+
+def through(draw):
+    return draw(middle())
+
+
+@st.composite
+def top(draw):
+    return through(draw)
+
+
+@st.composite
+def again(draw):
+    return through(draw)
+
+
+def build():
+    return st.sampled_from(["m", "n"])
+
+
+BUILT = build()
+
+# Strategies built once, which the callers share.
+ONCE = st.sampled_from(["north", "south"])
+
+
+@functools.cache
+def cached():
+    return st.sampled_from(["red", "blue"])
+
+
+@st.composite
+def early(draw):
+    return draw(ONCE), draw(cached())
+
+
+@st.composite
+def late(draw):
+    return draw(ONCE), draw(cached())
+
 
 @DERANDOMIZED
 @given(number(), truth(), order(), items(), fraction(), way(), left(), right(), pair(), low(), high())
@@ -722,6 +806,40 @@ def test_high_down():
 
 
 @DERANDOMIZED
+@given(top(), again())
+def test_drawn_through_three_composites(a, b):
+    pass
+
+
+def test_top_y():
+    find(top(), lambda example: example == "y", settings=FIND)
+
+
+@DERANDOMIZED
+@given(BUILT)
+def test_built(example):
+    pass
+
+
+def test_built_m():
+    find(BUILT, lambda example: example == "m", settings=FIND)
+
+
+def test_build_in_a_body_n():
+    find(build(), lambda example: example == "n", settings=FIND)
+
+
+@DERANDOMIZED
+@given(early(), late())
+def test_drawn_once(a, b):
+    pass
+
+
+def test_late_south_and_blue():
+    find(late(), lambda example: example == ("south", "blue"), settings=FIND)
+
+
+@DERANDOMIZED
 @given(st.data())
 def test_side_east(data):
     assert "east" in [data.draw(side()) for _ in range(20)]
@@ -734,6 +852,9 @@ def test_side_west():
 FLAG = "tests/test_kills.py::flag::st.sampled_from(['on', 'off'])"
 LEVEL = "tests/test_kills.py::level::st.sampled_from(['up', 'down'])"
 FRACTION = "fraction::st.floats(0.0, 1.0, exclude_min=True, exclude_max=True)"
+BOTTOM = "tests/test_kills.py::bottom::st.sampled_from(['x', 'y'])"
+BUILD = "tests/test_kills.py::build::st.sampled_from(['m', 'n'])"
+CACHED = "tests/test_kills.py::cached::st.sampled_from(['red', 'blue'])"
 # Each cut, after `tests/test_kills.py::`, and the test that holds it (None: no test does).
 KILLED_AT = {
     "number::st.integers(0, 3) :: pin to the low end": "test_number_three",
@@ -770,6 +891,23 @@ KILLED_AT = {
     f"low > draw(level()) > {LEVEL} :: drop 'down'": None,
     f"high > draw(level()) > {LEVEL} :: drop 'up'": None,
     f"high > draw(level()) > {LEVEL} :: drop 'down'": "test_high_down",
+    # Three composites deep with a helper between: the outermost is the owner, whatever the depth.
+    f"top > through(draw) > {BOTTOM} :: drop 'x'": None,
+    f"top > through(draw) > {BOTTOM} :: drop 'y'": "test_top_y",
+    f"again > through(draw) > {BOTTOM} :: drop 'x'": None,
+    f"again > through(draw) > {BOTTOM} :: drop 'y'": None,
+    # A helper called at import and one called in a test's body, which runs in no draw: each named after its
+    # caller, the second the test.
+    f"<module> > build() > {BUILD} :: drop 'm'": "test_built_m",
+    f"<module> > build() > {BUILD} :: drop 'n'": None,
+    f"test_build_in_a_body_n > build() > {BUILD} :: drop 'm'": None,
+    f"test_build_in_a_body_n > build() > {BUILD} :: drop 'n'": "test_build_in_a_body_n",
+    # A strategy built once is shared by the strategies that draw it, or named after the first of them: the
+    # cut is held at a test of either (the README, "Every draw is held").
+    "<module>::st.sampled_from(['north', 'south']) :: drop 'north'": None,
+    "<module>::st.sampled_from(['north', 'south']) :: drop 'south'": "test_late_south_and_blue",
+    f"early > cached() > {CACHED} :: drop 'red'": None,
+    f"early > cached() > {CACHED} :: drop 'blue'": "test_late_south_and_blue",
     # A composite drawn in two tests, under `data.draw` and under `find`, which run in no draw: one site,
     # named after the composite, whose cuts reach both tests.
     "side::st.sampled_from(['east', 'west']) :: drop 'east'": "test_side_east",
