@@ -581,6 +581,7 @@ def test_each_constraint_judges_its_boundary_and_each_type_its_own(
 
 MAGNETIC: list[JsonValue] = ["magnetic.remanence", "magnetic.saturation_magnetisation"]
 TRAINABLE: Json = {"field": "fluid.dynamic_viscosity", "record": WATER}
+NO_FIELD: list[JsonValue] = [1.0]
 IMPLIED: Json = {
     "acceptance": "implied_condition",
     "record": WATER,
@@ -606,6 +607,11 @@ def entries(**members: JsonValue) -> Callable[[Json], object]:
 NAMES: list[tuple[Callable[[Json], object], Refusals]] = [
     # A combination: two or more fields in `reads`, of different sections.
     (entries(combinations=[["fluid.dynamic_viscosity"]]), {("BC-048", "/models/0/combinations/0")}),
+    # One entry, and it no field: fewer than two fields, whatever its sections; the entry refused at itself.
+    (
+        entries(combinations=[NO_FIELD]),
+        {("BC-048", "/models/0/combinations/0"), ("BC-048", "/models/0/combinations/0/0")},
+    ),
     (
         entries(reads=["fluid.dynamic_viscosity", *MAGNETIC], combinations=[MAGNETIC]),
         {("BC-048", "/models/0/combinations/0")},
