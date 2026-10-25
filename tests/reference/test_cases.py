@@ -344,7 +344,7 @@ def test_the_model_agrees_with_every_file_of_the_results() -> None:
     """S7a-2's files, whose expected answer holds results, each agree, none listed: the reads, the build's
     reasons, the judgement, `unused` and the report past the declaration (`build_results_model.py`)."""
     results = [case_file for case_file in build_case_files() if "results" in case_file.expected]
-    assert len(results) >= 57
+    assert len(results) >= 58
     assert [case_file.path.name for case_file in results if build_outcome(case_file).kind != "agrees"] == []
     listed = {name for excepted in BUILD_EXCEPTIONS.values() for name in excepted.case_files}
     assert listed.isdisjoint(case_file.path.name for case_file in results)

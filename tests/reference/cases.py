@@ -340,7 +340,10 @@ def result_differences(case_file: CaseFile, wanted: JsonObject, result: JsonObje
     `not_accepted`, a multiset."""
     plain = tuple(name for name in case_file.result_members if name not in ("accepted_by", "not_accepted"))
     expected = {name: wanted[name] for name in plain if name in wanted}
-    differences = compare(dataclasses.replace(case_file, members=plain, expected=expected), result)
+    # a result is compared as a read's is, whatever operation the file runs: `compare` takes a `check_build`
+    # file's report whole
+    as_a_read = dataclasses.replace(case_file, members=plain, expected=expected, operation="read")
+    differences = compare(as_a_read, result)
     keyed = {"accepted_by": index_keys, "not_accepted": not_accepted_keys}
     for name, keys in keyed.items():
         if name not in case_file.result_members:

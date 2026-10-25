@@ -265,6 +265,31 @@ def implied_condition_again(token: str) -> Callable[[JsonObject], None]:
     return change
 
 
+# The temperature supplied is 0 K, which the operating 310.15 K is outside of and nothing covers.
+OUTSIDE_AT_ZERO: Final[Mapping[str, JsonValue]] = {
+    "status": "not_met",
+    "reasons": [{"code": "condition_outside", "condition": "temperature"}],
+    "accepted": False,
+    "not_accepted": [{"code": "condition_outside", "condition": "temperature"}],
+}
+
+
+def implied_conditions_of_one_value(first: float, second: float) -> Callable[[JsonObject], None]:
+    """Two implied conditions, the second naming a token the specimen does not state, supplying the
+    temperature `first` and `second`."""
+
+    def change(declaration: JsonObject) -> None:
+        implied = acceptances(declaration)[0]
+        assert isinstance(implied, dict)
+        implied["implies"] = {"temperature": {"value": first, "unit": "K"}}
+        other = copy.deepcopy(implied)
+        other["token"] = "ex_vivo_fresh"
+        other["implies"] = {"temperature": {"value": second, "unit": "K"}}
+        acceptances(declaration).append(other)
+
+    return change
+
+
 def one_alternative_left(declaration: JsonObject) -> None:
     # The second alternative states 310.65 K, outside a tolerance of 0.25 K at 310.15 K: set aside at step 10.
     conditions = requirement(declaration)["conditions"]
@@ -274,6 +299,11 @@ def one_alternative_left(declaration: JsonObject) -> None:
     assert isinstance(temperature, dict)
     temperature["tolerance"] = {"value": 0.25, "unit": "K"}
     model(declaration)["acceptances"] = []
+
+
+def one_alternative_left_with_no_label_required(declaration: JsonObject) -> None:
+    one_alternative_left(declaration)
+    del requirement(declaration)["label"]
 
 
 def permuted(order: tuple[int, ...]) -> Callable[[JsonObject], None]:
@@ -373,6 +403,12 @@ def first_alternative_unlabelled(record: JsonObject) -> None:
     first = build_results_model.entries(field_of(record)["alternatives"])[0]
     assert isinstance(first, dict)
     del first["label"]
+
+
+def every_alternative_unlabelled(record: JsonObject) -> None:
+    for alternative in build_results_model.entries(field_of(record)["alternatives"]):
+        assert isinstance(alternative, dict)
+        alternative.pop("label", None)
 
 
 def waiver_at(code: str, **record: JsonValue) -> Callable[[JsonObject], None]:
@@ -526,7 +562,7 @@ def labelled_waiver_that_would_not_cover(what: str, **waiver: JsonValue) -> Dire
 
 
 CHECKS: Final = (
-    # declarations.md:305-306 "join the read's, and the" and "result's status is the worst of them all": a
+    # declarations.md:313-314 "join the read's, and the" and "result's status is the worst of them all": a
     # `not_reviewed` (unknown) never lowers a read's `not_met`, and the value stays (R05).
     Direct(
         "not_reviewed beside a read's not_met that carries a value",
@@ -540,7 +576,7 @@ CHECKS: Final = (
         ),
         refused=True,
     ),
-    # declarations.md:302-303 "that name the read's field" and "and are located at its location": a nominal
+    # declarations.md:310-311 "that name the read's field" and "and are located at its location": a nominal
     # at another record given too would make two nominals for one field, `request_incomplete`.
     Direct(
         "a nominal at another record is not given",
@@ -555,7 +591,7 @@ CHECKS: Final = (
         frozenset({("drag", 1)}),
         refused=False,
     ),
-    # declarations.md:302 "that name the read's field": a nominal for another field, of the same value, is
+    # declarations.md:310 "that name the read's field": a nominal for another field, of the same value, is
     # neither given nor applied, and is unused.
     Direct(
         "a nominal for another field is not given",
@@ -569,9 +605,11 @@ CHECKS: Final = (
         ),
         frozenset({("drag", 1)}),
     ),
-    # declarations.md:284-286 "an implied condition that filled a" ... "condition (a `conditions` entry whose
+    # declarations.md:292-294 "an implied condition that filled a" ... "condition (a `conditions` entry whose
     # `record` is the value the implied condition supplies, with basis": each implied condition whose value an
-    # entry shows with basis `implied` filled it, whether or not the specimen states its fact and token, so
+    # entry shows with basis `implied` filled it, whether or not the specimen states its fact and token (the
+    # sentence states no condition on the specimen, the row for supplying does, declarations.md:359 "on
+    # fields whose specimen states that fact and token": Open point: implied_applied_by_the_value_shown), so
     # two supplying one value are both applied.
     Direct(
         "two implied conditions that agree are both applied",
@@ -593,7 +631,38 @@ CHECKS: Final = (
             }),
         ),
     ),
-    # declarations.md:285-286 "a `conditions` entry whose `record` is the value the implied condition
+    # read_side_contract.md:110-112 "Two values differ unless they are of one shape, a value, a range or a
+    # token, and hold the same token or the same numbers bit for bit": an implied value is compared as two
+    # values are, so `0` and `-0` differ and the entry the first supplied is not the value the second
+    # supplies; changes.md:204-206 "are of one shape, a value, a range or a token, and hold the same token or
+    # the same numbers bit for bit". The first case is the control: equal zeros agree.
+    Direct(
+        "two implied conditions supplying 0 and 0 are both applied",
+        changed("bc017_fills_an_unstated_condition.json", implied_conditions_of_one_value(0.0, 0.0)),
+        (IN_VIVO_UNSTATED,),
+        (
+            Expected("drag", IN_VIVO_UNSTATED, VISCOSITY, {**OUTSIDE_AT_ZERO, "accepted_by": [0, 1]}),
+        ),
+    ),
+    Direct(
+        "an implied condition supplying -0 where the entry holds 0 is not applied",
+        changed("bc017_fills_an_unstated_condition.json", implied_conditions_of_one_value(0.0, -0.0)),
+        (IN_VIVO_UNSTATED,),
+        (
+            Expected("drag", IN_VIVO_UNSTATED, VISCOSITY, {**OUTSIDE_AT_ZERO, "accepted_by": [0]}),
+        ),
+        frozenset({("drag", 1)}),
+    ),
+    Direct(
+        "an implied condition supplying 0 where the entry holds -0 is not applied",
+        changed("bc017_fills_an_unstated_condition.json", implied_conditions_of_one_value(-0.0, 0.0)),
+        (IN_VIVO_UNSTATED,),
+        (
+            Expected("drag", IN_VIVO_UNSTATED, VISCOSITY, {**OUTSIDE_AT_ZERO, "accepted_by": [0]}),
+        ),
+        frozenset({("drag", 1)}),
+    ),
+    # declarations.md:293-294 "a `conditions` entry whose `record` is the value the implied condition
     # supplies": the entry of the condition by its name, whichever the implied condition names first.
     Direct(
         "an implied condition naming two conditions fills the one it supplies the value of",
@@ -605,7 +674,7 @@ CHECKS: Final = (
             }),
         ),
     ),
-    # declarations.md:309-310 "A result that rests on no stored value (its" and "a refusal before step 7 finds
+    # declarations.md:317-318 "A result that rests on no stored value (its" and "a refusal before step 7 finds
     # the field": no `label_mismatch`, though the record's field holds no label. Open point:
     # label_of_no_stored_value. A read refused at step 0 resolves no record.
     Direct(
@@ -637,7 +706,7 @@ CHECKS: Final = (
     refused_at_a_step_before_the_field("other_version", record_with(schema_version="0.9.0")),
     refused_at_a_step_before_the_field("malformed", record_without("licence")),
     refused_at_a_step_before_the_field("unknown_type", record_with(record_type="gadget")),
-    # declarations.md:308 "stored on the value the result rests on (the field, or the alternative read)": the
+    # declarations.md:316 "stored on the value the result rests on (the field, or the alternative read)": the
     # one left (its alternatives each store the Newtonian label: Open point: alternative_a_result_rests_on);
     # the field holding them stores none.
     Direct(
@@ -659,7 +728,36 @@ CHECKS: Final = (
         undecided="alternative_unnamed",
         edited={TWO_ALTERNATIVES: first_alternative_unlabelled},
     ),
-    # declarations.md:195 "A result that holds no `provenance` gets no such reason": none under `no_pick`.
+    # declarations.md:176-177 "A requirement with a `label` gives": a requirement with none checks none, so
+    # the one left decides, though it is unnamed among alternatives storing different labels (the first none).
+    Direct(
+        "no label required, the one alternative left unnamed among alternatives storing different labels",
+        changed(
+            "bc016_waiver_covers_each_alternatives_reason.json", one_alternative_left_with_no_label_required
+        ),
+        (TWO_ALTERNATIVES,),
+        (
+            Expected("drag", TWO_ALTERNATIVES, VISCOSITY, {
+                "status": "met", "reasons": [], "value": 0.000692, "accepted": True, "accepted_by": [],
+            }),
+        ),
+        edited={TWO_ALTERNATIVES: first_alternative_unlabelled},
+    ),
+    # declarations.md:176-177 "when the label stored on the" and "value the result rests on differs or is
+    # absent": every alternative stores none, so whichever is left, the label is absent.
+    Direct(
+        "a label required, every alternative unlabelled, the one left unnamed",
+        changed("bc016_waiver_covers_each_alternatives_reason.json", one_alternative_left),
+        (TWO_ALTERNATIVES,),
+        (
+            Expected("drag", TWO_ALTERNATIVES, VISCOSITY, {
+                "status": "not_met", "reasons": [LABEL_MISMATCH], "value": 0.000692, "accepted": False,
+                "accepted_by": [], "not_accepted": [LABEL_MISMATCH],
+            }),
+        ),
+        edited={TWO_ALTERNATIVES: every_alternative_unlabelled},
+    ),
+    # declarations.md:200 "A result that holds no `provenance` gets no such reason": none under `no_pick`.
     Direct(
         "no not_reviewed under no_pick, which holds no provenance",
         changed("bc016_waiver_covers_each_alternatives_reason.json", required(review="reviewed")),
@@ -672,7 +770,7 @@ CHECKS: Final = (
             }),
         ),
     ),
-    # declarations.md:246 "The build MUST refuse to build while any result is not accepted", whichever model
+    # declarations.md:251 "The build MUST refuse to build while any result is not accepted", whichever model
     # holds it.
     Direct(
         "the verdict follows the last model too",
@@ -705,7 +803,7 @@ CHECKS: Final = (
         refused=False,
         resolved=(WATER,),
     ),
-    # declarations.md:242 "lists the 0-based indexes, in the model's `acceptances`, of every": permuted, they
+    # declarations.md:247 "lists the 0-based indexes, in the model's `acceptances`, of every": permuted, they
     # follow.
     Direct(
         "acceptances permuted, their indexes follow",
@@ -728,7 +826,7 @@ CHECKS: Final = (
         ),
         frozenset({("lift", 0)}),
     ),
-    # declarations.md:251 "`records`, every record a read resolved, as": none for a read that resolves none,
+    # declarations.md:256 "`records`, every record a read resolved, as": none for a read that resolves none,
     # and none where nothing is read.
     Direct(
         "the records two reads resolved",
@@ -772,7 +870,7 @@ CHECKS: Final = (
         resolved=(),
         beside=(same_pin_other_bytes(WATER),),
     ),
-    # declarations.md:381 "It covers its reason only on a result whose stored label": trust comes after
+    # declarations.md:389 "It covers its reason only on a result whose stored label": trust comes after
     # 0.1.0.dev4; a waiver resting on a label that would cover nothing else is decided.
     Direct(
         "a waiver resting on a label that would cover its reason",
@@ -797,11 +895,11 @@ CHECKS: Final = (
     labelled_waiver_that_would_not_cover(
         "a waiver resting on a label, of another condition than the reason's", condition="temperature"
     ),
-    # declarations.md:289-290 "equal in `id`, `version` and `content_hash`": a waiver that would cover,
+    # declarations.md:297-298 "equal in `id`, `version` and `content_hash`": a waiver that would cover,
     # located at the record's other `version`, or at another `id`, covers nothing.
     waiver_located_at_another("a waiver located at another version of the record", version="9.9.9"),
     waiver_located_at_another("a waiver located at another id", id="conformance/another_record"),
-    # declarations.md:397 "an `extrapolation`, only on a result whose `assumption` names it": one at another
+    # declarations.md:407 "an `extrapolation`, only on a result whose `assumption` names it": one at another
     # record is not given, nor does it cover.
     Direct(
         "an extrapolation at another record",
@@ -815,7 +913,7 @@ CHECKS: Final = (
         ),
         frozenset({("drag", 0)}),
     ),
-    # declarations.md:171-172 "differs or is absent": a label is a token, compared as written.
+    # declarations.md:176-177 "differs or is absent": a label is a token, compared as written.
     Direct(
         "a stored label that differs from the one required in case alone",
         changed("bc016_waiver_for_another_code.json", waiver_at("condition_unstated")),

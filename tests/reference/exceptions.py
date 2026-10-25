@@ -161,7 +161,7 @@ EXCEPTIONS: Final[Mapping[str, Excepted]] = {
 
 # The build-check files the build's models (`build_model.py`, and past the declaration
 # `build_results_model.py`) do not agree with, by kind: none today. Until S7a-2m the build model gave no
-# verdict past the declaration, and S7a-2's 57 files were listed here under the kind
+# verdict past the declaration, and S7a-2's 58 files were listed here under the kind
 # `past_the_declaration`; each now agrees.
 BUILD_EXCEPTIONS: Final[Mapping[str, Excepted]] = {}
 
