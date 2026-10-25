@@ -482,7 +482,7 @@ def test_the_summary_keeps_the_matrix_beside_the_table_for_fetch_to_count_agains
 def test_the_self_test_resolves_to_a_job_of_each_kind_with_its_answer() -> None:
     jobs = measure.self_test("3.15", REPOSITORY)
     assert sorted({(job.kind, job.side, job.expect) for job in jobs}) == [
-        ("cuts", "head", "baseline"),
+        ("cuts", "head", "baseline:2"),
         ("drift", "head", "recorded"),
         ("floors", "head", "counted"),
         ("fuzz", "head", "finds"),

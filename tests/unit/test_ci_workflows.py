@@ -9392,8 +9392,8 @@ def measure_trigger_problems(found: Workflow) -> list[str]:
         [] if set(triggers) == {"workflow_dispatch", "pull_request"} else [f"runs on {sorted(triggers)}"]
     )
     pull = cast(dict[str, Any], triggers.get("pull_request") or {})
-    if list(pull) != ["paths"] or not pull["paths"] or not set(pull["paths"]) <= set(MEASURE_PATHS):
-        problems.append(f"a pull request runs it beyond its own files and the tests: {pull!r}")
+    if list(pull) != ["paths"] or sorted(pull["paths"]) != sorted(MEASURE_PATHS):
+        problems.append(f"a pull request runs it on other files than its own and the tests: {pull!r}")
     dispatched = cast(dict[str, Any], triggers.get("workflow_dispatch") or {})
     inputs = cast(dict[str, Any], dispatched.get("inputs", {}))
     if tuple(inputs) != MEASURE_INPUTS:
@@ -9417,6 +9417,14 @@ def a_pull_request_of_the_source(found: Workflow) -> None:
     dispatch(found)["pull_request"]["paths"].append("src/**")
 
 
+def a_pull_request_of_the_tests_dropped(found: Workflow) -> None:
+    dispatch(found)["pull_request"]["paths"].remove("tests/**")
+
+
+def a_pull_request_of_the_runner_dropped(found: Workflow) -> None:
+    dispatch(found)["pull_request"]["paths"].remove("scripts/input_coverage.py")
+
+
 def another_input(found: Workflow) -> None:
     dispatch(found)["workflow_dispatch"]["inputs"]["profile"] = {"type": "string"}
 
@@ -9430,8 +9438,10 @@ def a_kind_more(found: Workflow) -> None:
     [
         (None, ""),
         (a_push_too_measured, "runs on ['pull_request', 'push', 'workflow_dispatch']"),
-        (every_pull_request, "a pull request runs it beyond its own files and the tests: {}"),
-        (a_pull_request_of_the_source, "beyond its own files"),
+        (every_pull_request, "a pull request runs it on other files than its own and the tests: {}"),
+        (a_pull_request_of_the_source, "on other files than its own"),
+        (a_pull_request_of_the_tests_dropped, "on other files than its own"),
+        (a_pull_request_of_the_runner_dropped, "on other files than its own"),
         (another_input, "its inputs are"),
         (a_kind_more, "its kinds are"),
     ],

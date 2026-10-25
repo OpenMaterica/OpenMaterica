@@ -33,8 +33,8 @@ records into one table a kind. Locally the jobs run one after another; on CI eac
   pair and of CI's runs at the fitted rate. `CONTROL:none` runs it with no fault seeded.
 - `cuts`: the cuts of `scripts/input_coverage.py`'s selections (`all`, or names of its baseline; `NAME:whole`
   without the selection's `!` patterns, so that the cuts they leave out run too), each selection's cuts split
-  into jobs of about equal time by its longest cut measured (the baseline's `timing`), a slice each: each job
-  records the selection and runs its slice, two cuts at once; the report merges the slices into the
+  into jobs of about equal planned time by its longest cut measured (the baseline's `timing`), a slice each:
+  each job records the selection and runs its slice, two cuts at once; the report merges the slices into the
   selection's report and holds it to the baseline (`input_coverage.py check`), a finding a flag. On a pull
   request, the cuts of the sites its change names, held to the baseline (`pull_request_jobs`).
 
@@ -96,6 +96,9 @@ SELF_TESTED = (
     "scripts/input_coverage.py",
     "tests/property/input_coverage.py",
 )
+# Tests every selection runs under: the Hypothesis profiles (an example count lowered there would lower every
+# selection's).
+SHARED_TESTS = ("tests/conftest.py", "tests/property/conftest.py")
 SHA = re.compile(r"[0-9a-f]{40}")
 PATTERN = re.compile(r"[\x21-\x7e]+")
 FUZZ_PYTHON = "3.14"  # Atheris 3.1.0's wheels: 3.12 to 3.14
@@ -213,7 +216,8 @@ SELF_FLOORS_STREAM_0 = {
 # kill; a tree against itself
 # every share's ratio 1 and every kill the recorded one; the fastest control finding its fault, and finding
 # nothing with none seeded; and the cuts of one site, a `one_of` S3c builds at module level (its selection's
-# name, then the cuts' pattern), one held and one not, each with the baseline's result.
+# name, then the cuts' pattern), one held and one not, each with the baseline's result, and the two cuts the
+# pattern must match (`baseline:2`): a pattern that drifts off its site would otherwise check nothing.
 SELF_TEST: tuple[tuple[str, str, str], ...] = (
     (
         "floors",
@@ -229,7 +233,7 @@ SELF_TEST: tuple[tuple[str, str, str], ...] = (
     ("regions", "tests/property/test_slip_properties.py", "ratio_one"),
     ("fuzz", "properties", "finds"),
     ("fuzz", f"properties:{NO_FAULT}", "no_finds"),
-    ("cuts", "extrapolation *::<module>::st.one_of(NOT_TEXT,*", "baseline"),
+    ("cuts", "extrapolation *::<module>::st.one_of(NOT_TEXT,*", "baseline:2"),
 )
 
 
@@ -406,15 +410,20 @@ def input_coverage(root: Path = REPOSITORY) -> Any:
     return module
 
 
+def slices_for(cuts: int, seconds: float) -> int:
+    """The slices that `cuts` cuts of up to `seconds` each need, so that a slice's cuts fill `CUT_PLANNED` of
+    its job's minutes at most, `CUTS_AT_ONCE` at once."""
+    capacity = CUT_PLANNED * CUT_JOB_MINUTES * 60 * CUTS_AT_ONCE
+    return max(1, math.ceil(cuts * seconds / capacity))
+
+
 def cut_jobs(
     words: Sequence[str], python: str, root: Path, expect: str = "", scope: str = "", count: int = 0
 ) -> list[Job]:
     """The jobs of a cut request: each selection named (`all`, every one) split into slices of about equal
-    time, by the cuts its baseline's `timing` counts (with those its `!` patterns leave out, where whole) and
-    its longest cut measured, so that a slice's cuts fill `CUT_PLANNED` of its job's minutes at most; `count`
-    slices where given."""
+    planned time, by the cuts its baseline's `timing` counts (with those its `!` patterns leave out, where
+    whole) and its longest cut measured (`slices_for`); `count` slices where given."""
     baseline = baseline_of(root)
-    capacity = CUT_PLANNED * CUT_JOB_MINUTES * 60 * CUTS_AT_ONCE
     named: list[tuple[str, str]] = []
     for word in words:
         name, _, whole = word.partition(":")
@@ -426,7 +435,7 @@ def cut_jobs(
         entry = baseline[name]
         timing: dict[str, Any] = entry["timing"]
         cuts = timing["cuts"] + (entry["left_out"]["cuts"] if whole else 0)
-        slices = count or max(1, math.ceil(cuts * timing["seconds"] / capacity))
+        slices = count or slices_for(cuts, timing["seconds"])
         selection = f"{name}:{whole}" if whole else name
         jobs += [
             Job(
@@ -445,7 +454,8 @@ def cut_jobs(
 
 
 def changed_files(pull: str, root: Path) -> list[str]:
-    """The files a pull request changes that its head holds, from its base and head (`BASE...HEAD`)."""
+    """The files a pull request changes, from its base and head (`BASE...HEAD`): those it deletes too, since
+    a deleted test of a selection changes what the selection runs."""
     done = subprocess.run(
         ["git", "diff", "--name-only", "--no-renames", pull, "--"],
         cwd=root,
@@ -455,7 +465,7 @@ def changed_files(pull: str, root: Path) -> list[str]:
     )
     if done.returncode != 0:
         raise MeasureError([f"git diff {pull} failed: {done.stderr[-500:]}"])
-    return sorted(name for name in done.stdout.splitlines() if (root / name).is_file())
+    return sorted(done.stdout.splitlines())
 
 
 def imported_closure(files: Sequence[str], root: Path) -> set[str]:
@@ -476,21 +486,68 @@ def imported_closure(files: Sequence[str], root: Path) -> set[str]:
     return found
 
 
-def pull_request_jobs(changed: Sequence[str], python: str, root: Path) -> list[Job]:
+def baseline_at(commit: str, root: Path) -> dict[str, Any]:
+    """The input coverage's selections as a commit holds them (none where it holds no baseline)."""
+    done = subprocess.run(
+        ["git", "show", f"{commit}:{BASELINE.as_posix()}"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return cast(dict[str, Any], json.loads(done.stdout)) if done.returncode == 0 else {}
+
+
+def scope_cuts(name: str, scope: str, root: Path) -> int:
+    """The cuts of a selection that a scope's patterns match, counted from the selection's recording
+    (`scripts/input_coverage.py list`, on the width its baseline states): a scope's size is known only so."""
+    with tempfile.TemporaryDirectory(prefix="measure-scope-") as scratch:
+        report_path = Path(scratch) / "report.json"
+        command = [sys.executable, str(root / "scripts" / "input_coverage.py"), "list", name]
+        command += ["--report", str(report_path), "--root", str(root), "--baseline", str(root / BASELINE)]
+        done = subprocess.run(
+            [*command, "--scope", *scope.split()], capture_output=True, text=True, check=False
+        )
+        if not report_path.exists():
+            raise MeasureError(
+                [f"the selection {name!r} was not recorded to count a scope's cuts: {done.stdout[-1500:]}"]
+            )
+        report: dict[str, Any] = json.loads(report_path.read_text(encoding="utf-8"))
+    return len(input_coverage(root).shared(report))
+
+
+def pull_request_jobs(
+    changed: Sequence[str],
+    python: str,
+    root: Path,
+    pull: str = "",
+    counted: Callable[[str, str, Path], int] | None = None,
+) -> list[Job]:
     """The cut jobs of a pull request: for each selection, all its cuts where the change touches one of its
-    tests, the cuts of the sites that name a module it changes where that module is one its tests import, and
-    none otherwise; each slice held to the baseline (its answer `baseline`)."""
+    tests (or `SHARED_TESTS`, the Hypothesis profiles) or edits its entry of the baseline against the base's,
+    the cuts of the sites that name a module it changes where that module is one its tests import (in slices
+    planned from the cuts that scope holds, none where it holds none: a named note), and none otherwise;
+    each slice held to the baseline (its answer `baseline`)."""
+    base = baseline_at(pull.partition("...")[0], root) if BASELINE.as_posix() in changed else {}
     jobs: list[Job] = []
     for name, entry in baseline_of(root).items():
         tests = sorted({test.partition("::")[0] for test in entry["tests"]})
-        scope = ""
-        if not set(tests) & set(changed):
-            closure = imported_closure(tests, root)
-            touched = [each for each in changed if each in closure and each.endswith(".py")]
-            if not touched:
-                continue
-            scope = " ".join(f"*{each}::*" for each in touched)
-        jobs += cut_jobs([name], python, root, expect="baseline", scope=scope)
+        edited = BASELINE.as_posix() in changed and entry != base.get(name)
+        if edited or (set(tests) | set(SHARED_TESTS)) & set(changed):
+            jobs += cut_jobs([name], python, root, expect="baseline")
+            continue
+        closure = imported_closure(tests, root)
+        touched = [each for each in changed if each in closure and each.endswith(".py")]
+        if not touched:
+            continue
+        scope = " ".join(f"*{each}::*" for each in touched)
+        held = (counted or scope_cuts)(name, scope, root)
+        if not held:
+            names = " ".join(touched)
+            print(f"::notice title=Measure::{name}: no cut names {names}, so there is nothing to check")
+            continue
+        slices = slices_for(held, float(entry["timing"]["seconds"]))
+        jobs += cut_jobs([name], python, root, expect="baseline", scope=scope, count=slices)
     return jobs
 
 
@@ -503,7 +560,7 @@ def matrix(request: Mapping[str, str], root: Path = REPOSITORY) -> list[Job]:
     if kind == "pull_request":
         changed = changed_files(request["base"], root)
         jobs = self_test(request["python"], root) if set(changed) & set(SELF_TESTED) else []
-        return jobs + pull_request_jobs(changed, request["python"], root)
+        return jobs + pull_request_jobs(changed, request["python"], root, request["base"])
     words = request["selection"].split()
     if kind == "cuts":
         jobs = cut_jobs(words, request["python"], root)
@@ -923,15 +980,11 @@ def cut_budget(job: Job, root: Path) -> float | None:
     return int(started) + (int(minutes) - 3) * 60 - time.time() - 1.5 * longest
 
 
-def run_cuts_job(job: Job, out: Path, workers: int, root: Path = REPOSITORY) -> dict[str, Any]:
-    """A slice of a selection's cuts: `scripts/input_coverage.py run` with the slice and the job's scope as
-    the report's share, `CUT_WORKERS` workers a cut and as many cuts at once as the workers allow; the report,
-    with every cut of the share's result, and the selection's baseline entry at this commit are the record's.
-    Its problems: the selection not recorded (it fails with no cut), a cut of the share not run in the job's
-    time, an interrupt, the tool's own failure. A cut not held that the baseline does not list is a finding of
-    the report, not of the job."""
+def cut_command(job: Job, report_path: Path, workers: int, root: Path, budget: float | None) -> list[str]:
+    """`scripts/input_coverage.py run` for a cut job: the job's slice and scope as the report's share,
+    `CUT_WORKERS` workers a cut and as many cuts at once as the job's workers allow, and no cut started after
+    the budget."""
     name, _, whole = job.nodes.partition(":")
-    report_path = out / "report.json"
     command = [
         sys.executable,
         str(root / "scripts" / "input_coverage.py"),
@@ -945,9 +998,20 @@ def run_cuts_job(job: Job, out: Path, workers: int, root: Path = REPOSITORY) -> 
         command.append("--whole")
     if job.scope:
         command += ["--scope", *job.scope.split()]
-    budget = cut_budget(job, root)
     if budget is not None:
         command += ["--budget", str(max(0, int(budget)))]
+    return command
+
+
+def run_cuts_job(job: Job, out: Path, workers: int, root: Path = REPOSITORY) -> dict[str, Any]:
+    """A slice of a selection's cuts (`cut_command`); the report, with every cut of the share's result, the
+    number of cuts the share held (`cuts_in_share`: none means nothing was checked), and the selection's
+    baseline entry at this commit are the record's. Its problems: the selection not recorded (it fails with no
+    cut), a cut of the share not run in the job's time, an interrupt, the tool's own failure. A cut not held
+    that the baseline does not list is a finding of the report, not of the job."""
+    name = job.nodes.partition(":")[0]
+    report_path = out / "report.json"
+    command = cut_command(job, report_path, workers, root, cut_budget(job, root))
     with (out / "input-coverage.log").open("wb") as log:
         process = subprocess.Popen(command, cwd=root, stdout=log, stderr=subprocess.STDOUT)
         statuses, problems = waited([process])
@@ -955,19 +1019,27 @@ def run_cuts_job(job: Job, out: Path, workers: int, root: Path = REPOSITORY) -> 
     if report_path.exists():
         report = json.loads(report_path.read_text(encoding="utf-8"))
         report_path.unlink()
+    held = 0
     if report is None or "cuts" not in report:
         problems.append(
             "the selection was not recorded: it fails with no cut, or the tool failed (input-coverage.log)"
         )
     else:
         share = input_coverage(root).shared(report)
+        held = len(share)
         left = sum("result" not in report["cuts"][name] for name in share)
         if left:
             problems.append(f"{left} of the {len(share)} cuts of the job's share not run in its time")
     if statuses[0] not in (0, 1, 2) and not problems:
         problems.append(f"scripts/input_coverage.py exited {statuses[0]} (input-coverage.log)")
     entry: dict[str, Any] = baseline_of(root).get(name, {})
-    return {"commit": git_commit(root), "report": report, "baseline": entry, "problems": problems}
+    return {
+        "commit": git_commit(root),
+        "report": report,
+        "baseline": entry,
+        "cuts_in_share": held,
+        "problems": problems,
+    }
 
 
 def hypothesis_version(runs: Sequence[dict[str, Any]]) -> str:
@@ -1507,6 +1579,23 @@ def cut_groups(records: Sequence[dict[str, Any]]) -> dict[tuple[str, str], list[
     return dict(sorted(groups.items()))
 
 
+NOTHING_CHECKED = "0 in scope: nothing checked"
+
+
+def cuts_in_scope(group: Sequence[dict[str, Any]]) -> int:
+    """The cuts a selection's slices held between them, as its jobs reported them (a record from before the
+    jobs reported it: counted from its report)."""
+    module = input_coverage()
+    return sum(
+        int(record["cuts_in_share"])
+        if "cuts_in_share" in record
+        else len(module.shared(record["report"]))
+        if record.get("report")
+        else 0
+        for record in group
+    )
+
+
 def merged_cuts(group: Sequence[dict[str, Any]]) -> tuple[dict[str, Any] | None, list[str]]:
     """A selection's report merged from its slices' records, and where they do not make one: a slice that
     recorded nothing, slices that recorded other cuts, a slice missing or doubled."""
@@ -1523,8 +1612,8 @@ def report_cuts(records: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
     lines = [
         "| Selection | Scope | Slices | Sites | Cuts | "
         + " | ".join(result.capitalize() for result in CUT_RESULTS)
-        + " | Uncut | Left out (sites, cuts, uncut) |",
-        "|---|---|---:|---:|---:|" + "---:|" * len(CUT_RESULTS) + "---:|---|",
+        + " | Uncut | Left out (sites, cuts, uncut) | In scope |",
+        "|---|---|---:|---:|---:|" + "---:|" * len(CUT_RESULTS) + "---:|---|---:|",
     ]
     flags: list[str] = []
     module = input_coverage()
@@ -1545,8 +1634,11 @@ def report_cuts(records: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
                 *(counts[result] for result in CUT_RESULTS),
                 len(merged["uncut"]),
                 f"{left.get('sites', 0)}, {left.get('cuts', 0)}, {left.get('uncut', 0)}",
+                cuts_in_scope(group) or NOTHING_CHECKED,
             )
         )
+        if not cuts_in_scope(group):
+            flags.append(f"{selection}: {NOTHING_CHECKED}")
         flags += [
             f"{selection}: {problem}" for problem in module.problems(merged, group[0].get("baseline", {}))
         ]
@@ -1555,17 +1647,24 @@ def report_cuts(records: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
 
 def cut_problems(records: Sequence[dict[str, Any]]) -> list[str]:
     """Where the cut kind's records do not make one report a selection (`merged_cuts`), and, of a job whose
-    answer is the baseline (a pull request's), each place its slice and the baseline disagree."""
+    answer is the baseline (a pull request's), each place its slice and the baseline disagree, and, of the
+    self-test's (`baseline:N`), a count of cuts in scope other than N."""
     problems: list[str] = []
     for (selection, _), group in cut_groups(records).items():
         merged, found = merged_cuts(group)
         problems += [f"{selection}: {problem}" for problem in found]
-        if merged is not None and any(record["job"]["expect"] == "baseline" for record in group):
+        answer, _, needed = group[0]["job"]["expect"].partition(":")
+        if answer == "baseline" and merged is not None:
             entry = group[0].get("baseline", {})
             problems += [
                 f"{selection}, held to the baseline: {each}"
                 for each in input_coverage().problems(merged, entry)
             ]
+        if answer == "baseline" and needed and cuts_in_scope(group) != int(needed):
+            held = cuts_in_scope(group)
+            problems.append(
+                f"{selection}: {held} cuts in scope, and the self-test's pattern must match {needed}"
+            )
     return problems
 
 
@@ -1819,7 +1918,11 @@ def local(kind: str, words: Sequence[str], count: int, base: str, out: Path, wor
     text, _ = report(records)
     print(text)
     print(f"records: {out}")
-    return 1 if any(record.get("problems") for record in records) else 0
+    merging = cut_problems(records)
+    if merging:
+        print("\nThis report is wrong:")
+        print("\n".join(f"- {problem}" for problem in merging))
+    return 1 if merging or any(record.get("problems") for record in records) else 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:
