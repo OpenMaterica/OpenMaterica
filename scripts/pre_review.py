@@ -256,6 +256,13 @@ DATA_RULES = (
         tests=("tests/unit/test_build.py", "tests/unit/test_report.py"),
     ),
     DataRule(
+        "a build-check case or input, which the fuzz target's oracle tests read",
+        r"src/materica/data/conformance/build_checks/(cases|inputs)/.+\.json",
+        "the fuzz target's oracle tests read every build-check case and the declaration and records it "
+        "names, the target's seeds",
+        tests=("tests/unit/test_fuzz_build_oracle.py",),
+    ),
+    DataRule(
         "an example record",
         r"examples/.+",
         "the example tests check each record against the schemas, its sources and what a read of it gives",
