@@ -198,9 +198,8 @@ RESULTS_NOT_DECIDED: Final[Mapping[str, str]] = {
     ),
     "alternative_unnamed": (
         "Which alternative is the one left is step 7's: where a result rests on one alternative, names none "
-        "in its reasons, and the alternatives store different labels or specimens, the model cannot say "
-        "which label to check, or which specimen an implied condition applies to (its open point "
-        "`alternative_a_result_rests_on`)."
+        "in its reasons, and the alternatives store different labels, the model cannot say which label to "
+        "check (its open point `alternative_a_result_rests_on`)."
     ),
     "the_read": "A read the read model gives no verdict on, for the reason it gives.",
 }
