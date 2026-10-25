@@ -3418,3 +3418,32 @@ def test_a_result_resting_on_no_single_stored_value_rests_on_none(reading: Calla
     result = reading()
     assert result.status != "met"
     assert result.resting_on is None, result.reasons
+
+
+# Whether the read resolved its target record, passing steps 0 to 5, which a build lists among the records a
+# read resolved (`declarations.md` section 2): kept outside the result's JSON and equality, as `applied` is.
+
+
+def test_a_read_past_step_5_resolved_its_record_whatever_it_found_there() -> None:
+    met = read_met(met_field())
+    assert met.resolved
+    assert read(*stored(water(), "bulk.density")).resolved
+    assert read_met({"alternatives": [met_field(), met_field()]}).resolved
+    assert "resolved" not in met.to_json()
+    assert ReadResult.from_json(met.to_json()) == met
+
+
+@pytest.mark.parametrize(
+    "reading",
+    [
+        pytest.param(lambda: read(REQUEST, store()), id="record_absent"),
+        pytest.param(
+            lambda: read(with_members(requirement={"want": "value", "review": "reviewed"}), store()),
+            id="refused_at_step_0",
+        ),
+    ],
+)
+def test_a_read_refused_at_steps_0_to_5_resolved_no_record(reading: Callable[[], ReadResult]) -> None:
+    result = reading()
+    assert result.status == "not_met"
+    assert not result.resolved, result.reasons
