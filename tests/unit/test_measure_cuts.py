@@ -70,7 +70,7 @@ ENTRY: dict[str, Any] = {
     "tests": ["tests/test_holds.py"],
     "sites": ["tests/test_holds.py::*"],
     "excused": {},
-    "timing": {"cuts": 2, "seconds": 10.0, "measured": "a fixture"},
+    "timing": {"cuts": 2, "whole_cuts": 2, "seconds": 10.0, "measured": "a fixture"},
     "left_out": {"sites": 0, "cuts": 0, "uncut": 0, "reason": "nothing is left out"},
     "cuts": {},
     "uncut": {},
@@ -146,6 +146,19 @@ def test_each_cut_job_runs_its_slice_and_the_summary_merges_them_and_holds_them_
     listed = ENTRY | {"cuts": {DROP_B: {"result": "not held", "reason": "a gap: no test needs 'b'"}}}
     write_baseline(root, {"fixture": listed})
     assert input_coverage.main(check) == 0
+    # A pull request's records hold the self-test's too, a scope of the same selection that it answers to
+    # alone (`baseline:2`): `check` leaves it out, where it would refuse the slices as another scope's.
+    self_test = json.loads(
+        (tmp_path / "records" / f"record-{held[0].id}-1" / "record.json").read_text(encoding="utf-8")
+    )
+    self_test["job"]["expect"] = "baseline:1"
+    self_test["report"]["share"] = {"scope": [f"*{SITE}* :: drop 'a'"], "slice": [0, 1]}
+    (tmp_path / "records" / "record-self0-1").mkdir()
+    (tmp_path / "records" / "record-self0-1" / "record.json").write_text(json.dumps(self_test))
+    assert input_coverage.main(check) == 0
+    self_test["job"]["expect"] = "baseline"
+    (tmp_path / "records" / "record-self0-1" / "record.json").write_text(json.dumps(self_test))
+    assert input_coverage.main(check) == 1
 
 
 def test_the_summary_refuses_a_slice_missing_and_slices_that_recorded_other_cuts(tmp_path: Path) -> None:
@@ -198,9 +211,17 @@ def test_a_cut_job_stops_starting_cuts_one_and_a_half_longest_cuts_before_its_in
     assert started + 117 * 60 - 15 - time.time() - 1 <= budget <= started + 117 * 60 - 15 - time.time() + 1
 
 
+# A whole run makes 300 cuts of "one", of which what its `!` patterns leave out counts 50 (a place once for
+# each owner, a floor): the plan reads the 300.
+LEFT_OUT_CUTS = 50
 TIMED = {
-    "one": ENTRY | {"timing": {"cuts": 100, "seconds": 300.0, "measured": "x"}, "left_out": {"cuts": 200}},
-    "two": ENTRY | {"timing": {"cuts": 10, "seconds": 60.0, "measured": "x"}, "left_out": {"cuts": 0}},
+    "one": ENTRY
+    | {
+        "timing": {"cuts": 100, "whole_cuts": 300, "seconds": 300.0, "measured": "x"},
+        "left_out": {"cuts": LEFT_OUT_CUTS},
+    },
+    "two": ENTRY
+    | {"timing": {"cuts": 10, "whole_cuts": 10, "seconds": 60.0, "measured": "x"}, "left_out": {"cuts": 0}},
 }
 
 
@@ -218,6 +239,8 @@ def test_the_cut_matrix_splits_each_selection_by_its_cuts_and_its_longest_cut(tm
         "two": 1,
     }
     assert planned == {"one": 5, "one:whole": 13, "two:whole": 1, "two": 1}
+    # Not from the cuts the patterns leave out, which would give 150 cuts and 7 slices.
+    assert math.ceil((100 + LEFT_OUT_CUTS) * 300 / capacity) == 7
     made: dict[str, list[tuple[int, int]]] = {}
     for job in jobs:
         made.setdefault(job.nodes, []).append((job.first, job.length))

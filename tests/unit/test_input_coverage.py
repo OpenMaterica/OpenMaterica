@@ -8,6 +8,7 @@ Each runs the checker on a tree of its own, written here, with a copy of the plu
 this process would put its wrappers in front of every later test's strategies."""
 
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -19,7 +20,7 @@ from typing import Any
 
 import pytest
 
-from scripts import input_coverage
+from scripts import input_coverage, measure
 from scripts.input_coverage import cuts_of, merged_reports, problems, result_of
 
 REPOSITORY = Path(__file__).resolve().parents[2]
@@ -470,6 +471,19 @@ def test_b_is_drawn():
     find(own(), lambda example: example[0] == "b", settings=DERANDOMIZED)
 """
 )
+# A second strategy of the selection's own, drawing a place of `lower` that the first already draws from.
+ANOTHER_OWNER = """
+
+@st.composite
+def another(draw):
+    return draw(lower.numbers())
+
+
+@DERANDOMIZED
+@given(another())
+def test_another(example):
+    pass
+"""
 LEAVING_OUT = {"sites": ["tests/test_own.py::*", "!* > tests/lower.py::*"]}
 OWN_LEFT = {"sites": 1, "cuts": 2, "uncut": 1}
 
@@ -492,11 +506,16 @@ def test_what_the_patterns_leave_out_is_in_the_baseline_and_a_new_draw_through_i
     baseline = {**LEAVING_OUT, "left_out": {**OWN_LEFT, "reason": "temporary"}}
     status, _, output = check(root, "check", "test_own.py", baseline, report="first.json")
     assert status == 0, output
-    # What the counts do not see: another call of a place the strategy already draws from (counted by place).
+    # What the counts do not see, a floor (stated in the README, the baseline's reason and the description):
+    # another call of a place that the same owner already draws from, and another owner of it.
     again = OWN.replace("draw(lower.numbers())", "draw(lower.numbers()), draw(lower.numbers())")
-    (root / "tests" / "test_own.py").write_text(again, encoding="utf-8")
-    _, report, _ = check(root, "list", "test_own.py", baseline, report="again.json")
-    assert report["left_out"] == OWN_LEFT
+    for source in (again, OWN + ANOTHER_OWNER):
+        (root / "tests" / "test_own.py").write_text(source, encoding="utf-8")
+        status, report, output = check(root, "list", "test_own.py", baseline, report="again.json")
+        assert report["left_out"] == OWN_LEFT
+    # The same draws counted site by site, which the schedule changes (`--whole` lists every one).
+    _, whole, _ = check(root, "list", "test_own.py", baseline, report="whole.json", options=["--whole"])
+    assert len(whole["cuts"]) == 2 + 2 + 2
     # A new draw of the strategy's own through another place of `lower` is left out too, and is not dropped
     # unseen.
     source = OWN.replace("draw(lower.words())", "draw(lower.words()), draw(lower.flags())")
@@ -610,8 +629,31 @@ def sliced(part: int, count: int, **found: str) -> dict[str, Any]:
             [None, None, None],
             ["slice 1 recorded other cuts, uncut draws or left-out counts than the first"],
         ),
+        # Slices that counted what the `!` patterns leave out differently recorded the selection apart: the
+        # cuts and the uncut draws alike are no evidence for one report.
+        (
+            [sliced(0, 2), {**sliced(1, 2), "left_out": {"sites": 0, "cuts": 3, "uncut": 0}}],
+            [None, None, None],
+            ["slice 1 recorded other cuts, uncut draws or left-out counts than the first"],
+        ),
+        (
+            [{**sliced(0, 3), "left_out": {"sites": 2, "cuts": 5, "uncut": 1}}, sliced(1, 3), sliced(2, 3)],
+            [None, None, None],
+            [
+                "slice 1 recorded other cuts, uncut draws or left-out counts than the first",
+                "slice 2 recorded other cuts, uncut draws or left-out counts than the first",
+            ],
+        ),
     ],
-    ids=["whole", "missing", "doubled", "outside-its-share", "recorded-apart"],
+    ids=[
+        "whole",
+        "missing",
+        "doubled",
+        "outside-its-share",
+        "recorded-apart",
+        "left-out-apart",
+        "first-apart",
+    ],
 )
 def test_the_slices_of_a_selection_merge_into_its_report(
     reports: list[dict[str, Any]], merged: list[str | None], found: list[str]
@@ -889,9 +931,13 @@ def test_the_baseline_names_tests_that_exist_and_gives_each_entry_its_reason() -
         # What the cut kind of `measure.yml` splits a selection's cuts by: their count and the longest
         # measured, with where and how it was measured.
         timing = selection["timing"]
-        assert set(timing) == {"cuts", "seconds", "measured"}, name
+        assert set(timing) == {"cuts", "whole_cuts", "seconds", "measured"}, name
         assert isinstance(timing["cuts"], int), name
         assert timing["cuts"] > 0, name
+        # What a recording without the `!` patterns makes (`NAME:whole` is planned from it): no fewer than the
+        # cuts and the places the patterns leave out, which the counts of `left_out` give as a floor.
+        assert isinstance(timing["whole_cuts"], int), name
+        assert timing["whole_cuts"] >= timing["cuts"] + selection["left_out"]["cuts"], name
         assert isinstance(timing["seconds"], float), name
         assert timing["seconds"] > 0, name
         assert timing["measured"].strip(), name
@@ -1331,6 +1377,78 @@ def test_what_the_patterns_leave_out_is_counted_by_place_whatever_owners_the_sch
     many = [str(number) for number in range(input_coverage.MOST_VALUES + 1)]
     wide = owned(("a", numbers, many[:15]), ("b", numbers, many[10:]))
     assert input_coverage.left_out_by_place(wide, patterns) == {"sites": 0, "cuts": 0, "uncut": 1}
+
+
+def test_a_sites_place_follows_the_last_arrow_before_a_path_though_the_call_and_the_label_hold_arrows() -> (
+    None
+):
+    """The call's text and the place's label may hold ` > ` (a comparison, as `if v > t` does in S3c's
+    strategies): `owner > call > place` is split at the last one that a path follows."""
+    place = "tests/lower.py::numbers::st.sampled_from([1 > 0, 2])"
+    assert input_coverage.place_of(f"tests/a.py::a > draw(x if 1 > 0 else y) > {place}") == place
+    assert input_coverage.place_of(place) == place
+    other = "tests/lower.py::numbers::st.sampled_from([3 > 0, 2])"
+    patterns = ["tests/a.py::*", "!* > tests/lower.py::*"]
+    sites = {
+        f"tests/a.py::a > draw(1 > 0) > {place}": seen_at("sampled_from", ["1", "2"]),
+        f"tests/a.py::a > draw(3 > 0) > {other}": seen_at("sampled_from", ["1", "2"]),
+    }
+    # Two places, though cut at the last arrow alone both would end in `0, 2])`.
+    assert input_coverage.left_out_by_place(sites, patterns) == {"sites": 2, "cuts": 4, "uncut": 0}
+
+
+def test_a_whole_selection_is_planned_from_the_cuts_of_its_whole_recording_not_from_what_the_counts_leave_out(
+    tmp_path: Path,
+) -> None:
+    """`NAME:whole` runs every cut of a recording without the `!` patterns, a site for each call into a place,
+    where `left_out` counts a place once for each owner: a plan from `left_out` has too few slices, each over
+    the time the cut kind plans for."""
+    again = OWN.replace("draw(lower.numbers())", "draw(lower.numbers()), draw(lower.numbers())")
+    root = tree(tmp_path, {"lower.py": LOWER, "test_own.py": again})
+    _, narrowed, _ = check(root, "list", "test_own.py", LEAVING_OUT, report="narrowed.json")
+    _, whole, _ = check(root, "list", "test_own.py", LEAVING_OUT, report="whole.json", options=["--whole"])
+    # The recording without the patterns makes the cuts of both calls into `lower.numbers`, where the
+    # counts of what the patterns leave out hold one place (the blind spot the README states).
+    assert (len(narrowed["cuts"]), narrowed["left_out"]["cuts"], len(whole["cuts"])) == (2, 2, 6)
+    seconds = 3000.0
+    timing: dict[str, Any] = {
+        "cuts": len(narrowed["cuts"]),
+        "whole_cuts": len(whole["cuts"]),
+        "seconds": seconds,
+    }
+    entry: dict[str, Any] = {
+        **LEAVING_OUT,
+        "timing": timing,
+        "left_out": {**narrowed["left_out"], "reason": "temporary"},
+    }
+    # The number the plan uses is the recording's, and `check --whole` says when it is not.
+    _, _, output = check(root, "check", "test_own.py", entry, report="whole.json", options=["--whole"])
+    assert "the baseline's timing counts" not in output
+    wrong = {**entry, "timing": {**timing, "whole_cuts": len(whole["cuts"]) - 1}}
+    _, _, output = check(root, "check", "test_own.py", wrong, report="whole.json", options=["--whole"])
+    assert "the baseline's timing counts 5 cuts of a whole recording, it makes 6" in output
+    # A schedule that makes fewer cuts than the largest measured is no finding.
+    more = {**entry, "timing": {**timing, "whole_cuts": len(whole["cuts"]) + 1}}
+    _, _, output = check(root, "check", "test_own.py", more, report="whole.json", options=["--whole"])
+    assert "the baseline's timing counts" not in output
+    (root / "tests" / "property" / "input_coverage_baseline.json").write_text(
+        json.dumps({"test_own.py": entry}), encoding="utf-8"
+    )
+    jobs = measure.cut_jobs(["test_own.py:whole"], sys.executable, root)
+    window = measure.CUT_PLANNED * measure.CUT_JOB_MINUTES * 60 * measure.CUTS_AT_ONCE
+    assert len(jobs) == math.ceil(len(whole["cuts"]) * seconds / window) == 3
+    # Every cut of the whole run is in some slice, and no slice holds more than the window plans for.
+    held: list[str] = []
+    for job in jobs:
+        report = {**whole, "share": {"scope": None, "slice": [job.first, job.length]}}
+        share = input_coverage.shared(report)
+        assert len(share) * seconds <= window
+        held += share
+    assert sorted(held) == sorted(whole["cuts"])
+    # The plan from the counts of what the patterns leave out would be too small: two slices of three cuts.
+    from_left_out = math.ceil((timing["cuts"] + entry["left_out"]["cuts"]) * seconds / window)
+    assert from_left_out == 2
+    assert -(-len(whole["cuts"]) // from_left_out) * seconds > window
 
 
 @pytest.mark.parametrize(("budget", "started"), [(1.0, 0), (100.0, 2)])

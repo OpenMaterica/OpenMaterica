@@ -2031,7 +2031,8 @@ report keeps, and a `not held` says that no test needed the value in that run.
 On CI the cuts run as `measure.yml`'s cut kind (maintainer, 2026-10-23 and 2026-10-24; `tests/README.md`,
 "Measurements on CI"). A dispatch names selections of the baseline, or `all`, each as `NAME:whole` to run the
 cuts its `!` patterns leave out too, and the request job splits each selection's cuts into slices of about
-planned time by the baseline's `timing`: the cuts the selection makes and its longest cut measured (on two
+planned time by the baseline's `timing`: the cuts the selection makes (`whole_cuts`, those of a recording
+without its `!` patterns, for `NAME:whole`) and its longest cut measured (on two
 workers a cut, two cuts at once, in the first dispatch on CI), so that a slice's cuts fill at most half of its
 job's 120 minutes at two at once, the rest left to the selection's recording and a slower runner. Each job
 records the selection and runs its slice (`--slice K/N`); the report merges the slices into the selection's
@@ -2065,9 +2066,15 @@ tests and cannot be listed), and every draw it cannot cut, with a person's note.
 held, or an uncut draw, that the baseline does not list, and on an entry whose cut is now held or no longer
 made: an entry cannot outlive its gap, and nothing turns the check off. What the `!` patterns leave out of what
 an earlier pattern took is recorded too, under `left_out`: its sites with a cut, its cuts and its uncut draws,
-counted by the place a draw is written (an owner of a cached strategy is the first caller on a worker, so the
-owners vary with how the tests are split among workers, the places do not; a second call of a place that its owner already draws from is not counted again), and why it is left out; `list` and `check` print the counts, and `check` fails when they differ, so
-that a new draw of a selection's own through a module it leaves out is not dropped unseen. Each test module
+counted by the place a draw is written, and why it is left out; `list` and `check` print the counts, and `check`
+fails when they differ, so that a new draw of a selection's own through a place of a module it leaves out is not
+dropped unseen. The counts are a floor, not the cuts a whole run makes (that is `timing.whole_cuts`, the largest measured, since a recording without the patterns makes a cut for each owner and call, S3c's 768, 800, 820 and 828 at 2, 4, 8 and 12 workers): an owner of
+a cached strategy is the first caller on a worker, so the owners a place has, and the sites that make, vary with
+how the tests are split among workers (S3c's recording gave 151, 160 and 165 left-out sites at two, four and
+eight workers, and 120, 128 and 132 when counted by the selection's own owner and the place), where the places
+and what is drawn at them do not. So another owner of a place already drawn, another call into it by the same
+owner, and a cached function's other callers outside the selection add nothing, until the draw-time ownership
+restores a count by owner; a new place does. Each test module
 that imports a module whose sites a selection holds is named by the selection (whole or in part) or excused
 with a reason under `excused` (`tests/unit/test_input_coverage.py` fails on one that is neither); a test that
 draws the sites through another module is not found so. S4d's selection (`table_alternatives`) also runs HP12's part over tables among
@@ -2093,8 +2100,10 @@ two draw inside them (`tables.py`, `value_field_strategies.py`, `strategies.py`,
 `condition_strategies.py`) are left out by `!` patterns and not yet run, for now (maintainer, 2026-10-24): the
 next piece of this tool, the whole-repository run on the CI matrix, runs them first and removes the patterns,
 and each cut of them not held then gets its reason. The baseline counts them under `left_out`: S4d's
-selection leaves out 61 sites, 258 cuts (257 runnable and one `empty`) and 10 uncut draws, S3c's 165 sites,
-607 cuts and 70 uncut draws, about ten hours of one eight-core machine (an estimate from these runs' times).
+selection leaves out 61 places, 258 cuts (257 runnable and one `empty`) and 10 uncut draws, S3c's 20 places,
+80 cuts and 9 uncut draws: a floor, since a place counts once however many owners and calls draw from it. A whole
+run makes 351 cuts of S4d's and 768 to 828 of S3c's (`timing.whole_cuts`, 828 the largest measured), 258 and about
+615 beyond the selection's own, about ten hours of one eight-core machine (an estimate from earlier runs' times).
 Another piece's draws inside a strategy are not left out: they stay listed, and are judged now or with that
 run. Of S4d's 72 gaps, 41 are S4a's ways, counts, tokens and `want` that S4d's composite draws for the
 alternatives beside the table and for the table set aside at step 10, which no S4d test needs; 16 are the
