@@ -22,8 +22,9 @@ every family entry goes in `families/CHANGELOG.md`.
   BC-037, BC-040, BC-043, BC-044, BC-048, BC-050, BC-051). A spec-sync test holds `SHAPE` to the
   specification's table, its places, members and Required cells, the JSON type each Holds cell gives, the
   constraints the cells and item 8 state and the clauses' phrases, and to `declaration.json`'s members,
-  required lists and tokens; not to the own members' types, the facts' shapes or the rules on names, which the
-  unit examples and the build-check files hold. A refused declaration gives a `BuildReport` of its refusals
+  required lists and tokens; not to the own members' types, the facts' shapes, the type of a member inside a
+  `{...}` phrase, a `range`'s entries, two prose clauses on the population level, or the rules on names, which
+  the unit examples and the build-check files hold where they hold them at all. A refused declaration gives a `BuildReport` of its refusals
   alone (`core/report.py`); one that passes raises `NotImplementedError`, naming each acceptance and the piece
   that reads it, until S7a-2 builds the reads and the verdict. Claims no implementation makes raise
   `ValueError`; a declaration holding a member that a claimed scene suite, USD read or sampling suite checks
@@ -78,12 +79,16 @@ every family entry goes in `families/CHANGELOG.md`.
   at its `code` (section 4.2), which `declaration.json` refuses; `basis` is a member of an extrapolation, a
   nominal and a distribution alone, and `declaration.json` names it on no other kind; a `population_level`
   beside a `represents` that is not `population`, or beside none, is refused by the `population_level` rule
-  (BC-043), and `declaration.json` refuses it; a watch holds `unit` with an `interval` only (section 8 item
+  (BC-043), except where the build claims the sampling suite, where it fails closed, and `declaration.json`
+  refuses it; a watch holds `unit` with an `interval` only (section 8 item
   1), and `build_report.json` refuses one beside `accept`; the report of a declaration refused on its own
   holds the declaration as given where its text is JSON, and its `consumer` where the declaration declares one
-  (section 2), which `build_report.json` now requires, but beside a single refusal at the empty pointer, which
-  it cannot tell from a text that is not JSON; and a model item 7 refuses gives one refusal, at its `engine`
-  (section 1, the refusal paragraph). Five build-check arms: `BC-048.waiver_of_an_unknown_condition_name` (a
+  (section 2), which `build_report.json` now requires unless the report's one refusal is BC-048 at the empty
+  pointer, which it cannot tell from a text that is not JSON; and a model item 7 refuses gives one refusal, at
+  its `engine` (section 1, the refusal paragraph). A default of the second review (2026-10-25), which the
+  maintainer has yet to confirm, adds a seventh: a rule that judges one member against another stands aside
+  where the other is itself at fault, so that one fault is one refusal (the same paragraph), which also makes an
+  engine value without its `reason` or `basis` item 7's fault alone, at the `engine`. Five build-check arms: `BC-048.waiver_of_an_unknown_condition_name` (a
   registered condition, refused at the `code`), `BC-048.basis_on_a_waiver`,
   `BC-051.population_level_beside_another_represents`, `BC-051.population_level_without_represents`, and
   `BC-048.want_of_another_json_type` (a member of another JSON type, refused at itself alone). No other case
