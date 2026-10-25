@@ -11,19 +11,17 @@ build-check case's declaration (`declarations.md` section 1), checked by `check_
 The first byte picks a seed declaration, one of those the build-check suite's cases read; the bytes after it,
 up to the first newline, are a JSON pointer (RFC 6901) to a member of it, or to one its object does not hold
 yet, or to the end of one of its lists; the rest, read by `jsonio.parse`, stands in that member's place, and
-`check_build` checks the declaration over the records the seed's case reads. The target fails when:
-- `check_build` raises anything but the `NotImplementedError` it raises for a declaration that passed its own
-  check (the S7 design's 4.1: what a later piece reads of it);
-- a refusal's pointer names no member of the declaration (a missing member's names the object that should
-  hold it, which is one);
-- a refusal names a case outside BC-004, BC-005, BC-037, BC-040, BC-043, BC-044, BC-048, BC-050 and BC-051.
+`check_build` checks the declaration over the records the seed's case reads. The target fails when
+`check_build` raises anything but the `NotImplementedError` it raises for a declaration that passed its own
+check, when a refusal's pointer names no member of the declaration, or when a refusal names a case outside
+the refusal paragraph's: the relations of `build_oracle.py`, which `tests/unit/test_fuzz_build_oracle.py`
+shows failing.
 
 The design's fourth relation, the build's reference model's verdict held to the check's, comes with the model
 (`tests/reference/build_model.py`), which this piece's base does not hold. The seeds are every member of every
 seed declaration, each at its own pointer, and each whole declaration at the empty pointer.
 """
 
-import copy
 import json
 import sys
 from collections.abc import Iterator
@@ -41,12 +39,9 @@ from materica.core.jsonio import JsonValue
 from materica.core.reasons import Reason
 from materica.core.vocabulary import VOCABULARY
 from tests.fuzz import seeded_fault
+from tests.fuzz.build_oracle import check_declaration, placed
 
 BUILD_CHECKS = Path(jsonio.__file__).parents[1] / "data" / "conformance" / "build_checks"
-# The cases a declaration's refusal may name (the S7 design's 6.4): the refusal paragraph's.
-CASES = frozenset({"BC-004", "BC-005", "BC-037", "BC-040", "BC-043", "BC-044", "BC-048", "BC-050", "BC-051"})
-# How `check_build` words the `NotImplementedError` of a declaration that passed its own check.
-NOT_BUILT = "the declaration passed its own check, and this version builds nothing past it"
 
 
 def seed_cases() -> list[tuple[str, JsonValue, tuple[str, ...]]]:
@@ -73,86 +68,6 @@ SEEDS = seed_cases()
 STORES = [store_of(names) for _, _, names in SEEDS]
 
 
-def tokens_of(pointer: str) -> list[str] | None:
-    """A JSON pointer's reference tokens, unescaped (RFC 6901: `~1` as `/`, then `~0` as `~`), or None where
-    it is not one: not empty and not starting with `/`, or holding a `~` not followed by `0` or `1`."""
-    if pointer == "":
-        return []
-    if not pointer.startswith("/"):
-        return None
-    tokens = pointer[1:].split("/")
-    for token in tokens:
-        if "~" in token.replace("~0", "").replace("~1", ""):
-            return None
-    return [token.replace("~1", "/").replace("~0", "~") for token in tokens]
-
-
-def index_of(token: str, length: int) -> int | None:
-    """A reference token as an array index (RFC 6901: `0`, or digits not starting with `0`), below
-    `length`."""
-    if token == "0" or (token[:1] in "123456789" and token.isdigit() and token.isascii()):
-        index = int(token)
-        return index if index < length else None
-    return None
-
-
-def resolves(value: JsonValue, pointer: str) -> bool:
-    """Whether `pointer` names a member of `value`, its root included."""
-    tokens = tokens_of(pointer)
-    if tokens is None:
-        return False
-    for token in tokens:
-        if isinstance(value, dict) and token in value:
-            value = value[token]
-        elif isinstance(value, list) and (index := index_of(token, len(value))) is not None:
-            value = value[index]
-        else:
-            return False
-    return True
-
-
-def placed(value: JsonValue, pointer: str, member: JsonValue) -> JsonValue | None:
-    """`value` with `member` at `pointer`, not empty: in place of the member it names, or as a new member of
-    the object it ends in, or at the end of the list it ends in (`-`, or the list's length); None where it
-    names no place."""
-    tokens = tokens_of(pointer)
-    if not tokens:
-        return None
-    root = copy.deepcopy(value)
-    parent = root
-    for token in tokens[:-1]:
-        if isinstance(parent, dict) and token in parent:
-            parent = parent[token]
-        elif isinstance(parent, list) and (index := index_of(token, len(parent))) is not None:
-            parent = parent[index]
-        else:
-            return None
-    last = tokens[-1]
-    if isinstance(parent, dict):
-        parent[last] = member
-    elif isinstance(parent, list) and (last == "-" or last == str(len(parent))):
-        parent.append(member)
-    elif isinstance(parent, list) and (index := index_of(last, len(parent))) is not None:
-        parent[index] = member
-    else:
-        return None
-    return root
-
-
-def check_declaration(declaration: JsonValue, store: RecordStore) -> None:
-    try:
-        report = check_build(declaration, store)
-    except NotImplementedError as error:
-        if not str(error).startswith(NOT_BUILT):
-            raise AssertionError(f"NotImplementedError of no piece: {error}") from error
-        return
-    for refusal in report.refusals:
-        assert refusal.item in CASES, f"a refusal of {refusal.item}, which no rule of the declaration's names"
-        assert resolves(declaration, refusal.pointer), (
-            f"a refusal at {refusal.pointer!r}, which names no member"
-        )
-
-
 def test_one_input(data: bytes) -> None:
     if not data:
         return
@@ -168,11 +83,11 @@ def test_one_input(data: bytes) -> None:
     if isinstance(member, Reason):
         return
     if pointer == "":
-        check_declaration(member, STORES[seed])
+        check_declaration(member, STORES[seed], check_build)
         return
     declaration = placed(SEEDS[seed][1], pointer, member)
     if declaration is not None:
-        check_declaration(declaration, STORES[seed])
+        check_declaration(declaration, STORES[seed], check_build)
 
 
 # The seeds, and the dictionary.
