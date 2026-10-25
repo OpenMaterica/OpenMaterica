@@ -55,12 +55,15 @@ on:
       - "tests/**"
 
 # A dispatch waits while another of the same inputs runs on the same ref; one of other inputs runs beside it.
-# No dispatch is cancelled, and `queue: max` keeps those pending in order (repeat.yml says why). A pull
-# request's run is cancelled by the next push's, which measures the newer head.
+# No running dispatch is cancelled. A pull request's run is cancelled by the next push's, which measures the
+# newer head, and GitHub refuses `queue: max` beside a `cancel-in-progress` that is true, so the workflow
+# leaves the queue at GitHub's default, `single`: a dispatch pending behind a running one of the same inputs
+# on the same ref is replaced by a newer dispatch of those inputs, where `queue: max` would keep both in order
+# (repeat.yml says why it wants that). That is given up: the group holds every input, so identical dispatches
+# on one ref are rare, and the replaced one is still pending, never one that ran.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.kind }}-${{ inputs.selection }}-${{ inputs.count }}-${{ inputs.per_job }}-${{ inputs.base }}-${{ inputs.python }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-  queue: max
 
 permissions:
   contents: read
