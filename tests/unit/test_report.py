@@ -20,6 +20,7 @@ from materica.core.jsonio import JsonValue
 from materica.core.read import ReadResult
 from materica.core.reasons import Reason
 from materica.core.report import BuildRefusal, BuildReport, BuildResult, UnusedAcceptance
+from materica.core.value_shapes import JsonObject
 from materica.core.vocabulary import VOCABULARY
 from tests.spec_sync.schemas import validator
 
@@ -289,6 +290,140 @@ def test_the_reports_json_holds_its_records_results_and_unused() -> None:
 )
 def test_the_status_lines_of_a_report(name: str, lines: list[str]) -> None:
     assert list(built(name).status_lines()) == lines
+
+
+# The lines on a report built by hand, so that each member the lines print is the one under test: an
+# acceptance other than the first unused, the result's own status beside the read's, an implied condition's
+# fact and token in that order, a reason's alternative, a result accepted by nothing, a refusal at the
+# declaration itself, and no result at all.
+
+SHEAR = Reason("condition_unstated", "shear_rate")
+
+
+def acceptance(kind: str, **members: JsonValue) -> JsonObject:
+    return {"acceptance": kind, "field": VISCOSITY, "reason": "planted", **members}
+
+
+DECLARED: JsonObject = {
+    "models": [
+        {
+            "model": {"name": "drag"},
+            "acceptances": [
+                acceptance("waiver", code="condition_unstated", condition="shear_rate"),
+                acceptance("waiver", code="condition_unchecked", condition="test_method"),
+                acceptance("implied_condition", fact="tissue_state", token="in_vivo"),
+                acceptance("waiver", code="not_reviewed"),
+            ],
+        }
+    ]
+}
+WHERE = "drag  conformance/water_fixture 1.0.0  fluid.dynamic_viscosity"
+
+
+def listed(
+    *results: BuildResult,
+    unused: tuple[UnusedAcceptance, ...] = (),
+    refusals: tuple[BuildRefusal, ...] = (),
+) -> tuple[str, ...]:
+    return BuildReport(refusals, DECLARED, results=results, unused=unused).status_lines()
+
+
+def settled(
+    read: str, status: str, accepted_by: tuple[int, ...], *reasons: Reason, accepted: bool = True
+) -> BuildResult:
+    """A result whose read has the status `read` and whose own is `status`, beside `reasons`."""
+    held = ReadResult(cast(shapes.ReadStatus, read), (SHEAR,), value=0.000692, unit="Pa.s")
+    return BuildResult(
+        "drag",
+        WATER,
+        VISCOSITY,
+        held,
+        (SHEAR, *reasons),
+        cast(shapes.ReadStatus, status),
+        accepted,
+        accepted_by,
+        () if accepted else (SHEAR, *reasons),
+    )
+
+
+def test_an_unused_acceptance_is_described_by_its_own_index_not_the_first() -> None:
+    lines = listed(
+        settled("met", "met", ()), unused=(UnusedAcceptance("drag", 1), UnusedAcceptance("drag", 3))
+    )
+    assert (
+        lines[-1]
+        == "  unused: drag #1 (waiver: condition_unchecked(test_method)), drag #3 (waiver: not_reviewed)"
+    )
+    assert listed(settled("met", "met", ()))[-1] == "  unused: none"
+
+
+@pytest.mark.parametrize("accepted", [True, False])
+def test_a_results_line_prints_its_own_status_and_not_its_reads(accepted: bool) -> None:
+    """A read that is `unknown` beside a build's reason that makes the result `not_met` (`label_mismatch`)."""
+    result = settled("unknown", "not_met", (0,), Reason("label_mismatch"), accepted=accepted)
+    line = listed(result)[1]
+    assert f"{WHERE}  not_met" in line
+    assert "unknown" not in line
+
+
+def test_an_implied_condition_is_described_by_its_fact_then_its_token() -> None:
+    line = listed(settled("met", "met", (0, 2)))[1]
+    assert line.endswith(
+        "accepted by #0 (waiver: condition_unstated(shear_rate)), "
+        "#2 (implied condition: tissue_state in_vivo)"
+    )
+
+
+def test_a_reason_in_an_alternative_is_named_with_its_alternative_beside_its_condition_or_alone() -> None:
+    first = Reason("condition_unstated", "shear_rate", alternative=1)
+    second = Reason("absent", alternative=0)
+    result = replace(
+        settled("unknown", "unknown", (), accepted=False),
+        reasons=(first, second),
+        not_accepted=(first, second),
+    )
+    lines = listed(result)
+    assert lines[2].startswith("        condition_unstated(shear_rate) in alternative 1: covered by ")
+    assert lines[3] == "        absent in alternative 0: nothing covers it (declarations.md 4.2)"
+
+
+def test_a_result_accepted_by_nothing_prints_no_accepted_by() -> None:
+    assert listed(settled("met", "met", ()))[1] == f"  ok  {WHERE}  met"
+
+
+def test_a_refusal_at_the_declaration_itself_is_printed_at_the_declaration_and_counted() -> None:
+    refusals = (BuildRefusal("BC-048", ""), BuildRefusal("BC-051", "/sampling"))
+    assert listed(refusals=refusals) == (
+        "build refused: the declaration's own check refused it, 2 refusals",
+        "  BC-048  (the declaration)",
+        "  BC-051  /sampling",
+    )
+
+
+def test_a_report_without_results_counts_zero_results_all_accepted() -> None:
+    assert listed() == (
+        "build accepted: 0 results, each accepted; the declaration's own check passed",
+        "  unused: none",
+    )
+
+
+def test_a_reports_unused_acceptances_are_listed_per_model_in_the_order_declared_by_index() -> None:
+    """BC-053's two models, each with acceptances nothing uses: `drag` has two beside the one that is used."""
+    declaration, store = (
+        json.loads((BUILD_CHECKS / "inputs" / "bc053_unused_per_model.json").read_text(encoding="utf-8")),
+        materica.load_records([BUILD_CHECKS / "inputs" / "water_fixture.json"]),
+    )
+    drag, lift = declaration["models"]
+    unchecked = {**lift["acceptances"][0], "condition": "test_method"}
+    drag["acceptances"] += [unchecked, {**unchecked, "code": "condition_outside"}]
+    lift["acceptances"] += [{**unchecked, "code": "condition_not_accepted"}]
+    report = check_build(declaration, store)
+    assert [(found.model, found.acceptance) for found in report.unused] == [
+        ("drag", 1),
+        ("drag", 2),
+        ("lift", 0),
+        ("lift", 1),
+    ]
 
 
 def test_the_covered_by_lines_are_read_from_section_4_2s_table() -> None:
