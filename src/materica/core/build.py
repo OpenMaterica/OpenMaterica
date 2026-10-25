@@ -4,28 +4,34 @@
 S7a-1 builds the declaration's own check (section 1). A declaration it refuses gives a report of its refusals
 alone, and nothing is read for it.
 
-S7a-2a builds the reads over records (section 2), `_results`: for each model, each record its `checked_over`
-lists, in the order listed, and each field in its `reads`, in that order, one result. A field with no
-requirement is read for nothing (section 1 item 1). Any other is read through `read` by the build's own
-request (`_request`, item 7), which is given the acceptances of the kinds a read takes, overlays aside, that
-name the field and are located at the record (`_given`). The acceptances applied, by the build's terms (which
-define "applied" on the result), are mapped to their indexes in the model's `acceptances` (`_applied`).
-`_stored` gives the label and its basis as stored on the value a result rests on, for the build's own reasons.
+S7a-2 builds the results over records and the verdict (section 2). `_results`: for each model, each record its
+`checked_over` lists, in the order listed, and each field in its `reads`, in that order, one result. A field
+with no requirement is read for nothing (section 1 item 1). Any other is read through `read` by the build's
+own request (`_request`, item 7), which is given the acceptances of the kinds a read takes, overlays aside,
+that name the field and are located at the record (`_given`). The acceptances applied, by the build's terms
+(which define "applied" on the result), are mapped to their indexes in the model's `acceptances`
+(`_applied`). The build's own reasons (`_build_reasons`, item 8) join the read's: `no_requirement` for a field
+with no requirement; `label_mismatch` where the requirement names a label and the value the result rests on
+stores another or none (`_stored`), and none where it rests on no stored value; `not_reviewed` where the
+requirement holds `review` and the result's provenance holds no completed review, and none where it holds no
+provenance. The result's status is the worst of them all, and `judge` (`core/acceptance.py`) gives its verdict
+by the model's own acceptances. The report holds the records a read resolved, the results, and per model the
+acceptances none of its results used.
 
 Before any read, a declaration holding what a later piece reads raises `NotImplementedError`, naming each,
 so that no answer is given that the later piece would change (the S7 design's 1.3): a pick or an overlay,
 which S7c applies; a non-empty `target` or `combinations`, whose specimen differences and combinations S7a-3
-gives; and a non-empty `trainable`, which S7a-4 reads. Past the reads, the build's own reasons, the judgement,
-the verdict and the report's results are S7a-2b's: `check_build` raises `NotImplementedError` naming it. A
-read lets through the `NotImplementedError` it raises itself (a checked record that is an overlay, `want:
-fit` on a field holding a fit record).
+gives; and a non-empty `trainable`, which S7a-4 reads. A read lets through the `NotImplementedError` it raises
+itself (a checked record that is an overlay, `want: fit` on a field holding a fit record), and the verdict
+raises where a waiver naming a label would cover a reason (`core/acceptance.py`).
 """
 
 import copy
 from collections.abc import Collection, Sequence
-from typing import NoReturn, cast
+from typing import cast
 
 from materica import shapes
+from materica.core.acceptance import judge, located_at, names, unused
 from materica.core.declarations import (
     CLAIMS,
     Acceptance,
@@ -41,8 +47,9 @@ from materica.core.jsonio import JsonValue
 from materica.core.read import ReadResult, read
 from materica.core.reasons import Reason
 from materica.core.record import RecordStore
-from materica.core.report import BuildReport, BuildResult
+from materica.core.report import BuildReport, BuildResult, UnusedAcceptance
 from materica.core.resolve import ResolvedRecord, resolve_record
+from materica.core.status import worst
 from materica.core.value_shapes import IMPLIED_BASIS, JsonObject, a_list, an_object
 from materica.core.vocabulary import VOCABULARY
 from materica.shapes import Suite
@@ -61,9 +68,11 @@ _APPLIED_LATER = {"pick": "S7c", "overlay": "S7c"}
 # `basis` aside, which the declaration may give and nothing reads.
 _IMPLIED_MEMBERS = ("value", "range", "unit", "token")
 
-# A result as far as its read, beside what S7a-2b judges it with: the indexes, in the model's `acceptances`,
-# of those the read applied (`_applied`), and the label and its basis as stored on the value the result rests
-# on (`_stored`).
+# The review result a completed review holds (section 1 item 11; `provenance.md` section 2 item 6).
+_REVIEWED = "reviewed"
+
+# A result, beside what it was judged with: the indexes, in the model's `acceptances`, of those the read
+# applied (`_applied`), and the label and its basis as stored on the value the result rests on (`_stored`).
 Reading = tuple[BuildResult, tuple[int, ...], JsonObject | None]
 
 
@@ -77,17 +86,25 @@ def check_build(
     claims without plain read or without the build checks). Where the build claims the scene suite, USD read
     or the sampling suite and the declaration holds a member that suite checks, it raises
     `NotImplementedError`, whatever else is wrong. A declaration that departs from its shape, or breaks a rule
-    of section 1, gives a report of its refusals alone, and nothing is read. Any other raises
-    `NotImplementedError` in this version: before any read, naming each pick, overlay, `target`,
-    `combinations` and `trainable` entry and the piece that reads it; otherwise once its records are read,
-    naming S7a-2b, which judges the results and gives the report.
+    of section 1, gives a report of its refusals alone, and nothing is read. Any other gives the report of its
+    results (section 2), but that it raises `NotImplementedError` in this version: before any read, naming
+    each pick, overlay, `target`, `combinations` and `trainable` entry and the piece that reads it; and where
+    a waiver naming a label would cover a reason, which S7a-2's label trust judges.
     """
     checked = Declaration.from_json(declaration, claims)
     if isinstance(checked, tuple):
         given: JsonValue | Reason = parse_declaration(declaration)
         return BuildReport(checked, given)
     _not_built(checked)
-    _not_judged(_results(checked, store, claims))
+    results = tuple(result for result, _, _ in _results(checked, store, claims))
+    resolved = (result.record for result in results if result.read is not None and result.read.resolved)
+    return BuildReport(
+        (),
+        checked.given,
+        records=tuple(dict.fromkeys(resolved)),
+        results=results,
+        unused=_unused(checked, results),
+    )
 
 
 def _not_built(declaration: Declaration) -> None:
@@ -116,34 +133,95 @@ def _not_built(declaration: Declaration) -> None:
         )
 
 
-def _not_judged(results: Sequence[Reading]) -> NoReturn:
-    raise NotImplementedError(
-        f"the declaration passed its own check and its {len(results)} results were read; this version builds "
-        "nothing past the reads: S7a-2b gives the build's own reasons, the judgement, the verdict and the "
-        "report's results"
-    )
-
-
 def _results(declaration: Declaration, store: RecordStore, claims: Collection[Suite]) -> list[Reading]:
     """Section 2: one result per model, record listed in its `checked_over`, in the order listed, and field
     in its `reads`, in that order; none for a record not listed. A field with no requirement is read for
-    nothing (section 1 item 1); any other gives the read of the build's own request (item 7)."""
+    nothing (section 1 item 1); any other gives the read of the build's own request (item 7). Each result
+    holds the build's own reasons joined to the read's, the worst status of them all, and its verdict by its
+    model's acceptances."""
     results: list[Reading] = []
     for model in declaration.models:
         for record in model.records:
             for field in model.reads:
                 requirement = _requirement(model, field)
-                if requirement is None:
-                    results.append((BuildResult(model.name, record, field, None), (), None))
-                    continue
-                given = _given(model.acceptances, record, field)
-                request = _request(declaration.operating_conditions, record, requirement, given)
-                result = read(request, store, claims=claims)
-                stored = _stored(store, record, field, result, claims)
-                results.append(
-                    (BuildResult(model.name, record, field, result), _applied(result, given), stored)
+                result: ReadResult | None = None
+                applied: tuple[int, ...] = ()
+                stored: JsonObject | None = None
+                if requirement is not None:
+                    given = _given(model.acceptances, record, field)
+                    request = _request(declaration.operating_conditions, record, requirement, given)
+                    result = read(request, store, claims=claims)
+                    applied = _applied(result, given)
+                    stored = _stored(store, record, field, result, claims)
+                own = _build_reasons(requirement, result, stored)
+                reasons = (*(() if result is None else result.reasons), *own)
+                status = worst(
+                    (
+                        *(() if result is None else (result.status,)),
+                        *(VOCABULARY.reasons[r.code].status for r in own),
+                    )
                 )
+                verdict = judge(reasons, result, record, field, model.acceptances, applied)
+                built = BuildResult(
+                    model.name,
+                    record,
+                    field,
+                    result,
+                    reasons,
+                    status,
+                    verdict.accepted,
+                    verdict.accepted_by,
+                    verdict.not_accepted,
+                )
+                results.append((built, applied, stored))
     return results
+
+
+def _build_reasons(
+    requirement: Requirement | None, result: ReadResult | None, stored: JsonObject | None
+) -> tuple[Reason, ...]:
+    """Section 2 item 8: the build's own reasons, which join the read's. `no_requirement` for a field read
+    with no requirement, for which nothing is read (section 1 item 1); `label_mismatch` where the requirement
+    names a label and the label stored on the value the result rests on (`stored`) differs or is absent,
+    whatever else the read found, and none where the result rests on no stored value (section 1 item 5);
+    `not_reviewed` where the requirement holds `review` and the result's `provenance` holds no completed
+    review, one whose `result` is `reviewed`, and none where the result holds no `provenance` (item 11)."""
+    if requirement is None:
+        return (
+            Reason("no_requirement", detail="the model reads the field and declares no requirement for it"),
+        )
+    assert result is not None, "a field with a requirement is read"
+    found: list[Reason] = []
+    if requirement.label is not None and stored is not None and stored.get("label") != requirement.label:
+        held = f"the label {stored['label']!r}" if "label" in stored else "no label"
+        found.append(
+            Reason(
+                "label_mismatch",
+                detail=f"the requirement names the label {requirement.label!r}; the value read stores {held}",
+            )
+        )
+    if (
+        requirement.reviewed
+        and result.provenance is not None
+        and result.provenance.review.get("result") != _REVIEWED
+    ):
+        found.append(
+            Reason(
+                "not_reviewed",
+                detail="the requirement needs a reviewed value; the value's review is not completed",
+            )
+        )
+    return tuple(found)
+
+
+def _unused(declaration: Declaration, results: Sequence[BuildResult]) -> tuple[UnusedAcceptance, ...]:
+    """Section 2 item 9: per model, in the order declared, each of its acceptances none of its own results
+    used."""
+    return tuple(
+        found
+        for model in declaration.models
+        for found in unused(model, (result.accepted_by for result in results if result.model == model.name))
+    )
 
 
 def _requirement(model: ModelEntry, field: str) -> Requirement | None:
@@ -157,15 +235,8 @@ def _given(acceptances: Sequence[Acceptance], record: MaterialRef, field: str) -
     return tuple(
         acceptance
         for acceptance in acceptances
-        if acceptance.kind in _GIVEN_KINDS and acceptance.field == field and _located_at(acceptance, record)
+        if acceptance.kind in _GIVEN_KINDS and acceptance.field == field and located_at(acceptance, record)
     )
-
-
-def _located_at(acceptance: Acceptance, record: MaterialRef) -> bool:
-    """The build's terms (section 2): an acceptance is located at a result's record when it names that
-    record, equal in `id`, `version` and `content_hash`; one located at a region or an interval is located at
-    no record."""
-    return acceptance.location == record and not {"region", "interval"} & acceptance.members.keys()
 
 
 def _request(
@@ -211,10 +282,7 @@ def _shown(acceptance: Acceptance, result: ReadResult) -> bool:
         implies = an_object(acceptance.members["implies"])
         return any(filled.get(name) == _supplied(an_object(value)) for name, value in implies.items())
     if acceptance.kind in ("nominal", "extrapolation"):
-        assumption = cast(JsonObject | None, result.assumption)
-        return assumption is not None and all(
-            acceptance.members.get(name) == value for name, value in assumption.items()
-        )
+        return names(cast(JsonObject | None, result.assumption), acceptance)
     return False
 
 

@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Examples of the build's reads over records (`declarations.md` section 2, S7a-2a): the build's own read
-request (item 7), one result per model, listed record and field, in order, the acceptances a read applied
-mapped to the model's indexes and checked against the build's terms, the label stored on the value a result
-rests on (item 8), and what this version raises before and after the reads (the S7 design's 1.3). Each test
-plants what a wrong build would do, beside the answer the text gives, where one example can show it."""
+"""Examples of the build's results over records (`declarations.md` section 2): the build's own read request
+(item 7), one result per model, listed record and field, in order, the acceptances a read applied mapped to
+the model's indexes and checked against the build's terms, the label stored on the value a result rests on
+(item 8), and what this version raises before any read (the S7 design's 1.3), from S7a-2a; and from S7a-2b,
+the build's own reasons and the status they give (item 8), the records a read resolved, and the raise where a
+waiver naming a label would cover a reason. Each test plants what a wrong build would do, beside the answer
+the text gives, where one example can show it."""
 
 import copy
 import json
@@ -17,13 +19,14 @@ import pytest
 import materica
 from materica import shapes
 from materica.core import build
+from materica.core.acceptance import located_at
 from materica.core.build import Reading, check_build
 from materica.core.conditions import ConditionEntry
-from materica.core.declarations import CLAIMS, Acceptance, Declaration
+from materica.core.declarations import CLAIMS, Acceptance, Declaration, Requirement
 from materica.core.hashing import content_hash
 from materica.core.identifiers import MaterialRef
 from materica.core.jsonio import JsonValue
-from materica.core.read import ReadResult, read
+from materica.core.read import ProvenanceSummary, ReadResult, read
 from materica.core.reasons import Reason
 from materica.core.record import RecordStore
 from materica.shapes import Suite
@@ -33,7 +36,6 @@ from scripts.gen_vocabulary import SPECIFICATION
 results_of = build._results  # pyright: ignore[reportPrivateUsage]
 given_to = build._given  # pyright: ignore[reportPrivateUsage]
 request_for = build._request  # pyright: ignore[reportPrivateUsage]
-located_at = build._located_at  # pyright: ignore[reportPrivateUsage]
 applied_of = build._applied  # pyright: ignore[reportPrivateUsage]
 GIVEN_KINDS = build._GIVEN_KINDS  # pyright: ignore[reportPrivateUsage]
 
@@ -399,8 +401,8 @@ def test_two_implied_conditions_that_agree_each_count_applied_where_the_result_s
 
 def test_the_case_file_of_two_implied_conditions_of_one_value_maps_both() -> None:
     """BC-009's arm: the second implied condition's token (fresh ex vivo tissue) is not the specimen's, so the
-    read names the first alone, and the result shows the value both supply: both are applied (`accepted_by`
-    [0, 1] once S7a-2b judges it)."""
+    read names the first alone, and the result shows the value both supply: both are applied, and both in
+    `accepted_by`."""
     declaration, store = case("BC-009.two_implied_conditions_of_one_value")
     first, second = acceptances(declaration)
     assert (first["token"], second["token"]) == ("in_vivo", "ex_vivo_fresh")
@@ -408,6 +410,7 @@ def test_the_case_file_of_two_implied_conditions_of_one_value_maps_both() -> Non
     ((result, applied, _),) = readings(declaration, store)
     assert result.read is not None
     assert (result.read.status, result.read.applied, applied) == ("met", (0,), (0, 1))
+    assert (result.accepted, result.accepted_by) == (True, (0, 1))
 
 
 def implied_read(implies: Json) -> tuple[ReadResult, tuple[int, ...]]:
@@ -640,8 +643,8 @@ def test_the_builds_claims_reach_the_read_and_the_stored_value() -> None:
 
 
 # What this version raises (the S7 design's 1.3): before any read, for a pick or an overlay (S7c), a
-# non-empty `target` or `combinations` (S7a-3) and a non-empty `trainable` (S7a-4); past the reads, for what
-# S7a-2b builds.
+# non-empty `target` or `combinations` (S7a-3) and a non-empty `trainable` (S7a-4); and an `overlay_scope` or
+# an accepted difference raises nothing.
 
 
 def no_read(request: object, store: object, *, claims: object) -> ReadResult:
@@ -711,24 +714,18 @@ DIFFERENCE: Json = {
 
 
 @pytest.mark.parametrize("acceptance", [SCOPE, DIFFERENCE], ids=["overlay_scope", "accepted_difference"])
-def test_an_overlay_scope_and_an_accepted_difference_raise_only_past_the_reads(acceptance: Json) -> None:
-    """With no overlay applied and an empty `target`, neither covers anything: S7a-2b lists each unused."""
+def test_an_overlay_scope_and_an_accepted_difference_raise_nothing_and_are_listed_unused(
+    acceptance: Json,
+) -> None:
+    """With no overlay applied and an empty `target`, neither covers anything (the S7 design's 1.3): each is
+    read past and listed unused, as S7c and S7a-3 would list it."""
     declaration, store = case("BC-016.waiver_at_one_of_two_records")
     acceptances(declaration).append(acceptance)
-    made: list[object] = []
-
-    def counted(request: object, store: RecordStore, *, claims: object) -> ReadResult:
-        made.append(request)
-        return read(cast(Json, request), store)
-
-    with pytest.MonkeyPatch.context() as patch:
-        patch.setattr(build, "read", counted)
-        with pytest.raises(NotImplementedError, match="S7a-2b") as raised:
-            check_build(declaration, store)
-    assert len(made) == len(cast(list[JsonValue], cast(Json, model(declaration)["checked_over"])["records"]))
-    assert f"its {len(made)} results were read" in str(raised.value)
-    assert "S7c" not in str(raised.value)
-    assert "S7a-3" not in str(raised.value)
+    report = check_build(declaration, store)
+    assert len(report.results) == len(
+        cast(list[JsonValue], cast(Json, model(declaration)["checked_over"])["records"])
+    )
+    assert [(found.model, found.acceptance) for found in report.unused] == [("drag", 1)]
 
 
 def test_a_reads_own_raise_is_let_through() -> None:
@@ -752,3 +749,150 @@ def test_a_reads_own_raise_is_let_through() -> None:
     )
     with pytest.raises(NotImplementedError, match="overlay is not built yet"):
         check_build(declaration, materica.load_records([overlay]))
+
+
+# The build's own reasons (section 2 item 8): `no_requirement` (section 1 item 1), `label_mismatch` against
+# the label stored on the value the result rests on (section 1 item 5), and `not_reviewed` (section 1 item
+# 11); "the result's status is the worst of them all".
+
+build_reasons = build._build_reasons  # pyright: ignore[reportPrivateUsage]
+LINEAR = "materica.fluid.linear.v1"
+
+
+def needing(*, label: str | None = None, reviewed: bool = False) -> Requirement:
+    return Requirement(VISCOSITY, "value", {}, label, reviewed)
+
+
+def reviewed_as(review: Json | None) -> ReadResult:
+    provenance = None if review is None else ProvenanceSummary("measured_by_contributor", review)
+    return ReadResult("met", (), provenance=provenance)
+
+
+def test_a_field_with_no_requirement_gives_no_requirement_alone() -> None:
+    assert [reason.code for reason in build_reasons(None, None, None)] == ["no_requirement"]
+    declaration, store = case("BC-003.field_read_with_no_requirement")
+    ((result, applied, stored),) = readings(declaration, store)
+    assert (result.read, applied, stored, result.status) == (None, (), None, "unknown")
+    assert [reason.code for reason in result.reasons] == ["no_requirement"]
+
+
+@pytest.mark.parametrize(
+    ("stored", "label", "codes"),
+    [
+        pytest.param({"label": NEWTONIAN}, NEWTONIAN, [], id="the_same"),
+        pytest.param({"label": LINEAR}, NEWTONIAN, ["label_mismatch"], id="another"),
+        pytest.param({}, NEWTONIAN, ["label_mismatch"], id="none_stored"),
+        pytest.param({"label_basis": {"basis": "stated"}}, NEWTONIAN, ["label_mismatch"], id="a_basis_alone"),
+        pytest.param(None, NEWTONIAN, [], id="no_stored_value"),
+        pytest.param({"label": LINEAR}, None, [], id="no_label_required"),
+    ],
+)
+def test_label_mismatch_where_the_stored_label_differs_or_is_absent_and_none_on_no_stored_value(
+    stored: Json | None, label: str | None, codes: list[str]
+) -> None:
+    found = build_reasons(needing(label=label), reviewed_as(None), stored)
+    assert [reason.code for reason in found] == codes
+
+
+NOT_CHECKED: Json = {"status": "not_checked", "reason": "no one has checked it yet"}
+REVIEWED: Json = {"result": "reviewed", "reviewer": "a reviewer", "date": "2026-10-01"}
+
+
+@pytest.mark.parametrize(
+    ("review", "reviewed", "codes"),
+    [
+        pytest.param(NOT_CHECKED, True, ["not_reviewed"], id="not_checked_with_its_reason"),
+        pytest.param({"status": "not_checked"}, True, ["not_reviewed"], id="not_checked"),
+        pytest.param(REVIEWED, True, [], id="reviewed"),
+        pytest.param(None, True, [], id="no_provenance"),
+        pytest.param(NOT_CHECKED, False, [], id="no_review_required"),
+    ],
+)
+def test_not_reviewed_where_review_is_required_and_not_completed_and_none_without_provenance(
+    review: Json | None, reviewed: bool, codes: list[str]
+) -> None:
+    found = build_reasons(needing(reviewed=reviewed), reviewed_as(review), None)
+    assert [reason.code for reason in found] == codes
+
+
+def test_the_build_reasons_join_the_reads_and_the_status_is_the_worst_of_them_all() -> None:
+    """What no build-check file catches: `not_reviewed` (unknown) beside a read's `want_mismatch`
+    (not_met) under a nominal, a result that carries a value and its provenance, leaves the result `not_met`;
+    and `label_mismatch` (not_met) beside a read's `unknown` makes it `not_met`."""
+    declaration, store = case("BC-020.nominal_inside_the_bounds")
+    requirement(declaration)["review"] = "reviewed"
+    ((result, _, _),) = readings(declaration, store)
+    assert result.read is not None
+    assert result.read.status == "not_met"
+    assert result.status == "not_met"
+    assert [reason.code for reason in result.reasons] == [
+        *(reason.code for reason in result.read.reasons),
+        "not_reviewed",
+    ]
+    declaration, store = case("BC-027.required_label_absent")
+    ((result, _, _),) = readings(declaration, store)
+    assert result.read is not None
+    assert (result.read.status, result.status) == ("unknown", "not_met")
+    assert result.reasons[-1].code == "label_mismatch"
+
+
+# The report (section 2): "`records`, every record a read resolved"; the results; per model, the
+# acceptances unused.
+
+
+def test_the_records_are_those_a_read_resolved_each_once_in_the_order_read() -> None:
+    store = materica.load_records([INPUTS / name for name in ("water_fixture.json", "glycerol_fixture.json")])
+    report = check_build(two_models(), store)
+    assert [record.to_json() for record in report.records] == [GLYCEROL, WATER]
+    declaration, store = case("BC-002.listed_record_absent_from_the_store")
+    listed = cast(list[Json], cast(Json, model(declaration)["checked_over"])["records"])
+    report = check_build(declaration, store)
+    assert [record.to_json() for record in report.records] == [
+        record for record in listed if record["id"] != "conformance/plasma_fixture"
+    ]
+
+
+def test_a_record_read_for_nothing_or_refused_at_step_0_is_not_among_the_records() -> None:
+    declaration = two_models()
+    del cast(list[Json], declaration["models"])[1]
+    model(declaration).update(checked_over={"records": [WATER]}, reads=[VISCOSITY], requirements=[])
+    store = materica.load_records([INPUTS / "water_fixture.json"])
+    assert check_build(declaration, store).records == ()
+    model(declaration)["requirements"] = [{"field": VISCOSITY, "want": "fit"}]
+    report = check_build(declaration, store)
+    assert [reason.code for reason in report.results[0].reasons] == ["want_mismatch"]
+    assert report.records == ()
+
+
+LABELLED_WAIVER: Json = {
+    "acceptance": "waiver",
+    "record": WATER,
+    "field": VISCOSITY,
+    "condition": "shear_rate",
+    "code": "condition_unstated",
+    "label": NEWTONIAN,
+    "reason": "a Newtonian fluid's viscosity does not depend on shear rate",
+}
+
+
+def labelled(code: str = "condition_unstated") -> Json:
+    """BC-016's declaration over water, its requirement naming the Newtonian label with `review`, and a waiver
+    resting on that label: the declaration's own check takes it (section 4.1 item 4)."""
+    declaration, _ = case("BC-016.waiver_at_one_of_two_records")
+    model(declaration)["checked_over"] = {"records": [WATER]}
+    requirement(declaration).update(label=NEWTONIAN, review="reviewed")
+    model(declaration)["acceptances"] = [{**LABELLED_WAIVER, "code": code}]
+    if code != "condition_unstated":
+        del cast(list[Json], model(declaration)["acceptances"])[0]["condition"]
+    checked(declaration)
+    return declaration
+
+
+def test_a_waiver_naming_a_label_raises_where_it_would_cover_a_reason() -> None:
+    """Label trust comes after 0.1.0.dev4 (maintainer, 2026-10-21): the waiver would cover the water's
+    unstated shear rate only where its label is trusted, which this version does not judge."""
+    store = materica.load_records([INPUTS / "water_fixture.json"])
+    with pytest.raises(NotImplementedError, match="S7a-2's label trust"):
+        check_build(labelled(), store)
+    report = check_build(labelled("stated_without_origin"), store)
+    assert [(found.model, found.acceptance) for found in report.unused] == [("drag", 0)]
