@@ -87,8 +87,10 @@ every family entry goes in `families/CHANGELOG.md`.
   pointer, which it cannot tell from a text that is not JSON; and a model item 7 refuses gives one refusal, at
   its `engine` (section 1, the refusal paragraph). A default of the second review (2026-10-25), which the
   maintainer has yet to confirm, adds a seventh: a rule that judges one member against another stands aside
-  where the other is itself at fault, so that one fault is one refusal (the same paragraph), which also makes an
-  engine value without its `reason` or `basis` item 7's fault alone, at the `engine`. Five build-check arms: `BC-048.waiver_of_an_unknown_condition_name` (a
+  where the other is itself at fault, so that one fault is one refusal (the same paragraph): a requirement is
+  not judged against an empty `reads`, an acceptance with no known kind is refused at itself and none of its
+  other members is judged, and an engine value without its `reason` or `basis` is item 7's fault alone, at the
+  `engine`. Five build-check arms: `BC-048.waiver_of_an_unknown_condition_name` (a
   registered condition, refused at the `code`), `BC-048.basis_on_a_waiver`,
   `BC-051.population_level_beside_another_represents`, `BC-051.population_level_without_represents`, and
   `BC-048.want_of_another_json_type` (a member of another JSON type, refused at itself alone). No other case
