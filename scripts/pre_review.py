@@ -159,7 +159,9 @@ DATA_RULES = (
         "the declaration's text, from which the build model's order of refusals is read",
         r"docs/specification/declarations\.md",
         "the build model's order check reads the paragraph that lists the refusals in order, so a change to "
-        "it runs the tests that import the helper that reads it",
+        "it runs the tests that import the helper that reads it; the results model's test reads section "
+        "4.2's table",
+        tests=("tests/reference/test_build_results_model.py",),
         readers=("tests/reference/direct.py",),
     ),
     DataRule(
@@ -190,10 +192,23 @@ DATA_RULES = (
     DataRule(
         "a conformance case",
         r"src/materica/data/conformance/.+",
-        "the cases are run by the conformance runner and held to CASES.md and the step map, and fuzz target "
-        "5's oracle reads two of the inputs",
+        "the cases are run by the conformance runner and held to CASES.md and the step map, fuzz target 5's "
+        "oracle reads two of the inputs, and the results model's direct checks read the build checks' inputs",
         tests=("tests/conformance", "tests/spec_sync"),
-        readers=("tests/conformance/runner.py", "scripts/check_wheel.py", "tests/fuzz/acceptance_oracle.py"),
+        readers=(
+            "tests/conformance/runner.py",
+            "scripts/check_wheel.py",
+            "tests/fuzz/acceptance_oracle.py",
+            "tests/reference/results_direct.py",
+        ),
+    ),
+    DataRule(
+        "a build-check input, which the results model's direct checks read",
+        r"src/materica/data/conformance/build_checks/inputs/.+",
+        "the results model's direct checks read the build-check declarations and fixtures by path, and the "
+        "model's seeded faults run against them; `tests/reference` is no group of tests, so its readers' "
+        "importers are named here",
+        tests=("tests/reference/test_build_results_model.py", "tests/reference/test_seeded_faults.py"),
     ),
     DataRule(
         "a plain-read input the read tests load",
