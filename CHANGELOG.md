@@ -285,6 +285,21 @@ every family entry goes in `families/CHANGELOG.md`.
   `main` words them (a waiver of `condition_unknown_name` refused at its `code`, `basis` on three kinds, a
   `population_level` only beside `population`, item 7 at `engine`), and the refusal paragraph's rule that a
   rule judging one member against another stands aside where the other is at fault.
+- The build's reference model past the declaration (S7a-2m; the S7 design's 6.5, "The model"),
+  `tests/reference/build_results_model.py`, written from `declarations.md` sections 1, 2 and 4.2 and the build's
+  terms before S7a-2's code, by an agent that did not read the build's code, and importing nothing from
+  `materica`: the request each read is given, the read through the read model, the build's own reasons
+  (`no_requirement`, `label_mismatch`, `not_reviewed`), the status law, what a read applied, the judgement by
+  section 4.2's table held as the model's own data, `accepted_by`, `not_accepted`, `unused`, the verdict and the
+  report; no verdict for a waiver resting on a label where label trust decides it (after 0.1.0.dev4), for a
+  target naming a fact, combinations, a `trainable` entry and the watches (S7a-3, S7a-4), and for the rows of
+  section 4.2 a pick or an overlay alone reaches (S7c). `build_model.py` hands it a declaration that passes its
+  own check. `tests/reference/test_cases.py` compares a build's results as the specification's README says: the
+  models agree with every one of the 108 build-check files, S7a-2's 57 included, under every configuration of
+  build claims each allows, and none is listed. Its table of section 4.2 is held to the table parsed from the
+  text, since `main` has no `coverage.json` yet; 23 direct checks hold what no file pins; 63 seeded faults, 59
+  killed (45 by the files, 14 by the direct checks) and 4 listed as survivors; its citations and layering are
+  held as the other models' are. Four open points, each the maintainer's ruling or the fail-closed choice.
 - The measurements a property piece makes before review run on CI as a matrix (maintainer, 2026-10-23), with
   the counts and judgement of a local run: `scripts/measure.py` (floors at the variance measured, at the mean and the least share, kill drift over
   streams, regions of a base against the head with every mutant search's kill, a fuzz control's rate), run alike
