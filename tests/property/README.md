@@ -2245,14 +2245,24 @@ draws the sites through another module is not found so. S4d's selection (`table_
 alternatives, its searches and the planned searches of `test_model_mutant_table.py`; under the rule these hold
 none of S4d's own sites (HP12's strategy draws S4d's composite inside its own, so those draws are HP12's, for an
 HP12 selection to judge), and they add only to the time of a cut. Two selections are checked so far, run
-locally on 2026-10-23 and 2026-10-24 (on two workers a cut, four cuts at once):
+locally on 2026-10-23 and 2026-10-24 (on two workers a cut, four cuts at once), and a third listed, four of its
+cuts run:
 
 | Selection | Sites | Cuts | Held | Not held: gaps, equivalents | Empty | Uncut | A cut, nothing holding it | A cut held |
 |---|---|---|---|---|---|---|---|---|
 | `table_alternatives` (S4d) | 29 | 93 | 15 | 72, 6 | 5 | 5 | 284 to 342 s | 103 to 369 s |
 | `extrapolation` (S3c) | 64 | 213 | 56 | 127, 30 | 6 | 19 | 77 to 147 s | 16 to 107 s |
+| `declarations` (S7a-1), 4 cuts run | 432 | 2,079 | 1 | 0, 3 | 9 | 30 | 159 to 161 s | 32 s |
 
-Every cut of S4d's ran on 2026-10-24, after the owner rule; of S3c's, the 80 whose sites the rule left with
+S7a-1's selection (`declarations`, HP41's and HP42's properties and their mutant searches, over
+`declaration_strategies.py`, which draws no other module's strategy) was listed on 2026-10-25 and four of its
+2,070 runnable cuts run for a first look, on four workers a cut, two cuts at once: a version that is the empty
+string, a text of one space and a hash of another form dropped are not held, each an equivalent; the engine
+value without its `reason` or `basis` kept off is held, by `engine_value_refused_at_the_value`. Its other cuts,
+about 46 hours of one machine at these times (an estimate), run on the CI matrix once the input coverage's
+cut kind is there; the baseline lists its empty cuts and its 30 uncut draws, among them the way of HP41's
+strata (29 ways across the strata) and `every_fault`'s and HP42's planters beside (34 and 32), each above the
+24 values a site may hold to be cut. Every cut of S4d's ran on 2026-10-24, after the owner rule; of S3c's, the 80 whose sites the rule left with
 the same calls keep their results of 2026-10-23, and the other 127 ran on 2026-10-24. Under the rule, S4d's
 own sites reach only the draws its own tests make, and the operating range's upper end above the double
 above, held before at HP12's `a_range_across_the_readable_end_outside` through HP12's draws, is held by no

@@ -1092,5 +1092,105 @@
    "tests/property/extrapolation_strategies.py::refused_shapes > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(places)": "S3b-2's draw, for the table read `refused_shapes` draws: the read's place among those the drawn table holds for its way, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut",
    "tests/property/extrapolation_strategies.py::two > draw(tables.range_reads(size, OUTSIDE)) > tests/property/table_read_strategies.py::range_reads::st.sampled_from(places)": "S3b-2's draw, for the table read `two` draws: the read's place among those the drawn table holds for its way, a list computed from the drawn table at every call, so no value recurs for a drop to name; the way that picks the kind of place is cut"
   }
+ },
+ "declarations": {
+  "tests": [
+   "tests/property/test_declaration_properties.py",
+   "tests/property/test_declaration_mutants.py"
+  ],
+  "sites": [
+   "tests/property/declaration_strategies.py::*"
+  ],
+  "excused": {
+   "tests/property/test_declaration_mutant_table.py": "reads the parts' ways and strata (`PARTS`, `STRATA`, `HP42_WAYS`, `HP42_STRATA`) to hold the mutant table to them; it draws nothing"
+  },
+  "left_out": {
+   "sites": 0,
+   "cuts": 0,
+   "uncut": 0,
+   "reason": "none: no `!` pattern, since `declaration_strategies.py` draws no other module's strategy (it reads `records.py`'s and `stores.py`'s constants alone)"
+  },
+  "cuts": {
+   "tests/property/declaration_strategies.py::<module>::st.sampled_from((' ', '\\t\\n', 'about 2 % per kelvin near 37 °C', 'recal… :: drop ' '": {
+    "result": "not held",
+    "reason": "equivalent: `\\t\\n`, the other text of white space alone, stays, and the text judges a `reason` or `basis` by its length alone; `blank_reason_refused` dies at either"
+   },
+   "tests/property/declaration_strategies.py::<module>::st.sampled_from(('0.3.0', '1.0.0', '2.1', '')) :: drop ''": {
+    "result": "not held",
+    "reason": "equivalent: a `version` is a string the declaration's own check judges by its JSON type alone (the members table: `{\"name\", \"version\"}`, both required); the empty string is one of four strings no rule reads"
+   },
+   "tests/property/declaration_strategies.py::<module>::st.sampled_from((records.WELL_FORMED_HASH, 'sha256:...', 'sha256:' + 'f… :: drop 'sha256:...'": {
+    "result": "not held",
+    "reason": "equivalent: a `model_configuration_hash` is \"a string\" (the members table), which no rule of the declaration's own check reads; a hash of another form is one of three strings alike"
+   },
+   "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::combinations::st.sampled_from(by_section[section]) :: drop 'biocompatibility.evidence'": {
+    "result": "empty",
+    "reason": "equivalent: `biocompatibility.evidence` is its section's only registered field, which a combination of fields from different sections takes whenever it takes the section, so the cut leaves the call nothing to draw"
+   },
+   "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::combinations::st.sampled_from(by_section[section]) :: drop 'fluid.dynamic_viscosity'": {
+    "result": "empty",
+    "reason": "equivalent: `fluid.dynamic_viscosity` is its section's only registered field, which a combination of fields from different sections takes whenever it takes the section, so the cut leaves the call nothing to draw"
+   },
+   "tests/property/declaration_strategies.py::hp41 > draw(declarations(size)) > tests/property/declaration_strategies.py::combinations::st.sampled_from(by_section[section]) :: drop 'biocompatibility.evidence'": {
+    "result": "empty",
+    "reason": "equivalent: `biocompatibility.evidence` is its section's only registered field, which a combination of fields from different sections takes whenever it takes the section, so the cut leaves the call nothing to draw"
+   },
+   "tests/property/declaration_strategies.py::hp41 > draw(declarations(size)) > tests/property/declaration_strategies.py::combinations::st.sampled_from(by_section[section]) :: drop 'fluid.dynamic_viscosity'": {
+    "result": "empty",
+    "reason": "equivalent: `fluid.dynamic_viscosity` is its section's only registered field, which a combination of fields from different sections takes whenever it takes the section, so the cut leaves the call nothing to draw"
+   },
+   "tests/property/declaration_strategies.py::hp41 > planters[way](p) > tests/property/declaration_strategies.py::plant_two_rules::st.sampled_from([label for label in ANY_LABEL if label != LABELS[field]… :: drop 'materica.fluid.newtonian.v1'": {
+    "result": "empty",
+    "reason": "equivalent: the one registered label other than the waiver's field's own, where two labels are registered, so the cut leaves the call nothing to draw; the label of another type, the pair's other option, stays"
+   },
+   "tests/property/declaration_strategies.py::hp41 > planters[way](p) > tests/property/declaration_strategies.py::plant_two_rules::st.sampled_from([label for label in ANY_LABEL if label != LABELS[field]… :: drop 'materica.magnetic.linear.v1'": {
+    "result": "empty",
+    "reason": "equivalent: the one registered label other than the waiver's field's own, where two labels are registered, so the cut leaves the call nothing to draw; the label of another type, the pair's other option, stays"
+   },
+   "tests/property/declaration_strategies.py::hp42 > draw(declarations(size)) > tests/property/declaration_strategies.py::combinations::st.sampled_from(by_section[section]) :: drop 'biocompatibility.evidence'": {
+    "result": "empty",
+    "reason": "equivalent: `biocompatibility.evidence` is its section's only registered field, which a combination of fields from different sections takes whenever it takes the section, so the cut leaves the call nothing to draw"
+   },
+   "tests/property/declaration_strategies.py::hp42 > draw(declarations(size)) > tests/property/declaration_strategies.py::combinations::st.sampled_from(by_section[section]) :: drop 'fluid.dynamic_viscosity'": {
+    "result": "empty",
+    "reason": "equivalent: `fluid.dynamic_viscosity` is its section's only registered field, which a combination of fields from different sections takes whenever it takes the section, so the cut leaves the call nothing to draw"
+   },
+   "tests/property/declaration_strategies.py::hp42::st.sampled_from(tuple(ways)) :: drop 'sampling'": {
+    "result": "empty",
+    "reason": "equivalent: the stratum of one way, `sampling`, a test of its own, draws no other; the way is held by the mutants named to die at it (`sampling_independence_unrequired` and the others of HP42's sampling rows)"
+   }
+  },
+  "uncut": {
+   "tests/property/declaration_strategies.py::<module>::st.characters(codec='utf-8')": "the characters of `NAMES` and of `TEXTS`'s drawn texts: a name or a text is judged by its JSON type, a name by the twice rule as a whole and a text by its length, never by a character; white space alone is a value of `TEXTS`'s list, which is cut",
+   "tests/property/declaration_strategies.py::<module>::st.characters(codec='utf-8')#2": "the characters of `NAMES` and of `TEXTS`'s drawn texts: a name or a text is judged by its JSON type, a name by the twice rule as a whole and a text by its length, never by a character; white space alone is a value of `TEXTS`'s list, which is cut",
+   "tests/property/declaration_strategies.py::<module>::st.text(st.characters(codec='utf-8'), max_size=8)": "`NAMES`, a name (a model's, a consumer's, a region's, a family's, a chain's event or end): any text alike, compared whole by the twice rule; `declarations` makes two models' names distinct, and the twice way gives one twice",
+   "tests/property/declaration_strategies.py::<module>::st.text(st.characters(codec='utf-8'), min_size=1, max_size=12)": "`TEXTS`'s drawn text of one to twelve characters, a `reason`, `basis` or `law`, which the text judges by its length alone (at least one character); the empty string is the planters' (`empty_text`), and the listed texts are cut",
+   "tests/property/declaration_strategies.py::every_fault > LOCAL[name](p) > tests/property/declaration_strategies.py::Planting.choose::st.sampled_from(options)": "`Planting.choose`, a planter's choice among a list it passes (kinds, members, tokens, fields, places), another list at each call; each value a way needs is named in its planter's docstring, and each way is held by the mutants that die at it",
+   "tests/property/declaration_strategies.py::every_fault > LOCAL[name](p) > tests/property/declaration_strategies.py::acceptance::st.sampled_from(WAIVED_CONDITION_CODES if draw(st.booleans()) else OTHE…": "a waiver's `code`, among the reasons that name a condition or among the others (the vocabulary's lists, one of two at each call); the declaration's own check tells no two codes of one list apart but `condition_unknown_name`, which the token sweep plants (`never_waived_code_taken`)",
+   "tests/property/declaration_strategies.py::every_fault > LOCAL[name](p) > tests/property/declaration_strategies.py::acceptance::st.sampled_from(fields)": "an acceptance's `field`, one of the model's registered reads, a list computed from the drawn model at each call: any field read is a registered field alike",
+   "tests/property/declaration_strategies.py::every_fault > LOCAL[name](p) > tests/property/declaration_strategies.py::fact::st.text('0123456789', min_size=1, max_size=7)": "an UBERON identifier's digits after `UBERON:` (the anatomical site's fact): any digits alike; an identifier of another form is the Holds column's constraint, planted by `breaks_holds` (`identifier`)",
+   "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::acceptance::st.sampled_from(WAIVED_CONDITION_CODES if draw(st.booleans()) else OTHE…": "a waiver's `code`, among the reasons that name a condition or among the others (the vocabulary's lists, one of two at each call); the declaration's own check tells no two codes of one list apart but `condition_unknown_name`, which the token sweep plants (`never_waived_code_taken`)",
+   "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::fact::st.text('0123456789', min_size=1, max_size=7)": "an UBERON identifier's digits after `UBERON:` (the anatomical site's fact): any digits alike; an identifier of another form is the Holds column's constraint, planted by `breaks_holds` (`identifier`)",
+   "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::model_entry::st.sampled_from(pairs)": "the `trainable` entries' pairs of a field read and a listed record, computed from the drawn model at each call, two entries of one field at two records among them: any pair alike",
+   "tests/property/declaration_strategies.py::every_fault::st.sampled_from(sorted(LOCAL))": "`every_fault`'s 34 planters, above the 24 values a site may hold to be cut: each is a way, or a draw of a way, of HP41's parts, held there, and `every_fault`'s own mutants (`first_fault_only`, `model_index_off_by_one`) die at any two faults",
+   "tests/property/declaration_strategies.py::hp41 > draw(declarations(size)) > tests/property/declaration_strategies.py::acceptance::st.sampled_from(WAIVED_CONDITION_CODES if draw(st.booleans()) else OTHE…": "a waiver's `code`, among the reasons that name a condition or among the others (the vocabulary's lists, one of two at each call); the declaration's own check tells no two codes of one list apart but `condition_unknown_name`, which the token sweep plants (`never_waived_code_taken`)",
+   "tests/property/declaration_strategies.py::hp41 > draw(declarations(size)) > tests/property/declaration_strategies.py::fact::st.text('0123456789', min_size=1, max_size=7)": "an UBERON identifier's digits after `UBERON:` (the anatomical site's fact): any digits alike; an identifier of another form is the Holds column's constraint, planted by `breaks_holds` (`identifier`)",
+   "tests/property/declaration_strategies.py::hp41 > draw(declarations(size)) > tests/property/declaration_strategies.py::model_entry::st.sampled_from(pairs)": "the `trainable` entries' pairs of a field read and a listed record, computed from the drawn model at each call, two entries of one field at two records among them: any pair alike",
+   "tests/property/declaration_strategies.py::hp41 > planters[way](p) > tests/property/declaration_strategies.py::Planting.choose::st.sampled_from(options)": "`Planting.choose`, a planter's choice among a list it passes (kinds, members, tokens, fields, places), another list at each call; each value a way needs is named in its planter's docstring, and each way is held by the mutants that die at it",
+   "tests/property/declaration_strategies.py::hp41 > planters[way](p) > tests/property/declaration_strategies.py::acceptance::st.sampled_from(WAIVED_CONDITION_CODES if draw(st.booleans()) else OTHE…": "a waiver's `code`, among the reasons that name a condition or among the others (the vocabulary's lists, one of two at each call); the declaration's own check tells no two codes of one list apart but `condition_unknown_name`, which the token sweep plants (`never_waived_code_taken`)",
+   "tests/property/declaration_strategies.py::hp41 > planters[way](p) > tests/property/declaration_strategies.py::fact::st.text('0123456789', min_size=1, max_size=7)": "an UBERON identifier's digits after `UBERON:` (the anatomical site's fact): any digits alike; an identifier of another form is the Holds column's constraint, planted by `breaks_holds` (`identifier`)",
+   "tests/property/declaration_strategies.py::hp41 > planters[way](p) > tests/property/declaration_strategies.py::plant_not_object::st.sampled_from(options)": "the value given in place of a declaration that is no object (the declaration in a list among them), computed from the drawn declaration at each call: any value of another type alike, refused at the empty pointer",
+   "tests/property/declaration_strategies.py::hp41 > planters[way](p) > tests/property/declaration_strategies.py::plant_twice_in::st.sampled_from(records_of(model))": "the record listed twice, one of the model's listed records, computed from the drawn model at each call: any listed record alike",
+   "tests/property/declaration_strategies.py::hp41::st.sampled_from(tuple(ways))": "the way, drawn first among a stratum's two or one, 29 ways across HP41's strata, above the 24 values a site may hold to be cut: each way is held by the mutants named to die at it (the mutant table) and by its feature audit at `ci`, where a way never drawn fails its floor",
+   "tests/property/declaration_strategies.py::hp42 > LOCAL[name](p) > tests/property/declaration_strategies.py::Planting.choose::st.sampled_from(options)": "`Planting.choose`, a planter's choice among a list it passes (kinds, members, tokens, fields, places), another list at each call; each value a way needs is named in its planter's docstring, and each way is held by the mutants that die at it",
+   "tests/property/declaration_strategies.py::hp42 > LOCAL[name](p) > tests/property/declaration_strategies.py::acceptance::st.sampled_from(WAIVED_CONDITION_CODES if draw(st.booleans()) else OTHE…": "a waiver's `code`, among the reasons that name a condition or among the others (the vocabulary's lists, one of two at each call); the declaration's own check tells no two codes of one list apart but `condition_unknown_name`, which the token sweep plants (`never_waived_code_taken`)",
+   "tests/property/declaration_strategies.py::hp42 > LOCAL[name](p) > tests/property/declaration_strategies.py::acceptance::st.sampled_from(fields)": "an acceptance's `field`, one of the model's registered reads, a list computed from the drawn model at each call: any field read is a registered field alike",
+   "tests/property/declaration_strategies.py::hp42 > LOCAL[name](p) > tests/property/declaration_strategies.py::fact::st.text('0123456789', min_size=1, max_size=7)": "an UBERON identifier's digits after `UBERON:` (the anatomical site's fact): any digits alike; an identifier of another form is the Holds column's constraint, planted by `breaks_holds` (`identifier`)",
+   "tests/property/declaration_strategies.py::hp42 > draw(declarations(size)) > tests/property/declaration_strategies.py::acceptance::st.sampled_from(WAIVED_CONDITION_CODES if draw(st.booleans()) else OTHE…": "a waiver's `code`, among the reasons that name a condition or among the others (the vocabulary's lists, one of two at each call); the declaration's own check tells no two codes of one list apart but `condition_unknown_name`, which the token sweep plants (`never_waived_code_taken`)",
+   "tests/property/declaration_strategies.py::hp42 > draw(declarations(size)) > tests/property/declaration_strategies.py::fact::st.text('0123456789', min_size=1, max_size=7)": "an UBERON identifier's digits after `UBERON:` (the anatomical site's fact): any digits alike; an identifier of another form is the Holds column's constraint, planted by `breaks_holds` (`identifier`)",
+   "tests/property/declaration_strategies.py::hp42 > draw(declarations(size)) > tests/property/declaration_strategies.py::model_entry::st.sampled_from(pairs)": "the `trainable` entries' pairs of a field read and a listed record, computed from the drawn model at each call, two entries of one field at two records among them: any pair alike",
+   "tests/property/declaration_strategies.py::hp42 > plant_sampling(p, m) > tests/property/declaration_strategies.py::Planting.choose::st.sampled_from(options)": "`Planting.choose`, a planter's choice among a list it passes (kinds, members, tokens, fields, places), another list at each call; each value a way needs is named in its planter's docstring, and each way is held by the mutants that die at it",
+   "tests/property/declaration_strategies.py::hp42::st.sampled_from(BESIDE)": "HP42's faults beside its member, 32 of HP41's local planters, above the 24 values a site may hold to be cut: each is a way, or a draw of a way, of HP41's parts, held there"
+  }
  }
 }
