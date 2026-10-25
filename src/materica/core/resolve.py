@@ -26,10 +26,12 @@ class ResolvedRecord:
 @dataclass(frozen=True)
 class Refused:
     """The reasons that ended steps 1 to 5, and the labels of the steps before: `hash_not_checked` only once
-    the read has reached step 4."""
+    the read has reached step 4. `record_found` says whether step 1 found the record the reference pins: every
+    refusal of steps 2 to 5 is of a record found, and only step 1's own is of none."""
 
     reasons: tuple[Reason, ...]
     labels: tuple[str, ...] = ()
+    record_found: bool = True
 
 
 def resolve_record(
@@ -37,7 +39,7 @@ def resolve_record(
 ) -> ResolvedRecord | Refused:
     found = _candidate(ref, store)
     if isinstance(found, Reason):
-        return Refused((found,))
+        return Refused((found,), record_found=False)
     for refusal in (found.version_refusal, found.envelope_refusal):
         if refusal is not None:
             return Refused((refusal,))
