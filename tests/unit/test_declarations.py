@@ -83,9 +83,9 @@ def refusals(declaration: DeclarationInput, claims: frozenset[Suite] | None = No
     return {(refusal.item, refusal.pointer) for refusal in checked}
 
 
-def test_the_valid_declaration_is_taken_and_raises_past_its_check() -> None:
+def test_the_valid_declaration_is_taken_and_raises_past_its_reads() -> None:
     assert isinstance(Declaration.from_json(VALID), Declaration)
-    with pytest.raises(NotImplementedError, match="S7a-2 reads the records"):
+    with pytest.raises(NotImplementedError, match="S7a-2b gives the build's own reasons"):
         check_build(VALID, store())
 
 
@@ -386,7 +386,8 @@ def test_a_report_is_a_copy() -> None:
     assert report.to_json().get("consumer") == {"name": "a"}
 
 
-# What this version does not build raises, naming each acceptance and the piece that reads it.
+# What a later piece reads raises before any read, naming each and the piece that reads it
+# (`tests/unit/test_build.py` holds the rest).
 
 
 def test_the_raise_names_each_pick_and_overlay_and_the_piece_that_applies_them() -> None:
@@ -402,13 +403,13 @@ def test_the_raise_names_each_pick_and_overlay_and_the_piece_that_applies_them()
     said = str(raised.value)
     named = ", ".join(
         f"the {kind} /models/0/acceptances/{index}"
-        for index, kind in ((1, "pick"), (2, "overlay"), (3, "pick"), (4, "overlay_scope"), (5, "overlay"))
+        for index, kind in ((1, "pick"), (2, "overlay"), (3, "pick"), (5, "overlay"))
     )
-    assert f"S7c reads {named})" in said
-    assert "(S7a-2 reads the waiver /models/0/acceptances/0; " in said
+    assert said.endswith(f"what a later piece reads: S7c reads {named}")
 
 
-def test_the_raise_names_an_accepted_difference_and_a_trainable_entry_and_the_pieces_that_read_them() -> None:
+def test_the_raise_names_a_trainable_entry_and_its_piece_and_no_accepted_difference() -> None:
+    """An accepted difference beside an empty `target` covers nothing (the S7 design's 1.3)."""
     difference: Json = {"acceptance": "accepted_difference", "section": "fluid", "fact": "species"}
     difference["value"] = {"status": "not_applicable"}
 
@@ -418,11 +419,12 @@ def test_the_raise_names_an_accepted_difference_and_a_trainable_entry_and_the_pi
 
     with pytest.raises(NotImplementedError) as raised:
         check_build(a_declaration(change), store())
-    assert "S7a-3 reads the accepted_difference /models/0/acceptances/1" in str(raised.value)
-    assert "S7a-4 reads the trainable entry /models/0/trainable/0" in str(raised.value)
+    assert str(raised.value).endswith(
+        "what a later piece reads: S7a-4 reads the trainable entry /models/0/trainable/0"
+    )
 
 
-# A declaration that passes, typed member by member: S7a-2 reads each.
+# A declaration that passes, typed member by member: S7a-2 and the pieces after it read each.
 
 
 def test_a_declaration_that_passes_is_typed_member_by_member() -> None:

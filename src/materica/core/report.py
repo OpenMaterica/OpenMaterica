@@ -4,7 +4,8 @@
 S7a-1 gives a report only for a declaration refused on its own: its refusals, no results, no watches and
 nothing unused. `check_build` raises `NotImplementedError` for any other (`core/build.py`), so the members a
 report of an accepted declaration adds (the records read, the results, the acceptances unused) come with the
-pieces that build them.
+pieces that build them. S7a-2a builds a result as far as its read (`BuildResult`); S7a-2b judges it and gives
+the report that holds it.
 """
 
 import copy
@@ -12,8 +13,23 @@ from dataclasses import dataclass, field
 from typing import cast
 
 from materica import shapes
+from materica.core.identifiers import MaterialRef
 from materica.core.jsonio import JsonValue
+from materica.core.read import ReadResult
 from materica.core.reasons import Reason
+
+
+@dataclass(frozen=True)
+class BuildResult:
+    """A result of the build over records (section 2), as far as its read: the model's name; the record read,
+    which over records is the result's location (item 2); the field; and the read's result as the read
+    returned it, or None for a field the model reads with no requirement, for which the build reads nothing
+    (section 1 item 1). S7a-2b adds the build's own reasons, the status and the judgement."""
+
+    model: str
+    record: MaterialRef
+    field: str
+    read: ReadResult | None
 
 
 @dataclass(frozen=True)
