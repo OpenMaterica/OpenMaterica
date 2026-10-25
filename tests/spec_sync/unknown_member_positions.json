@@ -141,7 +141,7 @@
     {"id": "Q03", "in": "request", "path": ["target", "record"], "schema": ["material_ref"], "verdict": "ignored",
      "cite": "read_side_contract.md", "quote": "A member that the shape above, or for `acceptances` `declarations.md`, does not name at that place is ignored, at any depth"},
     {"id": "Q04", "in": "request", "path": ["requirement"], "schema": ["requirement"], "verdict": "ignored",
-     "also": {"label": "a declaration's requirement member, which a read refuses", "represents": "a declaration's requirement member, which a read refuses", "population_level": "a declaration's requirement member, which a read refuses", "field": "a declaration's requirement member (declarations.md section 1), which a read ignores"},
+     "also": {"label": "a declaration's requirement member, which a read refuses", "represents": "a declaration's requirement member, which a read refuses", "population_level": "a declaration's requirement member, which a read refuses", "review": "a declaration's requirement member, which a read refuses", "field": "a declaration's requirement member (declarations.md section 1), which a read ignores"},
      "cite": "read_side_contract.md", "quote": "a member one slip (`record_format.md` section 10) from a member this section or `declarations.md` names at that place, refused ones included"},
     {"id": "Q05", "in": "request", "path": ["operating_conditions"], "schema": ["$conditions"], "verdict": "refused",
      "cite": "read_side_contract.md", "quote": "it names a condition that is not registered"},
