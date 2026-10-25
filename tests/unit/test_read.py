@@ -3352,3 +3352,65 @@ def test_a_request_fault_inside_one_alternative_reports_anothers_own_reason_besi
 def test_alternatives_that_break_their_shape_are_refused_at_step_7(field: dict[str, JsonValue]) -> None:
     result = read_met(field)
     assert (result.status, result.reasons, result.conditions) == ("not_met", (Reason("form_invalid"),), None)
+
+
+# The stored value a result rests on (`declarations.md` section 2 item 8), which a build checks a
+# requirement's `label` against: kept outside the result's JSON and equality, as `applied` is.
+
+
+def outside_at_300_k() -> dict[str, JsonValue]:
+    """The met water constant stated at 300 K: outside the temperature's tolerance, so step 10 sets it aside
+    as an alternative."""
+    field = met_field()
+    field["conditions"] = {
+        **an_object(field["conditions"]),
+        "temperature": {"value": 300.0, "unit": "K", **STATED},
+    }
+    return field
+
+
+def test_a_result_rests_on_the_field_it_read_whether_or_not_its_read_reached_step_12() -> None:
+    met = read_met(met_field())
+    assert (met.status, met.resting_on) == ("met", ())
+    for refused in (read_met(met_field(unit="Pa")), read_met(outside_at_300_k())):
+        assert (refused.status, refused.resting_on) == ("not_met", ()), refused.reasons
+    assert "resting_on" not in met.to_json()
+    assert ReadResult.from_json(met.to_json()) == met
+
+
+@pytest.mark.parametrize("left", [0, 1])
+def test_a_result_rests_on_the_one_alternative_left_which_no_member_of_its_json_names(left: int) -> None:
+    alternatives: list[JsonValue] = [outside_at_300_k(), outside_at_300_k()]
+    alternatives[left] = met_field()
+    result = read_met({"alternatives": alternatives})
+    assert (result.status, result.reasons, result.resting_on) == ("met", (), (left,))
+    assert result == read_met({"alternatives": alternatives[::-1]})
+
+
+@pytest.mark.parametrize(
+    "reading",
+    [
+        pytest.param(lambda: read(REQUEST, store()), id="record_absent"),
+        pytest.param(lambda: read(*stored(water(), "bulk.density")), id="field_absent"),
+        pytest.param(
+            lambda: read(with_members(requirement={"want": "value", "review": "reviewed"}), store()),
+            id="refused_at_step_0",
+        ),
+        pytest.param(lambda: read_met({"alternatives": [met_field(), met_field()]}), id="no_pick"),
+        pytest.param(
+            lambda: read_met({"alternatives": [met_field(), 1.0]}), id="alternatives_refused_at_step_7"
+        ),
+        pytest.param(
+            lambda: read_met({"alternatives": [met_field(unit="Pa"), met_field()]}),
+            id="an_alternative_refuses",
+        ),
+        pytest.param(
+            lambda: read_met({"alternatives": [outside_at_300_k(), outside_at_300_k()]}),
+            id="every_one_set_aside",
+        ),
+    ],
+)
+def test_a_result_resting_on_no_single_stored_value_rests_on_none(reading: Callable[[], ReadResult]) -> None:
+    result = reading()
+    assert result.status != "met"
+    assert result.resting_on is None, result.reasons

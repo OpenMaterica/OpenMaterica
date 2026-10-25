@@ -443,6 +443,11 @@ class ReadResult:
     request's `acceptances`, of those the read applied, the implied conditions that filled a condition, the
     nominal that supplied the value and the extrapolation that covered `outside_range`, which a build maps to
     what accepted the result."""
+    resting_on: tuple[int, ...] | None = dataclasses.field(default=None, compare=False, kw_only=True)
+    """Outside `to_json`, and so outside equality, as `applied` is: the stored value the result rests on
+    (`declarations.md` section 2 item 8), which a build checks a requirement's `label` against: `()` for the
+    field step 7 found, `(k,)` for its alternative `k`, the one left at step 7; None where it rests on none
+    (its record or field not found, a refusal before step 7 finds the field, or no single alternative)."""
     value: JsonValue = dataclasses.field(default=None, kw_only=True)
     alternative_values: tuple[FieldRead, ...] | None = dataclasses.field(default=None, kw_only=True)
     unit: JsonValue = dataclasses.field(default=None, kw_only=True)
@@ -543,17 +548,20 @@ def _read_field(request: ReadRequest, resolved: ResolvedRecord, claims: Collecti
 def _resting_on(found: FieldRead, reasons: tuple[Reason, ...], labels: tuple[str, ...]) -> ReadResult:
     """The result of a read that rests on one value field, the field read or the one alternative left (section
     3, step 7): `reasons`, its own as the read reports them; the labels steps 1 to 5 gave and its own; its
-    `conditions`; and its value with the members beside it, where section 2 item 3 returns them."""
+    `conditions`; and its value with the members beside it, where section 2 item 3 returns them. The result
+    rests on that value field, whether or not its read reached step 12."""
     status = _status(reasons)
     labels = tuple(dict.fromkeys((*labels, *found.labels)))
+    resting_on = () if found.alternative is None else (found.alternative,)
     if not _value_returned(status, found):
-        return ReadResult(status, reasons, labels, found.conditions, found.applied)
+        return ReadResult(status, reasons, labels, found.conditions, found.applied, resting_on=resting_on)
     return ReadResult(
         status,
         reasons,
         labels,
         found.conditions,
         found.applied,
+        resting_on=resting_on,
         value=found.value,
         unit=found.unit,
         specimen=found.specimen,
