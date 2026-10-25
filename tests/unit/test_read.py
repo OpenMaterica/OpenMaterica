@@ -3420,8 +3420,9 @@ def test_a_result_resting_on_no_single_stored_value_rests_on_none(reading: Calla
     assert result.resting_on is None, result.reasons
 
 
-# Whether the read resolved its target record, passing steps 0 to 5, which a build lists among the records a
-# read resolved (`declarations.md` section 2): kept outside the result's JSON and equality, as `applied` is.
+# Whether step 1 of the read (`Resolve`) found the record its target pins, whether or not steps 2 to 5 then
+# refused it, which a build lists among the records a read resolved (`declarations.md` section 2): kept
+# outside the result's JSON and equality, as `applied` is.
 
 
 def test_a_read_past_step_5_resolved_its_record_whatever_it_found_there() -> None:
@@ -3433,17 +3434,59 @@ def test_a_read_past_step_5_resolved_its_record_whatever_it_found_there() -> Non
     assert ReadResult.from_json(met.to_json()) == met
 
 
+def tampered(**changes: JsonValue) -> tuple[JsonValue, RecordStore]:
+    """A request for the water record's viscosity, pinned by the hash the record states, and a store holding
+    the record with `changes`, which leave that hash as stated: step 1 finds it, and a later step may refuse
+    it."""
+    record = water()
+    records = RecordStore()
+    records.add("record", json.dumps(record | changes).encode())
+    pin = {name: record[name] for name in ("id", "version", "content_hash")}
+    return with_members(target={"record": pin, "field": "fluid.dynamic_viscosity"}), records
+
+
+@pytest.mark.parametrize(
+    ("changes", "code"),
+    [
+        pytest.param({"schema_version": "9.9.9"}, "other_version", id="step_2_other_version"),
+        pytest.param({"licence": 5}, "malformed", id="step_3_licence_of_no_shape"),
+        pytest.param(
+            {"licence": {"values": "NOPE", "evidence": "excluded"}}, "hash_mismatch", id="bad_licence_value"
+        ),
+        pytest.param({"name": "edited after it was hashed"}, "hash_mismatch", id="step_4_stale_hash"),
+        pytest.param({"record_type": "fit"}, "hash_mismatch", id="step_5_type_over_a_stale_hash"),
+    ],
+)
+def test_a_read_refused_at_steps_2_to_5_resolved_the_record_step_1_found(
+    changes: dict[str, JsonValue], code: str
+) -> None:
+    """The result refuses the record, and has it: the record a reader most needs to see named."""
+    result = read(*tampered(**changes))
+    assert result.status == "not_met"
+    assert result.reasons[0].code == code, result.reasons
+    assert result.resolved
+
+
+def test_a_record_of_an_unreadable_type_is_resolved_when_the_hash_is_not_checked() -> None:
+    request, records = tampered(record_type="fit")
+    result = read(request, records, claims=["plain_read"])
+    assert [reason.code for reason in result.reasons] == ["unknown_type"]
+    assert result.labels == ("hash_not_checked",)
+    assert result.resolved
+
+
 @pytest.mark.parametrize(
     "reading",
     [
-        pytest.param(lambda: read(REQUEST, store()), id="record_absent"),
+        pytest.param(lambda: read(REQUEST, RecordStore()), id="record_absent"),
+        pytest.param(lambda: read(*tampered(content_hash="sha256:" + "0" * 64)), id="no_copy_states_the_pin"),
         pytest.param(
             lambda: read(with_members(requirement={"want": "value", "review": "reviewed"}), store()),
             id="refused_at_step_0",
         ),
     ],
 )
-def test_a_read_refused_at_steps_0_to_5_resolved_no_record(reading: Callable[[], ReadResult]) -> None:
+def test_a_read_that_found_no_record_resolved_none(reading: Callable[[], ReadResult]) -> None:
     result = reading()
     assert result.status == "not_met"
     assert not result.resolved, result.reasons

@@ -32,6 +32,7 @@ from typing import cast
 
 from materica import shapes
 from materica.core.acceptance import judge, located_at, names, unused
+from materica.core.conditions import said
 from materica.core.declarations import (
     CLAIMS,
     Acceptance,
@@ -280,10 +281,16 @@ def _shown(acceptance: Acceptance, result: ReadResult) -> bool:
     if acceptance.kind == "implied_condition":
         filled = {entry.name: entry.record for entry in result.conditions or ()}
         implies = an_object(acceptance.members["implies"])
-        return any(filled.get(name) == _supplied(an_object(value)) for name, value in implies.items())
+        return any(_fills(filled.get(name), an_object(value)) for name, value in implies.items())
     if acceptance.kind in ("nominal", "extrapolation"):
         return names(cast(JsonObject | None, result.assumption), acceptance)
     return False
+
+
+def _fills(entry: JsonObject | None, implied: JsonObject) -> bool:
+    """Whether the condition `entry` is what `implied` supplies, its numbers bit for bit as the read compares
+    two implied values (`read_side_contract.md` section 1), so that `-0` is no `0`."""
+    return entry is not None and entry == _supplied(implied) and said(entry) == said(implied)
 
 
 def _supplied(implied: JsonObject) -> JsonObject:

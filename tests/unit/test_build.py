@@ -413,6 +413,42 @@ def test_the_case_file_of_two_implied_conditions_of_one_value_maps_both() -> Non
     assert (result.accepted, result.accepted_by) == (True, (0, 1))
 
 
+def test_an_implied_value_is_compared_bit_for_bit_so_minus_zero_is_no_zero() -> None:
+    """`read_side_contract.md` section 1: two implied values differ unless they hold the same numbers bit for
+    bit, `0` and `-0` among them. The result shows the one the read filled; the other is not applied."""
+
+    def implied_zero(index: int, value: JsonValue, shape: str = "value") -> Acceptance:
+        implies: Json = {"temperature": {shape: value, "unit": "K"}}
+        return an_acceptance(
+            "implied_condition", index, fact="tissue_state", token="in_vivo", implies=implies
+        )
+
+    signs: list[tuple[str, JsonValue, JsonValue]] = [
+        ("value", 0.0, -0.0),
+        ("range", [0.0, 1.0], [-0.0, 1.0]),
+    ]
+    for shape, plus, minus in signs:
+        first, second = implied_zero(3, plus, shape), implied_zero(5, minus, shape)
+        for filled, applied in ((plus, (3,)), (minus, (5,))):
+            record: Json = {shape: filled, "unit": "K", "basis": "implied"}
+            assert applied_of(with_temperature(record), (first, second)) == applied, (shape, filled)
+        # The control: the same value twice is applied twice, whichever the result shows.
+        twin = implied_zero(5, plus, shape)
+        record = {shape: plus, "unit": "K", "basis": "implied"}
+        assert applied_of(with_temperature(record), (first, twin)) == (3, 5), shape
+
+
+def test_two_implied_conditions_with_zeros_of_opposite_sign_apply_the_one_the_read_filled() -> None:
+    """BC-009's two implied conditions of one value, the second not applying to the specimen: with the values
+    `0` and `-0` the build maps the first alone, so the second is unused."""
+    declaration, store = case("BC-009.two_implied_conditions_of_one_value")
+    for sign, value in enumerate((0.0, -0.0)):
+        acceptances(declaration)[sign]["implies"] = {"temperature": {"value": value, "unit": "K"}}
+    report = check_build(declaration, store)
+    assert [(found.model, found.acceptance) for found in report.unused] == [("drag", 1)]
+    assert report.results[0].accepted_by == (0,)
+
+
 def implied_read(implies: Json) -> tuple[ReadResult, tuple[int, ...]]:
     """BC-017's in vivo water value, its temperature unstated, read with its implied condition changed to
     supply `implies`: the read and the indexes the build maps."""
@@ -862,6 +898,33 @@ def test_a_record_read_for_nothing_or_refused_at_step_0_is_not_among_the_records
     report = check_build(declaration, store)
     assert [reason.code for reason in report.results[0].reasons] == ["want_mismatch"]
     assert report.records == ()
+
+
+@pytest.mark.parametrize(
+    ("changes", "code"),
+    [
+        pytest.param({"schema_version": "9.9.9"}, "other_version", id="step_2_other_version"),
+        pytest.param({"licence": 5}, "malformed", id="step_3_licence_of_no_shape"),
+        pytest.param(
+            {"licence": {"values": "NOPE", "evidence": "excluded"}}, "hash_mismatch", id="bad_licence_value"
+        ),
+        pytest.param({"name": "edited after it was hashed"}, "hash_mismatch", id="step_4_stale_hash"),
+        pytest.param({"record_type": "fit"}, "hash_mismatch", id="step_5_type_over_a_stale_hash"),
+    ],
+)
+def test_a_record_step_1_found_and_a_later_step_refused_is_among_the_records(
+    changes: Json, code: str
+) -> None:
+    """Section 2: `records` is every record a read resolved, which step 1 (`Resolve`) does, whether or not
+    steps 2 to 5 then refuse it. The control is the record absent from the store, which no step 1 finds."""
+    declaration, _ = case("BC-028.one_model_one_record")
+    record = json.loads((INPUTS / "water_fixture.json").read_text(encoding="utf-8"))
+    store = RecordStore()
+    store.add("record", json.dumps({**record, **changes}).encode())
+    report = check_build(declaration, store)
+    assert report.results[0].reasons[0].code == code
+    assert [found.to_json() for found in report.records] == [WATER]
+    assert check_build(declaration, RecordStore()).records == ()
 
 
 LABELLED_WAIVER: Json = {

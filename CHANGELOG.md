@@ -31,7 +31,9 @@ every family entry goes in `families/CHANGELOG.md`.
   fill (the S7 design's 4.2); `BuildReport` holds the records a read resolved, the results and the acceptances unused, with
   `refused`, `result()` and `status_lines()`, the lines `materica status` will print, each reason nothing
   covers beside the "Covered by" cells of section 4.2 that list it. `ReadResult` records whether its read
-  resolved the record, outside its JSON and equality (`resolved`). Section 4.2's table is generated into
+  found the record its target pins at step 1, whether or not steps 2 to 5 then refused it, outside its JSON
+  and equality (`resolved`), so that `records` names a record the build looked at and refused. Section 4.2's
+  table is generated into
   `schema/0.1/vocabulary/coverage.json`, each "Covered by" cell read by a fixed table of the phrasings it uses,
   a phrasing the generator does not know stopping it; with the table in a file, `not_reviewed` dropped from it
   fails the vocabulary check, where it passed every check before (the S7 design's 9). The report omits

@@ -164,7 +164,7 @@ def _states(specimen: JsonObject, fact: str, token: str) -> bool:
     return isinstance(stated, dict) and not is_status_object(stated) and stated.get("token") == token
 
 
-def _said(implied: JsonObject) -> tuple[object, ...]:
+def said(implied: JsonObject) -> tuple[object, ...]:
     """What an implied value says, to compare two: a token, or a value or a range, its numbers bit for bit."""
     if "token" in implied:
         return ("token", implied["token"])
@@ -175,13 +175,13 @@ def _said(implied: JsonObject) -> tuple[object, ...]:
 def _disagreeing(applying: Sequence[ImpliedCondition]) -> tuple[Reason, ...]:
     """`request_incomplete` for each condition to which two implied conditions that apply give different
     values (`read_side_contract.md` section 1)."""
-    said: dict[str, set[tuple[object, ...]]] = {}
+    differing: dict[str, set[tuple[object, ...]]] = {}
     for condition in applying:
         for name, value in condition.implies.items():
-            said.setdefault(name, set()).add(_said(value))
+            differing.setdefault(name, set()).add(said(value))
     return tuple(
         Reason("request_incomplete", name, f"two implied conditions that apply give {name} different values")
-        for name, values in said.items()
+        for name, values in differing.items()
         if len(values) > 1
     )
 

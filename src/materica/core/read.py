@@ -449,9 +449,9 @@ class ReadResult:
     field step 7 found, `(k,)` for its alternative `k`, the one left at step 7; None where it rests on none
     (its record or field not found, a refusal before step 7 finds the field, or no single alternative)."""
     resolved: bool = dataclasses.field(default=False, compare=False, kw_only=True)
-    """Outside `to_json`, and so outside equality, as `applied` is: whether the read resolved its target
-    record, passing steps 0 to 5, which a build lists among the records a read resolved (`declarations.md`
-    section 2)."""
+    """Outside `to_json`, and so outside equality, as `applied` is: whether step 1 of the read (`Resolve`)
+    found the record its target pins, whether or not steps 2 to 5 then refused it, which a build lists among
+    the records a read resolved (`declarations.md` section 2). A request refused at step 0 reached none."""
     value: JsonValue = dataclasses.field(default=None, kw_only=True)
     alternative_values: tuple[FieldRead, ...] | None = dataclasses.field(default=None, kw_only=True)
     unit: JsonValue = dataclasses.field(default=None, kw_only=True)
@@ -528,7 +528,9 @@ def read(request: RequestInput, store: RecordStore, *, claims: Collection[Suite]
         return _refused(checked)
     resolved = resolve_record(checked.target, store, claims)
     if isinstance(resolved, Refused):
-        return _refused(resolved.reasons, resolved.labels)
+        return dataclasses.replace(
+            _refused(resolved.reasons, resolved.labels), resolved=resolved.record_found
+        )
     return dataclasses.replace(_read_field(checked, resolved, claims), resolved=True)
 
 

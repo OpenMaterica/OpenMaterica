@@ -315,7 +315,7 @@ def _every_member_known(value: JsonObject, members: Collection[str]) -> JsonObje
 # Implied conditions.
 
 FILLED = conditions._filled  # pyright: ignore[reportPrivateUsage]
-SAID = conditions._said  # pyright: ignore[reportPrivateUsage]
+SAID = conditions.said
 FILLABLE = conditions._fillable  # pyright: ignore[reportPrivateUsage]
 
 
@@ -707,13 +707,13 @@ MUTANTS = [
     Mutant(
         "a_value_agrees_with_its_range",
         "HP7 implied",
-        setting(conditions, "_said", _a_value_says_a_range),
+        setting(conditions, "said", _a_value_says_a_range),
         ("a_value_beside_a_range",),
     ),
     Mutant(
         "minus_zero_agrees_with_zero",
         "HP7 implied",
-        setting(conditions, "_said", _numbers_as_rationals),
+        setting(conditions, "said", _numbers_as_rationals),
         ("minus_zero_beside_zero",),
     ),
     Mutant(
