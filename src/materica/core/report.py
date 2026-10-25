@@ -8,7 +8,8 @@ reasons joined to the read's, the worst status of them all, and the verdict, `ac
 `not_accepted`. The report leaves out what a later piece builds: `watches`, which S7a-4 emits, raises
 `NotImplementedError` and is left out of the JSON rather than given empty (the S7 design's 1.3 and 9);
 specimen differences and combinations, S7a-3's, are never given here, since a declaration that names a
-`target` or `combinations` raises before any read (`core/build.py`).
+`target` or `combinations` raises before any read (`core/build.py`). `status_lines` prints the report for
+people, each reason nothing covers beside what would cover it, from section 4.2's table (`coverage.json`).
 """
 
 import copy
@@ -23,6 +24,7 @@ from materica.core.read import ReadResult
 from materica.core.reasons import Reason
 from materica.core.status import ReadStatus
 from materica.core.value_shapes import JsonObject
+from materica.core.vocabulary import VOCABULARY
 
 
 @dataclass(frozen=True)
@@ -215,3 +217,107 @@ class BuildReport:
         report["results"] = [result.to_json() for result in self.results]
         report["unused"] = [unused.to_json() for unused in self.unused]
         return cast(shapes.BuildReport, report)
+
+    def status_lines(self) -> tuple[str, ...]:
+        """The report for people, as `materica status` prints it (the S7 design's 4.5): the verdict; each
+        refusal; each result, `ok` where accepted, with what accepted it, or `x`, with each reason nothing
+        covers beside what would cover it by section 4.2's table, read from `coverage.json`; and the
+        acceptances unused. The format is the package's, not the specification's: no case compares it."""
+        if self.refusals:
+            counted = _counted(len(self.refusals), "refusal")
+            return (
+                f"build refused: the declaration's own check refused it, {counted}",
+                *(
+                    f"{_RESULT}{refusal.item}  {refusal.pointer or '(the declaration)'}"
+                    for refusal in self.refusals
+                ),
+            )
+        accepted = sum(result.accepted for result in self.results)
+        counted = _counted(len(self.results), "result")
+        if accepted == len(self.results):
+            verdict = f"build accepted: {counted}, each accepted"
+        else:
+            verdict = f"build refused: {len(self.results) - accepted} of {counted} not accepted"
+        lines = [f"{verdict}; the declaration's own check passed"]
+        for result in self.results:
+            lines += _result_lines(result, self._acceptances(result.model))
+        unused = ", ".join(
+            f"{found.model} #{found.acceptance} ({_described(self._acceptances(found.model)[index])})"
+            for found in self.unused
+            for index in (found.acceptance,)
+        )
+        lines.append(f"{_RESULT}unused: {unused or 'none'}")
+        return tuple(lines)
+
+    def _acceptances(self, model: str) -> list[JsonObject]:
+        """The acceptances of the model named `model`, as declared."""
+        models = cast(list[JsonObject], cast(JsonObject, self.declaration)["models"])
+        entry = next(entry for entry in models if cast(JsonObject, entry["model"])["name"] == model)
+        return cast(list[JsonObject], entry.get("acceptances", []))
+
+
+# A result's line, indented under the verdict; a reason's below it, indented further.
+_RESULT, _BELOW = "  ", "        "
+
+
+def _result_lines(result: BuildResult, acceptances: list[JsonObject]) -> list[str]:
+    where = f"{result.model}  {result.record.id} {result.record.version}  {result.field}  {result.status}"
+    if not result.accepted:
+        return [
+            f"{_RESULT}x   {where}",
+            *(f"{_BELOW}{_covered_by(reason)}" for reason in result.not_accepted),
+        ]
+    used = ", ".join(f"#{index} ({_described(acceptances[index])})" for index in result.accepted_by)
+    # A value accepted under a waiver of `not_reviewed` is "accepted unreviewed" (the S7 design's 4.4).
+    accepted = (
+        "accepted unreviewed"
+        if any(reason.code == "not_reviewed" for reason in result.reasons)
+        else "accepted"
+    )
+    line = f"{_RESULT}ok  {where}" + (f", {accepted} by {used}" if used else "")
+    if result.end_value is not None:
+        line += (
+            f": end value {_shown(result.end_value)} {_shown(result.unit)}, at the readable range's nearest "
+            "end; the value at the operating conditions is yours to compute"
+        )
+    return [line]
+
+
+def _covered_by(reason: Reason) -> str:
+    """A reason nothing covers, beside what would cover it by the rows of section 4.2 that list it, or that
+    nothing would, for a reason no row lists."""
+    rows = [row for row in VOCABULARY.coverage if reason.code in row.reasons]
+    if not rows:
+        return f"{_named(reason)}: nothing covers it (declarations.md 4.2)"
+    covering = "; or ".join(row.covered_by.replace("`", "") for row in rows)
+    return f"{_named(reason)}: covered by {covering} (declarations.md 4.2), and nothing declared covers it"
+
+
+def _named(reason: Reason) -> str:
+    named = reason.code if reason.condition is None else f"{reason.code}({reason.condition})"
+    return named if reason.alternative is None else f"{named} in alternative {reason.alternative}"
+
+
+def _described(acceptance: JsonObject) -> str:
+    """An acceptance by its kind and the members that say what it accepts."""
+    kind = str(acceptance["acceptance"])
+    if kind == "waiver":
+        code = str(acceptance["code"])
+        return (
+            f"waiver: {code}({acceptance['condition']})" if "condition" in acceptance else f"waiver: {code}"
+        )
+    if kind == "nominal":
+        return f"nominal {_shown(acceptance.get('value', acceptance.get('params')))}"
+    if kind == "extrapolation":
+        return f"extrapolation, method {acceptance['method']}"
+    if kind == "implied_condition":
+        return f"implied condition: {acceptance['fact']} {acceptance['token']}"
+    return kind.replace("_", " ")
+
+
+def _shown(value: JsonValue) -> str:
+    return repr(value) if isinstance(value, float) else str(value)
+
+
+def _counted(count: int, noun: str) -> str:
+    return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
