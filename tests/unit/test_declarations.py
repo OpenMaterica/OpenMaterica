@@ -551,6 +551,11 @@ def test_an_empty_reads_is_a_reads_at_fault_and_nothing_beside_it_is_refused_as_
 
     assert isinstance(Declaration.from_json(a_declaration(reading(fields))), Declaration)
     assert refusals(a_declaration(reading([]))) == {("BC-048", "/models/0/reads")}
+    # What does not depend on `reads` is still checked: a combined name that is no registered field.
+    unregistered = a_declaration(
+        lambda d: model(d).update(reads=[], combinations=[["fluid.dynamic_viscosity", "no.such_field"]])
+    )
+    assert refusals(unregistered) == {("BC-048", "/models/0/reads"), ("BC-048", "/models/0/combinations/0/1")}
     elsewhere = refusals(a_declaration(reading(["magnetic.remanence"])))
     assert elsewhere == {
         ("BC-048", "/models/0/requirements/0/field"),
