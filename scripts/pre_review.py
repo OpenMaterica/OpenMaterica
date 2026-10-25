@@ -252,8 +252,12 @@ DATA_RULES = (
         r"|docs/specification/read_side_contract\.md",
         "the build tests load build-check declarations and their records, an overlay record a read raises "
         "for, and section 1's list of the kinds of acceptance a read takes; the report's tests build "
-        "build-check declarations over their records",
-        tests=("tests/unit/test_build.py", "tests/unit/test_report.py"),
+        "build-check declarations over their records, and the fuzz results oracle's tests every case's",
+        tests=(
+            "tests/unit/test_build.py",
+            "tests/unit/test_report.py",
+            "tests/unit/test_fuzz_build_results.py",
+        ),
     ),
     DataRule(
         "a build-check case or input, which the fuzz target's oracle tests read",
