@@ -3408,6 +3408,10 @@ def test_a_result_rests_on_the_one_alternative_left_which_no_member_of_its_json_
             lambda: read_met({"alternatives": [outside_at_300_k(), outside_at_300_k()]}),
             id="every_one_set_aside",
         ),
+        pytest.param(
+            lambda: read_met({"alternatives": [met_field(), met_field()]}, want="bounds"),
+            id="want_mismatch_over_two_alternatives",
+        ),
     ],
 )
 def test_a_result_resting_on_no_single_stored_value_rests_on_none(reading: Callable[[], ReadResult]) -> None:

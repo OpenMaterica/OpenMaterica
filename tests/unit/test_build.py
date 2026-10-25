@@ -26,6 +26,7 @@ from materica.core.jsonio import JsonValue
 from materica.core.read import ReadResult, read
 from materica.core.reasons import Reason
 from materica.core.record import RecordStore
+from materica.shapes import Suite
 from scripts.gen_vocabulary import SPECIFICATION
 
 # The build's internals these examples hold to the text, bound once.
@@ -185,6 +186,32 @@ def test_the_kinds_given_are_those_a_read_takes_overlays_and_trainable_aside() -
     taken = re.findall(r"`(\w+)`", found.group(1))
     assert taken == ["pick", "overlay", "extrapolation", "nominal", "implied_condition", "trainable"]
     assert set(GIVEN_KINDS) == set(taken) - {"overlay", "trainable"}
+
+
+def test_every_acceptance_given_is_in_the_request_in_the_models_order() -> None:
+    """BC-009's nominal (no interval: applied to nothing) before its constant extrapolation, beneath a waiver
+    that is not given: the request holds both, in that order, and the extrapolation is the model's index 2,
+    the request's index 1."""
+    declaration, store = case("BC-009.extrapolation_applied")
+    nominal, extrapolation = acceptances(declaration)
+    assert (nominal["acceptance"], extrapolation["acceptance"]) == ("nominal", "extrapolation")
+    acceptances(declaration)[:0] = [{**WAIVER, "record": nominal["record"]}]
+    assert request_of(declaration)["acceptances"] == [nominal, extrapolation]
+    ((result, applied, _),) = readings(declaration, store)
+    assert result.read is not None
+    assert (result.read.applied, applied) == ((1,), (2,))
+
+
+def test_an_acceptance_for_another_field_of_the_same_section_is_not_given() -> None:
+    """BC-019's extrapolation, and one of the same record and section for another field: the read is given
+    the first alone."""
+    declaration, _ = case("BC-019.outside_range_under_an_extrapolation")
+    (extrapolation,) = acceptances(declaration)
+    other = {**extrapolation, "field": "bulk.elemental_composition"}
+    assert extrapolation["field"] == DENSITY
+    acceptances(declaration).append(other)
+    checked(declaration)
+    assert request_of(declaration)["acceptances"] == [extrapolation]
 
 
 def located(**members: JsonValue) -> Acceptance:
@@ -383,6 +410,47 @@ def test_the_case_file_of_two_implied_conditions_of_one_value_maps_both() -> Non
     assert (result.read.status, result.read.applied, applied) == ("met", (0,), (0, 1))
 
 
+def implied_read(implies: Json) -> tuple[ReadResult, tuple[int, ...]]:
+    """BC-017's in vivo water value, its temperature unstated, read with its implied condition changed to
+    supply `implies`: the read and the indexes the build maps."""
+    declaration, store = case("BC-017.fills_an_unstated_condition")
+    acceptances(declaration)[0]["implies"] = implies
+    ((result, applied, _),) = readings(declaration, store)
+    assert result.read is not None
+    return result.read, applied
+
+
+def test_an_implied_condition_that_fills_one_of_two_conditions_is_applied() -> None:
+    """It supplies the unstated temperature and a shear rate the record states: one entry shows its value."""
+    read_, applied = implied_read(
+        {
+            "temperature": {"value": 310.15, "unit": "K"},
+            "shear_rate": {"range": [10.0, 1000.0], "unit": "1/s"},
+        }
+    )
+    bases = {entry.name: (entry.record or {}).get("basis") for entry in read_.conditions or ()}
+    assert (bases["temperature"], bases["shear_rate"]) == ("implied", "stated"), bases
+    assert (read_.applied, applied) == ((0,), (0,))
+
+
+def test_an_implied_range_is_applied_where_an_entry_shows_it() -> None:
+    read_, applied = implied_read({"temperature": {"range": [300.0, 320.0], "unit": "K"}})
+    assert any(
+        entry.record == {"range": [300.0, 320.0], "unit": "K", "basis": "implied"}
+        for entry in read_.conditions or ()
+    ), read_.conditions
+    assert applied == (0,)
+
+
+def test_an_implied_token_is_applied_where_an_entry_shows_it() -> None:
+    read_, applied = implied_read({"test_method": {"token": "rotational_rheometer"}})
+    assert any(
+        entry.record == {"token": "rotational_rheometer", "basis": "implied"}
+        for entry in read_.conditions or ()
+    ), read_.conditions
+    assert applied == (0,)
+
+
 @pytest.mark.parametrize(
     ("given", "assumption", "applied"),
     [
@@ -519,6 +587,58 @@ def test_a_field_with_no_label_stores_none_and_its_basis_is_given_where_stored()
         assert stored == label
 
 
+def test_a_want_no_alternative_gives_rests_on_none_and_stores_none() -> None:
+    """Two alternatives both stay and `want: bounds` is a form neither constant gives: `want_mismatch` over
+    both, so the result rests on no single alternative and no label is checked against either, though one is
+    labelled."""
+    declaration, store = stored_water({"alternatives": [water_field(**LABELLED), water_field()]})
+    requirement(declaration)["want"] = "bounds"
+    ((result, _, stored),) = readings(declaration, store)
+    assert result.read is not None
+    assert codes(result.read) >= {"want_mismatch"}, result.read.reasons
+    assert result.read.resting_on is None
+    assert stored is None
+
+
+def test_a_stored_value_that_is_no_object_stores_no_label() -> None:
+    """A field that is a string: `form_invalid`, the result rests on the field, which holds no label."""
+    declaration, store = stored_water("not an object")
+    ((result, _, stored),) = readings(declaration, store)
+    assert result.read is not None
+    assert (codes(result.read), result.read.resting_on) == ({"form_invalid"}, ())
+    assert stored == {}
+
+
+def tampered_viscosity() -> tuple[Json, RecordStore]:
+    """BC-017's record with its viscosity changed and the hash it states kept, and its declaration."""
+    declaration, _ = case("BC-017.fills_an_unstated_condition")
+    record: Json = json.loads(
+        (INPUTS / "water_in_vivo_temperature_unstated.json").read_text(encoding="utf-8")
+    )
+    fields = cast(Json, cast(Json, cast(Json, record["body"])["sections"])["fluid"])["fields"]
+    cast(Json, cast(Json, fields)["dynamic_viscosity"])["value"] = 0.5
+    store = RecordStore()
+    store.add("water.json", json.dumps(record).encode())
+    return declaration, store
+
+
+def test_the_builds_claims_reach_the_read_and_the_stored_value() -> None:
+    """A build claiming no hash suite reads a record whose body no longer matches its stated hash, without
+    the check: the read says so (`hash_not_checked`) and rests on the field, and the stored value is read from
+    the record resolved under the same claims. Under the default claims the read finds the mismatch."""
+    declaration, store = tampered_viscosity()
+    claims = cast(frozenset[Suite], frozenset({"plain_read", "build_checks"}))
+    ((result, _, stored),) = results_of(checked(declaration), store, claims)
+    assert result.read is not None
+    assert "hash_not_checked" in result.read.labels
+    assert result.read.resting_on == ()
+    assert stored == {"label": NEWTONIAN}
+    ((claiming_hash, _, _),) = results_of(checked(declaration), store, CLAIMS)
+    assert claiming_hash.read is not None
+    assert "hash_mismatch" in codes(claiming_hash.read), claiming_hash.read.reasons
+    assert claiming_hash.read.resting_on is None
+
+
 # What this version raises (the S7 design's 1.3): before any read, for a pick or an overlay (S7c), a
 # non-empty `target` or `combinations` (S7a-3) and a non-empty `trainable` (S7a-4); past the reads, for what
 # S7a-2b builds.
@@ -606,6 +726,7 @@ def test_an_overlay_scope_and_an_accepted_difference_raise_only_past_the_reads(a
         with pytest.raises(NotImplementedError, match="S7a-2b") as raised:
             check_build(declaration, store)
     assert len(made) == len(cast(list[JsonValue], cast(Json, model(declaration)["checked_over"])["records"]))
+    assert f"its {len(made)} results were read" in str(raised.value)
     assert "S7c" not in str(raised.value)
     assert "S7a-3" not in str(raised.value)
 
