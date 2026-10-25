@@ -1,9 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Examples of the build's report (`declarations.md` section 2; the S7 design's 4.2): a result's members and
-its JSON, the value to use and the two values that are not one, the verdict on the build, the result looked
-up, and the watches S7a-4 emits."""
+"""Examples of the build's report (`declarations.md` section 2; the S7 design's 4.2 and 4.5): a result's
+members and its JSON, the value to use and the two values that are not one, the verdict on the build, the
+result looked up, the watches S7a-4 emits, and the lines `materica status` prints, each reason nothing covers
+beside what would cover it, from section 4.2's table."""
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import cast
 
@@ -11,12 +13,14 @@ import pytest
 
 import materica
 from materica import shapes
+from materica.core import report
 from materica.core.build import check_build
 from materica.core.identifiers import MaterialRef
 from materica.core.jsonio import JsonValue
 from materica.core.read import ReadResult
 from materica.core.reasons import Reason
 from materica.core.report import BuildRefusal, BuildReport, BuildResult, UnusedAcceptance
+from materica.core.vocabulary import VOCABULARY
 from tests.spec_sync.schemas import validator
 
 BUILD_CHECKS = Path(materica.__file__).parent / "data" / "conformance" / "build_checks"
@@ -205,3 +209,110 @@ def test_the_reports_json_holds_its_records_results_and_unused() -> None:
     ]
     assert cast(list[JsonValue], found["unused"]) == [{"model": "lift", "acceptance": 0}]
     assert report.unused == (UnusedAcceptance("lift", 0),)
+
+
+# What `materica status` prints (the S7 design's 4.5): pinned, since no case compares it. Each "covered by"
+# line comes from section 4.2's rows through `coverage.json`; a reason no row lists prints "nothing covers
+# it".
+
+
+@pytest.mark.parametrize(
+    ("name", "lines"),
+    [
+        pytest.param(
+            "BC-010.one_accepted_one_not_in_one_model",
+            [
+                "build refused: 1 of 2 results not accepted; the declaration's own check passed",
+                "  ok  drag  conformance/water_fixture 1.0.0  fluid.dynamic_viscosity  unknown, accepted by "
+                "#0 (waiver: condition_unstated(shear_rate))",
+                "  x   drag  conformance/glycerol_fixture 1.0.0  fluid.dynamic_viscosity  not_met",
+                "        absent: nothing covers it (declarations.md 4.2)",
+                "  unused: none",
+            ],
+            id="one_of_two_not_accepted",
+        ),
+        pytest.param(
+            "BC-053.unused_per_model",
+            [
+                "build refused: 1 of 2 results not accepted; the declaration's own check passed",
+                "  ok  drag  conformance/water_fixture 1.0.0  fluid.dynamic_viscosity  unknown, accepted by "
+                "#0 (waiver: condition_unstated(shear_rate))",
+                "  x   lift  conformance/water_fixture 1.0.0  fluid.dynamic_viscosity  unknown",
+                "        condition_unstated(shear_rate): covered by a waiver naming that condition and code; "
+                "or its trainable entry (section 7), on a result that carries a value (declarations.md 4.2), "
+                "and nothing declared covers it",
+                "  unused: lift #0 (waiver: condition_unchecked(shear_rate))",
+            ],
+            id="covered_by_and_unused",
+        ),
+        pytest.param(
+            "BC-019.outside_range_under_an_extrapolation",
+            [
+                "build accepted: 1 result, each accepted; the declaration's own check passed",
+                "  ok  drag  conformance/density_table_fixture 1.0.0  bulk.density  not_met, accepted by #0 "
+                "(extrapolation, method constant): end value 1000.0 kg/m3, at the readable range's nearest "
+                "end; the value at the operating conditions is yours to compute",
+                "  unused: none",
+            ],
+            id="extrapolated",
+        ),
+        pytest.param(
+            "BC-049.not_checked_gives_not_reviewed",
+            [
+                "build refused: 1 of 1 result not accepted; the declaration's own check passed",
+                "  x   drag  conformance/water_fixture 1.0.0  fluid.dynamic_viscosity  unknown",
+                "        not_reviewed: covered by a waiver naming that code (declarations.md 4.2), and "
+                "nothing declared covers it",
+                "  unused: none",
+            ],
+            id="not_reviewed",
+        ),
+        pytest.param(
+            "BC-049.not_reviewed_waived",
+            [
+                "build accepted: 1 result, each accepted; the declaration's own check passed",
+                "  ok  drag  conformance/water_fixture 1.0.0  fluid.dynamic_viscosity  unknown, accepted "
+                "unreviewed by #0 (waiver: condition_unstated(shear_rate)), #1 (waiver: not_reviewed)",
+                "  unused: none",
+            ],
+            id="accepted_unreviewed",
+        ),
+        pytest.param(
+            "BC-005.waiver_without_reason",
+            [
+                "build refused: the declaration's own check refused it, 1 refusal",
+                "  BC-005  /models/0/acceptances/0",
+            ],
+            id="refused_on_its_own",
+        ),
+    ],
+)
+def test_the_status_lines_of_a_report(name: str, lines: list[str]) -> None:
+    assert list(built(name).status_lines()) == lines
+
+
+def test_the_covered_by_lines_are_read_from_section_4_2s_table() -> None:
+    """The control: the table read with `not_reviewed` dropped from its row, and with its waiver row's cell
+    reworded, changes the lines, which are never written by hand."""
+    rows = VOCABULARY.coverage
+    dropped = tuple(
+        replace(row, reasons=tuple(code for code in row.reasons if code != "not_reviewed")) for row in rows
+    )
+    reworded = tuple(
+        replace(row, covered_by="a `waiver` of that code") if "not_reviewed" in row.reasons else row
+        for row in rows
+    )
+    tail = "(declarations.md 4.2), and nothing declared covers it"
+    line = f"        not_reviewed: covered by a waiver naming that code {tail}"
+    assert line in built("BC-049.not_checked_gives_not_reviewed").status_lines()
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(report, "VOCABULARY", replace(VOCABULARY, coverage=dropped))
+        assert (
+            "        not_reviewed: nothing covers it (declarations.md 4.2)"
+            in built("BC-049.not_checked_gives_not_reviewed").status_lines()
+        )
+        patch.setattr(report, "VOCABULARY", replace(VOCABULARY, coverage=reworded))
+        assert (
+            f"        not_reviewed: covered by a waiver of that code {tail}"
+            in built("BC-049.not_checked_gives_not_reviewed").status_lines()
+        )
