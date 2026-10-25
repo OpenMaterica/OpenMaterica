@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-"""The reference model, the reference evaluator of tables beside it, the build's model and its direct checks
-import nothing from `materica`, at any depth, so that they never rest on the code they check: neither by the
-imports their source writes, followed through the modules beside them, nor in a fresh interpreter that
-imports them. The
+"""The reference model, the reference evaluator of tables beside it, the build's models (the declaration's
+own check and the results) and their direct checks import nothing from `materica`, at any depth, so that they
+never rest on the code they check: neither by the imports their source writes, followed through the modules
+beside them, nor in a fresh interpreter that imports them. The
 control is a throwaway package whose first module reaches `materica` only through its second, and another is
 the evaluator's own source with one import of the core added; both checks must see both."""
 
@@ -20,6 +20,7 @@ MODEL = (
     "tests.reference.table_evaluator",
     "tests.reference.build_model",
     "tests.reference.direct",
+    "tests.reference.build_results_model",
 )
 
 

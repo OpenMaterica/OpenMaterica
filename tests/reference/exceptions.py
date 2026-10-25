@@ -4,8 +4,9 @@ reason: the exact list `test_cases.py` holds the model to (the maintainer's ruli
 Every kind is a read outside the model's scope, on which it gives no verdict, never a pass; each kind names
 the detail of that outcome, so that a file the model gives no verdict on for another reason fails.
 
-`BUILD_EXCEPTIONS` is the same list for the build-check case files and the build's own model
-(`build_model.py`), which decides the declaration's own check alone."""
+`BUILD_EXCEPTIONS` is the same list for the build-check case files and the build's models: `build_model.py`,
+the declaration's own check, and `build_results_model.py` past it. `RESULTS_NOT_DECIDED` gives, by kind, what
+the results model does not decide, each with its reason."""
 
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -158,76 +159,48 @@ EXCEPTIONS: Final[Mapping[str, Excepted]] = {
 }
 
 
-BUILD_EXCEPTIONS: Final[Mapping[str, Excepted]] = {
-    "past_the_declaration": Excepted(
-        (
-            "A declaration that passes its own check is read, and what the build gives then (results, the "
-            "verdict, `unused`, specimen differences, watches) is S7a-2's to S7a-4's; the model decides the "
-            "declaration's own check alone, and gives no verdict past it."
-        ),
-        "no verdict",
-        frozenset(
-            {
-                "BC-001.condition_outside_at_another_temperature.json",
-                "BC-001.declared_range_against_a_stated_value.json",
-                "BC-001.met_at_the_declared_temperature.json",
-                "BC-002.both_records_listed.json",
-                "BC-002.listed_record_absent_from_the_store.json",
-                "BC-002.one_of_two_records_listed.json",
-                "BC-003.field_read_with_no_requirement.json",
-                "BC-003.field_read_with_no_requirement_waived.json",
-                "BC-006.every_kind_s7a_2_reads.json",
-                "BC-006.nominal_not_met_stays_not_met.json",
-                "BC-006.waived_unknown_stays_unknown.json",
-                "BC-009.extrapolation_applied.json",
-                "BC-009.implied_condition_applied.json",
-                "BC-009.nominal_applied.json",
-                "BC-009.one_waiver_index.json",
-                "BC-009.two_implied_conditions_of_one_value.json",
-                "BC-009.two_acceptances_indexes.json",
-                "BC-010.all_accepted.json",
-                "BC-010.each_model_judged_by_its_own_acceptances.json",
-                "BC-010.one_accepted_one_not_in_one_model.json",
-                "BC-010.two_models_each_not_accepted.json",
-                "BC-016.label_free_judgement_waiver.json",
-                "BC-016.waiver_at_another_copy_of_the_record.json",
-                "BC-016.waiver_at_one_of_two_records.json",
-                "BC-016.waiver_covers_each_alternatives_reason.json",
-                "BC-016.waiver_for_another_code.json",
-                "BC-016.waiver_for_another_condition.json",
-                "BC-016.waiver_for_another_field.json",
-                "BC-017.fills_an_unstated_condition.json",
-                "BC-017.implied_value_outside_the_tolerance.json",
-                "BC-017.not_checked_condition_not_filled.json",
-                "BC-017.stated_condition_not_filled.json",
-                "BC-019.at_an_edge_extrapolation_unused.json",
-                "BC-019.outside_range_under_an_extrapolation.json",
-                "BC-019.outside_range_without_an_extrapolation.json",
-                "BC-019.want_bounds_refused_though_an_extrapolation_names_it.json",
-                "BC-020.nominal_inside_the_bounds.json",
-                "BC-020.nominal_outside_the_bounds.json",
-                "BC-020.want_mismatch_at_step_0_nominal_unused.json",
-                "BC-020.want_mismatch_its_assumption_does_not_name.json",
-                "BC-027.label_mismatch_beside_condition_outside.json",
-                "BC-027.required_label_absent.json",
-                "BC-027.stored_label_differs.json",
-                "BC-028.one_model_one_record.json",
-                "BC-028.two_models_over_one_record.json",
-                "BC-038.waiver_of_condition_outside.json",
-                "BC-038.waiver_of_form_invalid.json",
-                "BC-038.waiver_of_label_mismatch.json",
-                "BC-038.waiver_of_no_pick.json",
-                "BC-049.absent_record_gives_no_not_reviewed.json",
-                "BC-049.not_checked_gives_not_reviewed.json",
-                "BC-049.not_reviewed_waived.json",
-                "BC-049.reviewed_value.json",
-                "BC-049.reviewed_value_met.json",
-                "BC-049.unknown_review_result_read_as_not_checked.json",
-                "BC-053.implied_condition_given_not_applied.json",
-                "BC-053.unused_per_model.json",
-                "BC-053.waiver_at_another_record.json",
-            }
-        ),
-        detail="past the declaration (S7a-2 to S7a-4)",
+# The build-check files the build's models (`build_model.py`, and past the declaration
+# `build_results_model.py`) do not agree with, by kind: none today. Until S7a-2m the build model gave no
+# verdict past the declaration, and S7a-2's 57 files were listed here under the kind
+# `past_the_declaration`; each now agrees.
+BUILD_EXCEPTIONS: Final[Mapping[str, Excepted]] = {}
+
+# What the build's results model does not decide, by the kind its `UNDECIDED` names, each with its reason:
+# a declaration that reaches one gives no verdict, never a pass, and a file it gives one on is listed above
+# under that kind, with the detail the model gives.
+RESULTS_NOT_DECIDED: Final[Mapping[str, str]] = {
+    "label_trust": (
+        "A waiver naming a label covers its reason only on a result whose stored label is that label and is "
+        "trusted (`declarations.md` section 4.1 item 4). Label trust comes right after 0.1.0.dev4 "
+        "(maintainer, 2026-10-21: dev4 is S7a-1 and S7a-2 without label trust), so a waiver resting on a "
+        "label that would otherwise cover a reason gives no verdict, counted, never a pass; BC-050's six "
+        "arms of it wait for it."
     ),
+    "specimen_differences": (
+        "Specimen differences and combinations are S7a-3's (the S7 design, 1.3): a model whose target names "
+        "a fact, or that lists combinations, gives no verdict. A target of `{}` names none, and a result "
+        "lists no difference."
+    ),
+    "trainable": (
+        "A `trainable` entry gives each read of its field there a `trainable` acceptance, under which the "
+        "read goes on past its reasons (`declarations.md` section 7): S7a-4's, and the read model gives no "
+        "verdict on the acceptance either."
+    ),
+    "watches": (
+        "The watches are S7a-4's (`declarations.md` section 8); the report leaves them out, as a build that "
+        "does not emit them does, and a case that compares them gets no verdict where every member the model "
+        "decides agrees. S7a-2's files compare none; S7a-1's, which do, expect a refusal."
+    ),
+    "picks_and_overlays": (
+        "When a pick or an overlay is applied is not yet covered (the build's terms), and the rows of "
+        "section 4.2 that a pick or an overlay alone reaches (`no_pick`, `overlay_scope_mismatch`) are "
+        "S7c's; a declaration holding a pick or an overlay gives no verdict at the declaration already."
+    ),
+    "alternative_unnamed": (
+        "Which alternative is the one left is step 7's: where a result rests on one alternative, names none "
+        "in its reasons, and the alternatives store different labels or specimens, the model cannot say "
+        "which label to check, or which specimen an implied condition applies to (its open point "
+        "`alternative_a_result_rests_on`)."
+    ),
+    "the_read": "A read the read model gives no verdict on, for the reason it gives.",
 }

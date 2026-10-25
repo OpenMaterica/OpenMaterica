@@ -27,11 +27,11 @@ from typing import Final
 
 import pytest
 
-from tests.reference import build_model, read_model
+from tests.reference import build_model, build_results_model, read_model
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 SPECIFICATION = REPOSITORY / "docs" / "specification"
-MODEL_SOURCES = ("read_model.py", "strict_json.py", "build_model.py")
+MODEL_SOURCES = ("read_model.py", "strict_json.py", "build_model.py", "build_results_model.py")
 EVALUATOR_SOURCE = REPOSITORY / "tests" / "reference" / "table_evaluator.py"
 SOURCES = [*(REPOSITORY / "tests" / "reference" / name for name in MODEL_SOURCES), EVALUATOR_SOURCE]
 # The test modules that cite the text, in the strings, comments and docstrings they hold it in.
@@ -57,8 +57,13 @@ NO_LINE_IN_THE_TEXT: Final[Mapping[str, str]] = {
 }
 SEEDED_FAULTS_SOURCE = REPOSITORY / "tests" / "reference" / "mutants.py"
 MUTANT_KILLS_SOURCE = REPOSITORY / "tests" / "property" / "test_model_mutants.py"
-# The open points of both models, the read's and the build's, which share no name.
-OPEN_POINTS: Final[Mapping[str, str]] = {**read_model.OPEN_POINTS, **build_model.OPEN_POINTS}
+# The open points of the three models, the read's, the build's declaration check and its results, which share
+# no name.
+OPEN_POINTS: Final[Mapping[str, str]] = {
+    **read_model.OPEN_POINTS,
+    **build_model.OPEN_POINTS,
+    **build_results_model.OPEN_POINTS,
+}
 # A quote's text: characters but `"` and a backtick, and code spans, which may hold `"`.
 QUOTED = r'"((?:[^"`]|`[^`]*`)+)"'
 REFERENCE = re.compile(r"(?P<file>[A-Za-z_]+\.md):(?P<start>\d+)(?:-(?P<end>\d+))?")
@@ -225,12 +230,21 @@ def test_every_test_module_that_cites_the_text_is_listed() -> None:
     assert sorted(citing - {*SOURCES, *TEST_SOURCES, Path(__file__).resolve()}) == []
 
 
-def test_every_seeded_fault_cites_the_text_or_names_the_open_point_it_rests_on() -> None:
-    tree = ast.parse(SEEDED_FAULTS_SOURCE.read_text(encoding="utf-8"))
+@pytest.mark.parametrize(
+    ("source", "call", "least", "no_line"),
+    [
+        (SEEDED_FAULTS_SOURCE, "Mutant", 121, NO_LINE_IN_THE_TEXT),
+    ],
+    ids=["mutants"],
+)
+def test_every_seeded_fault_cites_the_text_or_names_the_open_point_it_rests_on(
+    source: Path, call: str, least: int, no_line: Mapping[str, str]
+) -> None:
+    """Each fault's `rule`, its second argument, in every table of faults of a module: `mutants.py` builds its
+    faults by `Mutant(...)`, `results_mutants.py` by its `mutant(...)`."""
+    tree = ast.parse(source.read_text(encoding="utf-8"))
     mutants = [
-        node
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "Mutant"
+        node for node in ast.walk(tree) if isinstance(node, ast.Call) and getattr(node.func, "id", "") == call
     ]
     rules = {
         str(key.value): str(mutant.args[1].value)
@@ -239,13 +253,13 @@ def test_every_seeded_fault_cites_the_text_or_names_the_open_point_it_rests_on()
         for key, mutant in zip(table.keys, table.values, strict=True)
         if isinstance(key, ast.Constant)
         and isinstance(mutant, ast.Call)
-        and getattr(mutant.func, "id", "") == "Mutant"
+        and getattr(mutant.func, "id", "") == call
         and isinstance(mutant.args[1], ast.Constant)
     }
     assert len(rules) == len(mutants)
-    assert len(rules) > 120
-    assert seeded_fault_problems(rules, OPEN_POINTS, NO_LINE_IN_THE_TEXT) == []
-    assert all(reason.strip() for reason in NO_LINE_IN_THE_TEXT.values())
+    assert len(rules) >= least
+    assert seeded_fault_problems(rules, OPEN_POINTS, no_line) == []
+    assert all(reason.strip() for reason in no_line.values())
 
 
 @pytest.mark.parametrize(
@@ -298,11 +312,14 @@ def test_every_open_point_is_listed_once_and_named_where_it_is_applied() -> None
     assert all(choice.strip() for choice in OPEN_POINTS.values())
 
 
-def test_the_two_models_list_their_open_points_apart() -> None:
-    """The read model's points and the build model's share no name, so that one listed twice is seen."""
-    assert read_model.OPEN_POINTS.keys().isdisjoint(build_model.OPEN_POINTS)
-    build_texts = prose((REPOSITORY / "tests" / "reference" / "build_model.py").read_text(encoding="utf-8"))
-    assert open_point_problems(build_texts, build_model.OPEN_POINTS) == []
+def test_the_models_list_their_open_points_apart() -> None:
+    """The read model's points, the build model's and the results model's share no name, so that one listed
+    twice is seen, and each model names its own."""
+    points = (read_model.OPEN_POINTS, build_model.OPEN_POINTS, build_results_model.OPEN_POINTS)
+    assert sum(map(len, points)) == len(OPEN_POINTS)
+    for name, listed in (("build_model.py", points[1]), ("build_results_model.py", points[2])):
+        texts = prose((REPOSITORY / "tests" / "reference" / name).read_text(encoding="utf-8"))
+        assert open_point_problems(texts, listed) == []
 
 
 @pytest.mark.parametrize(

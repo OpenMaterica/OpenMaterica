@@ -9,20 +9,22 @@ is a disagreement, never a pass. Where the model and a case disagree, the text d
 is fixed; a case that contradicts the text is listed, with the quotes, and left for the maintainer, never
 edited here (case files change through the case tools alone)."""
 
+import dataclasses
 import re
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from pathlib import Path
 
 import pytest
 
 from tests.conformance.runner import CaseFile
-from tests.reference import build_model, read_model
+from tests.reference import build_model, build_results_model, read_model
 from tests.reference.build_model import Refusal, Refused
 from tests.reference.cases import (
     BUILD_CONFIGURATIONS,
     Outcome,
     agreeing,
     answer,
+    build_answer,
     build_case_files,
     build_differences,
     build_outcome,
@@ -32,7 +34,7 @@ from tests.reference.cases import (
     read_case_files,
 )
 from tests.reference.exceptions import BUILD_EXCEPTIONS, EXCEPTIONS, Excepted
-from tests.reference.strict_json import JsonObject, parse
+from tests.reference.strict_json import JsonObject, JsonValue, parse
 
 
 @pytest.mark.parametrize("case_file", read_case_files(), ids=lambda case_file: case_file.path.name)
@@ -308,15 +310,16 @@ def test_a_refused_report_compared_where_a_case_expects_results_differs() -> Non
 
 
 def test_a_build_model_that_refuses_nothing_disagrees(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Control: a model whose check finds no fault gives no verdict on every refusal file, which no kind
-    lists."""
+    """Control: a model whose check finds no fault takes a refusal file's declaration past its own check, and
+    the report it gives, with no refusal, disagrees with the file."""
 
     def no_fault(self: build_model.DeclarationCheck, pointer: str, *rules: str, apart: str = "") -> None:
         return None
 
     monkeypatch.setattr(build_model.DeclarationCheck, "fault", no_fault)
     outcome_found = build_outcome(build_file("BC-004.tolerance_without_reason.json"))
-    assert outcome_found == Outcome("no verdict", "past the declaration (S7a-2 to S7a-4)")
+    assert outcome_found.kind == "differs"
+    assert "refusals: missing [" in outcome_found.detail
     assert judged("BC-004.tolerance_without_reason.json", outcome_found, BUILD_EXCEPTIONS) is not None
 
 
@@ -335,3 +338,99 @@ def test_a_refused_report_holds_the_declaration_as_given_and_its_consumer() -> N
     broken = build_model.check_build(b'{"a": 1, "a": 2}', frozenset({"plain_read", "build_checks"}))
     assert isinstance(broken, Refused)
     assert broken.to_json() == {"refusals": [{"item": "BC-048", "pointer": ""}]}
+
+
+def test_the_model_agrees_with_every_file_of_the_results() -> None:
+    """S7a-2's files, whose expected answer holds results, each agree, none listed: the reads, the build's
+    reasons, the judgement, `unused` and the report past the declaration (`build_results_model.py`)."""
+    results = [case_file for case_file in build_case_files() if "results" in case_file.expected]
+    assert len(results) >= 57
+    assert [case_file.path.name for case_file in results if build_outcome(case_file).kind != "agrees"] == []
+    listed = {name for excepted in BUILD_EXCEPTIONS.values() for name in excepted.case_files}
+    assert listed.isdisjoint(case_file.path.name for case_file in results)
+
+
+def report_of(name: str) -> build_results_model.Report:
+    case_file = build_file(name)
+    found = build_answer(case_file, frozenset({"plain_read", "build_checks"}))
+    assert isinstance(found, build_results_model.Report)
+    return found
+
+
+def changed_result(
+    report: build_results_model.Report, index: int, **members: JsonValue
+) -> build_results_model.Report:
+    results = list(report.results)
+    results[index] = {**results[index], **members}
+    return dataclasses.replace(report, results=tuple(results))
+
+
+TWO_RECORDS = "BC-002.both_records_listed.json"
+Report = build_results_model.Report
+
+
+def as_given(report: Report) -> Report:
+    return report
+
+
+def one_missing(report: Report) -> Report:
+    return dataclasses.replace(report, results=report.results[:1])
+
+
+def one_twice(report: Report) -> Report:
+    return dataclasses.replace(report, results=(*report.results, report.results[0]))
+
+
+def unused_differs(report: Report) -> Report:
+    return dataclasses.replace(report, unused=({"model": "drag", "acceptance": 0.0},))
+
+
+def with_members(**members: JsonValue) -> Callable[[Report], Report]:
+    def change(report: Report) -> Report:
+        return changed_result(report, 0, **members)
+
+    return change
+
+
+@pytest.mark.parametrize(
+    ("change", "problem"),
+    [
+        pytest.param(as_given, None, id="as-given"),
+        pytest.param(one_missing, "missing", id="a-result-missing"),
+        pytest.param(one_twice, "unexpected", id="a-result-twice"),
+        pytest.param(with_members(model="lift"), "unexpected", id="another-model"),
+        pytest.param(with_members(accepted=False), "accepted", id="accepted"),
+        pytest.param(with_members(accepted_by=[1.0]), "accepted_by", id="accepted-by"),
+        pytest.param(with_members(accepted_by=[0.0, 0.0]), None, id="accepted-by-a-set"),
+        pytest.param(
+            with_members(not_accepted=[{"code": "condition_unstated"}]), "not_accepted", id="not-accepted"
+        ),
+        pytest.param(with_members(value=0.0007), "value", id="value"),
+        pytest.param(with_members(reasons=[]), "reasons", id="reasons"),
+        pytest.param(unused_differs, "unused", id="unused"),
+    ],
+)
+def test_the_results_comparison_can_fail(change: Callable[[Report], Report], problem: str | None) -> None:
+    """Results as a set keyed by model, location and field, both ways; their members as a read result's,
+    `accepted_by` as a set and `not_accepted` as a multiset; `unused` as a set."""
+    found = build_differences(build_file(TWO_RECORDS), change(report_of(TWO_RECORDS)))
+    if problem is None:
+        assert found == []
+    else:
+        assert isinstance(found, list)
+        assert len(found) == 1, found
+        assert problem in found[0]
+
+
+def test_a_report_compared_where_a_case_expects_refusals_or_watches_is_found() -> None:
+    """A report with no refusal differs from a refusal file; a file comparing `watches` gets no verdict, never
+    a pass, since the model leaves them to S7a-4."""
+    report = report_of(TWO_RECORDS)
+    refusal_file = build_file("BC-004.tolerance_without_reason.json")
+    found = build_differences(refusal_file, report)
+    assert isinstance(found, list)
+    assert any(one.startswith("refusals: missing") for one in found)
+    watched = dataclasses.replace(
+        build_file(TWO_RECORDS), members=("refusals", "results", "watches", "unused")
+    )
+    assert isinstance(build_differences(watched, report), read_model.NoVerdict)
