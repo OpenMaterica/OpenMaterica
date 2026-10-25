@@ -11,7 +11,7 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final
+from typing import Final, cast
 
 from tests.reference import build_model
 from tests.reference.read_model import NoVerdict
@@ -106,6 +106,7 @@ class Direct:
     declaration: JsonObject
     claims: frozenset[str]
     refusals: Refusals | None  # None: no verdict
+    unplaced: frozenset[str] | None = None  # the rules the model does not place, where the check names them
 
 
 def beside_another_fault(
@@ -150,6 +151,7 @@ ENGINE: Final[JsonObject] = {
 }
 SAMPLING_BLOCK: Final[JsonObject] = {"min_acceptance": 0.5, "reason": REASON, "independence": []}
 ACCEPTANCE: Final = f"{MODEL}/acceptances/0"
+ENGINE_POINTER: Final = f"{MODEL}/engine"
 # A member each suite checks: the suite, its refusals where the build does not claim it, the model entry that
 # holds it and the declaration's members beside it.
 SUITE_MEMBERS: Final[dict[str, tuple[frozenset[str], Refusals, JsonObject, dict[str, JsonValue]]]] = {
@@ -165,7 +167,7 @@ SUITE_MEMBERS: Final[dict[str, tuple[frozenset[str], Refusals, JsonObject, dict[
         entry(acceptances=[DISTRIBUTION]),
         {},
     ),
-    "a model with an engine": (USD, refused(), entry(engine=ENGINE), {}),
+    "a model with an engine": (USD, refused(("BC-040", ENGINE_POINTER)), entry(engine=ENGINE), {}),
     "a sampling block": (SAMPLING, refused(("BC-051", "/sampling")), entry(), {"sampling": SAMPLING_BLOCK}),
 }
 
@@ -196,6 +198,50 @@ MISTYPED_GATING_MEMBERS: Final[tuple[tuple[str, frozenset[str], JsonObject, str]
     ),
     ("a sampling that is a number", SAMPLING, declaration(sampling=5.0), "/sampling"),
 )
+
+
+REGION_VALUES: Final[JsonObject] = {"lumen": {"a": {"basis": REASON}}}
+DENSITY: Final = "bulk.density"  # a field of another section than the viscosity's
+LEVEL: Final[JsonObject] = {"level": "donor", "within": "lot"}
+REQUIREMENTS: Final = f"{MODEL}/requirements/0"
+# A model with `engine` over a domain, its crosswalk one of OpenMaterica's: whether item 7 refuses it the
+# declaration does not tell (the scene suite not claimed, so its domain is item 12's).
+ENGINE_OVER_A_DOMAIN: Final[JsonObject] = {"checked_over": {"domain": "lumen"}, "engine": ENGINE}
+DOMAIN_REFUSAL: Final = ("BC-051", DOMAIN)
+ITEM_7_REFUSAL: Final = ("BC-040", ENGINE_POINTER)
+
+
+READS_AT_FAULT: Final[tuple[tuple[str, JsonObject, list[tuple[str, str]]], ...]] = (
+    ("empty", {"reads": []}, [("BC-048", f"{MODEL}/reads")]),
+    ("a string", {"reads": "fluid.dynamic_viscosity"}, [("BC-048", f"{MODEL}/reads")]),
+)
+ACCEPTANCES_OF_NO_KIND: Final[tuple[tuple[str, JsonObject, str], ...]] = (
+    (
+        "an acceptance of a kind no section 4.1 names, lacking its reason",
+        {"acceptance": "waivers"},
+        f"{ACCEPTANCE}/acceptance",
+    ),
+    (
+        "an acceptance of no kind, holding a member no kind names",
+        {"acceptance": "waivers", "weird": 1.0},
+        f"{ACCEPTANCE}/acceptance",
+    ),
+    (
+        "an acceptance whose kind is a number, lacking its reason",
+        {"acceptance": 5.0},
+        f"{ACCEPTANCE}/acceptance",
+    ),
+    (
+        "an acceptance lacking its kind, holding a record, a field and a reason",
+        {"record": RECORD, "field": VISCOSITY, "reason": REASON},
+        ACCEPTANCE,
+    ),
+)
+
+
+def engine_over_a_domain(*, values: JsonObject | None = None, **members: JsonValue) -> JsonObject:
+    engine: JsonObject = {**ENGINE, "values": values or {}}
+    return declaration(entry(**{**ENGINE_OVER_A_DOMAIN, "engine": engine}, **members))
 
 
 CHECKS: Final[tuple[Direct, ...]] = (
@@ -359,6 +405,217 @@ CHECKS: Final[tuple[Direct, ...]] = (
         for what, (suite, unclaimed, model, members) in SUITE_MEMBERS.items()
         for check in beside_another_fault(what, suite, unclaimed, model, **members)
     ),
+    # A rule that judges one member against another stands aside where the other is at fault: a `reads` at
+    # fault, absent, of another JSON type or empty, is the one refusal, and no requirement, combination or
+    # `trainable` entry beside it is refused as naming a field not read.
+    *(
+        Direct(
+            f"a model whose reads is {what}, beside a requirement, a combination and a trainable entry",
+            declaration(
+                entry(
+                    **reads,
+                    combinations=[[VISCOSITY, DENSITY]],
+                    trainable=[{"field": VISCOSITY, "record": RECORD}],
+                )
+            ),
+            BUILD,
+            refused(*refusal),
+        )
+        for what, reads, refusal in READS_AT_FAULT
+    ),
+    Direct(
+        "a model lacking reads, beside a requirement, a combination and a trainable entry",
+        declaration(
+            {
+                name: held
+                for name, held in entry(
+                    combinations=[[VISCOSITY, DENSITY]], trainable=[{"field": VISCOSITY, "record": RECORD}]
+                ).items()
+                if name != "reads"
+            }
+        ),
+        BUILD,
+        refused(("BC-048", MODEL)),
+    ),
+    Direct(
+        "a requirement, a combination and a trainable entry for fields a reads that lists others lacks",
+        declaration(
+            entry(
+                reads=[DENSITY],
+                combinations=[[VISCOSITY, DENSITY]],
+                trainable=[{"field": VISCOSITY, "record": RECORD}],
+            )
+        ),
+        BUILD,
+        refused(
+            ("BC-048", f"{REQUIREMENTS}/field"),
+            ("BC-048", f"{MODEL}/combinations/0/0"),
+            ("BC-048", f"{MODEL}/trainable/0/field"),
+        ),
+    ),
+    Direct(
+        "a reads holding a field twice, beside a requirement for it",
+        declaration(entry(reads=[VISCOSITY, VISCOSITY])),
+        BUILD,
+        refused(("BC-048", f"{MODEL}/reads/1")),
+    ),
+    # Open point: reads_at_fault. An entry of reads at fault leaves the member itself in order.
+    Direct(
+        "a reads holding no field, beside a requirement for one",
+        declaration(entry(reads=["fluid.dynamic_viscosit"])),
+        BUILD,
+        refused(("BC-048", f"{MODEL}/reads/0"), ("BC-048", f"{REQUIREMENTS}/field")),
+    ),
+    # A waiver of `condition_unknown_name` is refused once, at its `code`, naming a condition or not.
+    Direct(
+        "a waiver of condition_unknown_name naming no condition",
+        declaration(entry(acceptances=[acceptance("waiver", code="condition_unknown_name")])),
+        BUILD,
+        refused(("BC-048", f"{ACCEPTANCE}/code")),
+    ),
+    Direct(
+        "a waiver of condition_unknown_name naming a condition",
+        declaration(
+            entry(acceptances=[acceptance("waiver", code="condition_unknown_name", condition="temperature")])
+        ),
+        BUILD,
+        refused(("BC-048", f"{ACCEPTANCE}/code")),
+    ),
+    Direct(
+        "a waiver of a condition code naming no condition",
+        declaration(entry(acceptances=[acceptance("waiver", code="condition_unstated")])),
+        BUILD,
+        refused(("BC-048", ACCEPTANCE)),
+    ),
+    # An acceptance that names no known kind is refused at itself and none of its other members is judged:
+    # at the acceptance where the `acceptance` member is missing, at the member where it is no kind.
+    *(
+        Direct(what, declaration(entry(acceptances=[held])), BUILD, refused(("BC-048", pointer)))
+        for what, held, pointer in ACCEPTANCES_OF_NO_KIND
+    ),
+    # A `population_level` is held only beside a `represents` of `population`; the rule stands aside beside a
+    # `represents` that is no token, which item 12 then refuses as it refuses any (the sampling suite not
+    # claimed). Beside none or another token the rule refuses it, whatever the build claims; where the build
+    # claims the sampling suite it fails closed, and so for a requirement that samples with no `sampling`.
+    Direct(
+        "a population_level beside a represents that is no token, a sampling block beside",
+        declaration(
+            entry(requirements=[requirement(represents="populaton", population_level=LEVEL)]),
+            sampling=SAMPLING_BLOCK,
+        ),
+        BUILD,
+        refused(
+            ("BC-051", "/sampling"),
+            ("BC-051", f"{REQUIREMENTS}/represents"),
+            ("BC-051", f"{REQUIREMENTS}/population_level"),
+        ),
+    ),
+    Direct(
+        "a population_level beside a represents of another token",
+        declaration(
+            entry(requirements=[requirement(represents="measurement", population_level=LEVEL)]),
+            sampling=SAMPLING_BLOCK,
+        ),
+        BUILD,
+        refused(("BC-043", f"{REQUIREMENTS}/population_level"), ("BC-051", "/sampling")),
+    ),
+    *(
+        Direct(
+            f"a population_level beside {what}, the sampling suite claimed",
+            declaration(entry(requirements=[requirement(**members)]), sampling=SAMPLING_BLOCK),
+            SAMPLING,
+            None,
+        )
+        for what, members in (
+            ("no represents", {"population_level": LEVEL}),
+            ("a represents of another token", {"represents": "measurement", "population_level": LEVEL}),
+            ("a represents that is no token", {"represents": "populaton", "population_level": LEVEL}),
+        )
+    ),
+    Direct(
+        "a requirement that samples with no sampling block",
+        declaration(entry(requirements=[requirement(represents="measurement")])),
+        BUILD,
+        refused(("BC-044", "")),
+    ),
+    Direct(
+        "a requirement that samples with no sampling block, the sampling suite claimed",
+        declaration(entry(requirements=[requirement(represents="measurement")])),
+        SAMPLING,
+        None,
+    ),
+    # Item 7 is one refusal a model, at its `engine`, whichever of its rules the model breaks; what the
+    # declaration does not tell is not placed (Open point: item_7_beyond_the_declaration).
+    Direct(
+        "an engine model over a domain, its crosswalk one of OpenMaterica's",
+        declaration(entry(**ENGINE_OVER_A_DOMAIN)),
+        BUILD,
+        refused(DOMAIN_REFUSAL),
+        frozenset({"BC-040", "BC-051"}),
+    ),
+    *(
+        Direct(
+            f"an engine model over a domain, {what}",
+            held,
+            BUILD,
+            refused(DOMAIN_REFUSAL, ITEM_7_REFUSAL),
+        )
+        for what, held in (
+            ("a declared value lacking its reason", engine_over_a_domain(values={"a": {"basis": REASON}})),
+            ("a declared value lacking its basis", engine_over_a_domain(values={"a": {"reason": REASON}})),
+            (
+                "a declared value of a region lacking its reason",
+                declaration(
+                    entry(
+                        **{
+                            **ENGINE_OVER_A_DOMAIN,
+                            "engine": cast(JsonValue, {**ENGINE, "region_values": REGION_VALUES}),
+                        }
+                    )
+                ),
+            ),
+            (
+                "a requirement wanting a token other than value",
+                declaration(entry(**ENGINE_OVER_A_DOMAIN, requirements=[requirement(want="bounds")])),
+            ),
+        )
+    ),
+    Direct(
+        "an engine model over a domain, a declared value holding its reason and its basis",
+        engine_over_a_domain(values={"a": {"reason": REASON, "basis": REASON}}),
+        BUILD,
+        refused(DOMAIN_REFUSAL),
+        frozenset({"BC-040", "BC-051", "BC-048"}),
+    ),
+    Direct(
+        "an engine model over records, three declared values lacking members",
+        declaration(
+            entry(engine={**ENGINE, "values": {"a": {}, "b": {"reason": REASON}, "c": {"basis": REASON}}})
+        ),
+        BUILD,
+        refused(ITEM_7_REFUSAL),
+        frozenset({"BC-048"}),
+    ),
+    Direct(
+        "an engine model over records, its crosswalk pin lacking its hash",
+        declaration(entry(engine={**ENGINE, "crosswalk": {"id": "materica/rigid_body", "version": "1.0.0"}})),
+        BUILD,
+        refused(ITEM_7_REFUSAL),
+        frozenset({"BC-048"}),
+    ),
+    Direct(
+        "an engine model over records, a requirement wanting a word no token is",
+        declaration(entry(engine=ENGINE, requirements=[requirement(want="values")])),
+        BUILD,
+        refused(ITEM_7_REFUSAL),
+        frozenset({"BC-048"}),
+    ),
+    Direct(
+        "an engine model over a path, its domain-like member item 12's",
+        declaration(entry(checked_over={"path": "tube"}, engine=ENGINE)),
+        BUILD,
+        refused(ITEM_7_REFUSAL, ("BC-051", PATH)),
+    ),
 )
 
 
@@ -374,11 +631,11 @@ def judged(check: Direct) -> str | None:
     found = frozenset((one.item, one.pointer) for one in given.refusals)
     if check.refusals is None:
         return f"{check.what}: refused {sorted(found)}, not no verdict"
-    return (
-        None
-        if found == check.refusals
-        else f"{check.what}: refused {sorted(found)}, not {sorted(check.refusals)}"
-    )
+    if found != check.refusals:
+        return f"{check.what}: refused {sorted(found)}, not {sorted(check.refusals)}"
+    if check.unplaced is not None and frozenset(given.unplaced) != check.unplaced:
+        return f"{check.what}: leaves {sorted(given.unplaced)} unplaced, not {sorted(check.unplaced)}"
+    return None
 
 
 def specified_order() -> tuple[str, ...]:

@@ -273,12 +273,6 @@ PLACES: dict[str, tuple[str, ...]] = {
     "reference": (READ + "material_ref",),
     **{kind: (DECLARATION + kind,) for kind in build_model.KINDS},
 }
-# What the schema names that the model does not, with why: the schema was written from the specification's
-# table before the maintainer's ruling of 2026-10-24 that no kind but an extrapolation, a nominal and a
-# distribution holds a `basis` (OPEN_POINTS: basis_on_other_kinds), whose words land with the next piece.
-SCHEMA_ONLY: dict[str, frozenset[str]] = {
-    kind: frozenset({"basis"}) for kind in build_model.KINDS if kind not in build_model.NEEDS_BASIS
-}
 JSON_TYPES: dict[type, str] = {str: "string", float: "number", list: "array", dict: "object"}
 ALSO_ALLOWED: dict[str, str] = {"string": "string", "number": "integer", "array": "array", "object": "object"}
 Schema = dict[str, JsonObject]
@@ -362,9 +356,8 @@ def shape_drift(files: Schema) -> list[str]:
     for name in PLACES:
         place = model_place(name)
         members, required = schema_place(files, PLACES[name])
-        schema_only = SCHEMA_ONLY.get(name, frozenset())
-        only_schema, only_model = frozenset(members) - set(place) - schema_only, set(place) - set(members)
-        if only_schema or only_model or not schema_only <= members.keys():
+        only_schema, only_model = frozenset(members) - set(place), set(place) - set(members)
+        if only_schema or only_model:
             found.append(
                 f"{name}: members: the model alone {sorted(only_model)}, "
                 f"the schema alone {sorted(only_schema)}"
@@ -424,11 +417,13 @@ def test_every_place_of_the_shape_table_is_compared_with_the_schema() -> None:
     assert set(PLACES) == {*build_model.SHAPES, "reference", *build_model.KINDS}
 
 
-def test_the_members_only_the_schema_names_are_the_basis_of_the_kinds_that_take_none() -> None:
-    assert SCHEMA_ONLY.keys() == set(build_model.KINDS) - set(build_model.NEEDS_BASIS)
-    for kind in SCHEMA_ONLY:
-        assert "basis" not in build_model.acceptance_place(kind)
-        assert "basis" in schema_place(schema(), PLACES[kind])[0]
+def test_the_kinds_that_take_a_basis_are_the_extrapolation_the_nominal_and_the_distribution_in_both() -> None:
+    """`basis` is held by an extrapolation, a nominal and a distribution alone, in the model and in the schema
+    (the acceptance row of the declaration's shape table: "no other kind holds it")."""
+    for kind in build_model.KINDS:
+        taken = kind in build_model.NEEDS_BASIS
+        assert ("basis" in build_model.acceptance_place(kind)) == taken, kind
+        assert ("basis" in schema_place(schema(), PLACES[kind])[0]) == taken, kind
 
 
 DELETE: JsonValue = "delete the member"
@@ -458,7 +453,18 @@ def drifted_schema(file: str, path: tuple[str, ...], value: JsonValue) -> Schema
             "pick: required",
         ),
         ("declaration.json", ("$defs", "pick", "properties", "extra"), {"type": "string"}, "pick: members"),
-        ("declaration.json", ("$defs", "pick", "properties", "basis"), DELETE, "pick: members"),
+        (
+            "declaration.json",
+            ("$defs", "extrapolation", "properties", "basis"),
+            DELETE,
+            "extrapolation: members",
+        ),
+        (
+            "declaration.json",
+            ("$defs", "waiver", "properties", "basis"),
+            {"type": "string"},
+            "waiver: members",
+        ),
         (
             "declaration.json",
             ("$defs", "sampling", "properties", "independence", "type"),
