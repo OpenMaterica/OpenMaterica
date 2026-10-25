@@ -1989,16 +1989,16 @@ whose readings are not settled.
 | `region_conditions_taken` | `region_conditions` taken without the scene suite | `_suite_members` | HP42 | `region_conditions` | 4, 4 |
 | `path_taken` | a model checked over a path taken without the scene suite | `_suite_members` | HP42 | `path` | 2, 2 |
 | `interval_location_taken` | an acceptance located at an interval taken without the scene suite | `_suite_members` | HP41, locations | `located` | 154, 151 |
-| `engine_over_a_domain_refused_by_item_7` | an engine model over a domain refused by item 7 as one over records is | `_suites` | HP42 | `engine` | 93, 463 |
-| `sampling_independence_unrequired` | a `sampling` block without `independence` taken | `_shape` | HP42 | `sampling` | 172, 248 |
+| `engine_over_a_domain_refused_by_item_7` | an engine model over a domain refused by item 7 as one over records is | `_suites` | HP42 | `engine` | 39, 8 |
+| `sampling_independence_unrequired` | a `sampling` block without `independence` taken | `_shape` | HP42 | `sampling` | 302, 267 |
 | `engine_taken` | a model with `engine` taken | `_suites` | HP42 | `engine` | 39, 8 |
-| `distribution_taken` | a `distribution` acceptance taken without the sampling suite | `_suite_members` | HP42 | `sampling` | 3, 35 |
-| `represents_taken` | a requirement's `represents` taken without the sampling suite | `_suite_members` | HP42 | `sampling` | 165, 54 |
-| `engine_over_records_left_to_item_12` | BC-051 for an engine model over records in place of BC-040 | `_suites` | HP42 | `engine` | 39, 8 |
-| `item_12_beside_item_8` | BC-051 beside BC-044 for a `represents` with no `sampling` | `_suites` | HP42 | `sampling` | 9, 54 |
-| `population_level_beside_any_represents` | a `population_level` beside another `represents`, or none, left to item 12 | `_suites` | HP42 | `sampling` | 9, 54 |
-| `min_acceptance_one_refused` | a `min_acceptance` of 1 refused by item 8 | `_in_unit_interval` | HP42 | `sampling` | 165, 245 |
-| `min_acceptance_zero_taken` | a `min_acceptance` of 0 taken by item 8 | `_in_unit_interval` | HP42 | `sampling` | 9, 58 |
+| `distribution_taken` | a `distribution` acceptance taken without the sampling suite | `_suite_members` | HP42 | `sampling` | 3, 28 |
+| `represents_taken` | a requirement's `represents` taken without the sampling suite | `_suite_members` | HP42 | `sampling` | 302, 160 |
+| `engine_over_records_left_to_item_12` | BC-051 for an engine model over records in place of BC-040 | `_suites` | HP42 | `engine` | 217, 206 |
+| `item_12_beside_item_8` | BC-051 beside BC-044 for a `represents` with no `sampling` | `_suites` | HP42 | `sampling` | 9, 158 |
+| `population_level_beside_any_represents` | a `population_level` beside another `represents`, or none, left to item 12 | `_suites` | HP42 | `sampling` | 9, 158 |
+| `min_acceptance_one_refused` | a `min_acceptance` of 1 refused by item 8 | `_in_unit_interval` | HP42 | `sampling` | 302, 160 |
+| `min_acceptance_zero_taken` | a `min_acceptance` of 0 taken by item 8 | `_in_unit_interval` | HP42 | `sampling` | 9, 222 |
 
 ## Audits
 

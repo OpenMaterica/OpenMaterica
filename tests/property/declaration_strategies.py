@@ -2464,12 +2464,13 @@ def engine(draw: st.DrawFn) -> Json:
 
 
 def plant_engine(p: Planting, m: int) -> None:
-    """A model with `engine`, over its records or over a domain (by chance), its crosswalk pinned in three
-    draws in four. The oracle reads item 7 from what it is over, its crosswalk (pinned, and never passed to
-    this version's build) and its requirements' `want`s; a missing crosswalk is the shape table's fault, the
-    draw where item 7 alone tells an engine model over records from one over a domain."""
+    """A model with `engine`, over a domain or over its records (by chance), its crosswalk pinned in three
+    draws in four, its requirements wanting `value` in about half the draws and as drawn in the rest. The
+    oracle reads item 7 from what it is over, its crosswalk (pinned, and never passed to this version's build)
+    and its requirements' `want`s; a missing crosswalk is the shape table's fault, the draw where item 7 alone
+    tells an engine model over records from one over a domain."""
     model = p.models[m]
-    over = p.choose(("records", "domain"))
+    over = p.choose(("domain", "records"))
     if over == "domain":
         plant_checked_over(p, m, "domain")
     held = p.draw(engine())
@@ -2477,6 +2478,10 @@ def plant_engine(p: Planting, m: int) -> None:
     if not pinned:
         del held["crosswalk"]
         p.plant("missing_member", pointer("models", m, "engine"), "crosswalk")
+    if not p.draw(st.booleans()):
+        # "A model with `engine` reads the fields its crosswalk sources, with `want` `value`" (item 7).
+        for item in requirements_of(model):
+            item["want"] = "value"
     model["engine"] = held
     wants = tuple(str(item["want"]) for item in requirements_of(model) if isinstance(item.get("want"), str))
     p.kinds.append(f"over {over}{'' if pinned else ', no crosswalk'}")
