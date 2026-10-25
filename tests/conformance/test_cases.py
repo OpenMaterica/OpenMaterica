@@ -11,6 +11,7 @@ import json
 from collections import Counter
 from collections.abc import Mapping
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -60,17 +61,28 @@ def test_every_result_a_run_case_file_gets_validates_against_the_result_schema()
 
 def test_every_report_a_run_build_check_file_gets_validates_against_the_report_schema() -> None:
     """`build_report.json` takes each report this implementation gives a build-check file it runs, as
-    `read_result.json` takes each read's result. The control: a report holding a result beside its refusals,
-    which section 2 does not give, is refused for each."""
+    `read_result.json` takes each read's result: 56 refused on their own, and 58 with results. The control: a
+    report holding both a refusal and a result, which section 2 does not give, is refused for each, a result
+    taken whole from one of the reports the schema takes being added to a refused one, and a refusal to one
+    with results."""
     builds = [case_file for case_file in RUN if case_file.operation == "check_build"]
-    assert len(builds) == 56
+    assert len(builds) == 114
     assert results_refused(builds, EXECUTORS, "build_report.json") == []
+    reports = [
+        EXECUTORS["check_build"](case_file, runner.agreeing(case_file, CONFIGURATIONS)[0])
+        for case_file in builds
+    ]
+    with_results = [report for report in reports if report["results"]]
+    assert len(with_results) == 58
+    a_result = cast(list[JsonValue], with_results[0]["results"])[0]
 
-    def with_a_result(case_file: CaseFile, claims: frozenset[Suite]) -> runner.JsonObject:
+    def with_both(case_file: CaseFile, claims: frozenset[Suite]) -> runner.JsonObject:
         report = EXECUTORS["check_build"](case_file, claims)
-        return {**report, "results": [{"model": "drag", "fields": ["a.b", "c.d"]}]}
+        if report["refusals"]:
+            return {**report, "results": [a_result]}
+        return {**report, "refusals": [{"item": "BC-048", "pointer": "/models"}]}
 
-    assert len(results_refused(builds, {"check_build": with_a_result}, "build_report.json")) == 56
+    assert len(results_refused(builds, {"check_build": with_both}, "build_report.json")) == 114
 
 
 def test_a_result_the_result_schema_refuses_is_found() -> None:
@@ -85,20 +97,19 @@ def test_every_case_file_is_counted() -> None:
     runs = runner.run_all(CASE_FILES, configurations=CONFIGURATIONS, executors=EXECUTORS)
     assert len(runs) == 1638
     assert Counter(case_run.outcome for case_run in runs) == {
-        Outcome.PASSED: 1238,
+        Outcome.PASSED: 1296,
         Outcome.VERIFIED: 35,
-        Outcome.NOT_YET_RUNNABLE: 365,
+        Outcome.NOT_YET_RUNNABLE: 307,
     }
     by_operation = Counter((case_run.outcome, case_run.case_file.operation) for case_run in runs)
     assert by_operation == {
         (Outcome.PASSED, "content_hash"): 51,
         (Outcome.PASSED, "read"): 1106,
         (Outcome.PASSED, "list_records"): 25,
-        (Outcome.PASSED, "check_build"): 56,
+        (Outcome.PASSED, "check_build"): 114,
         (Outcome.VERIFIED, "evaluate"): 35,
         (Outcome.NOT_YET_RUNNABLE, "read"): 110,
         (Outcome.NOT_YET_RUNNABLE, "check"): 184,
-        (Outcome.NOT_YET_RUNNABLE, "check_build"): 58,
         (Outcome.NOT_YET_RUNNABLE, "quote_sha256"): 13,
     }
 
@@ -113,6 +124,7 @@ def test_each_configuration_runs_every_case_file_that_holds_for_it() -> None:
         CONFIGURATIONS[2]: 1277,
         CONFIGURATIONS[3]: 1391,
         CONFIGURATIONS[4]: 1333,
+        CONFIGURATIONS[5]: 1390,
         runner.REFERENCE_EVALUATOR: 35,
     }
 
@@ -151,9 +163,9 @@ def test_a_case_passes_only_where_a_variant_ran() -> None:
     )
     assert len(outcomes) == 148
     assert Counter(outcomes.values()) == {
-        Outcome.PASSED: 103,
+        Outcome.PASSED: 118,
         Outcome.VERIFIED: 10,
-        Outcome.NOT_YET_RUNNABLE: 35,
+        Outcome.NOT_YET_RUNNABLE: 20,
     }
 
 

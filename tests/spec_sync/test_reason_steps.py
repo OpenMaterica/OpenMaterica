@@ -13,11 +13,9 @@ and every reason a read of a case file returns was constructed at a step that ma
 the case agrees with.
 """
 
-import ast
-import json
 import re
 import sys
-from collections.abc import Callable, Collection, Iterator
+from collections.abc import Callable, Collection
 from functools import cache
 from pathlib import Path
 from types import FrameType
@@ -33,22 +31,9 @@ from materica.shapes import Suite, Want
 from scripts.gen_vocabulary import PROCEDURES, SPECIFICATION
 from tests.conformance import runner
 from tests.conformance.runner import CONFIGURATIONS, CaseFile, agreeing
-from tests.spec_sync.schemas import SCHEMA
+from tests.spec_sync.reason_sites import CORE, Table, constructed, reason_table
 
 Documents = Callable[[str], str]
-# Each code, and the steps of section 3 that give it or the procedures that give one no step gives.
-Table = dict[str, tuple[frozenset[int], frozenset[str]]]
-CORE = Path(read_module.__file__).parent
-
-
-def reason_table() -> Table:
-    reasons = json.loads((SCHEMA / "vocabulary" / "reasons.json").read_text(encoding="utf-8"))["reasons"]
-    return {
-        code: (frozenset(int(step) for step in row.get("steps", [])), frozenset(row.get("procedures", [])))
-        for code, row in reasons.items()
-    }
-
-
 TABLE = reason_table()
 
 
@@ -209,33 +194,6 @@ STEP_OF: dict[tuple[str, str], int | None] = {
 }
 # Every module of the core, a new one included.
 MODULES = tuple(sorted(path.name for path in CORE.glob("*.py")))
-
-
-def callee(call: ast.Call) -> str | None:
-    """The last name of what `call` calls: `Reason` for `Reason(...)` and `reasons.Reason(...)` alike."""
-    if isinstance(call.func, ast.Name):
-        return call.func.id
-    return call.func.attr if isinstance(call.func, ast.Attribute) else None
-
-
-def constructed(source: str) -> Iterator[tuple[str, str | None]]:
-    """Each reason `source` constructs, as the qualified name of the function it is in and its code, None
-    where the code is not written out: `Reason("code", ...)` or `Reason(code="code")`, by any name ending in
-    `Reason`, or `_incomplete(...)`, which constructs `request_incomplete`."""
-
-    def visit(node: ast.AST, owner: tuple[str, ...]) -> Iterator[tuple[str, str | None]]:
-        if isinstance(node, ast.FunctionDef | ast.ClassDef):
-            owner = (*owner, node.name)
-        if isinstance(node, ast.Call) and callee(node) == "Reason":
-            given = [*node.args[:1], *(keyword.value for keyword in node.keywords if keyword.arg == "code")]
-            code = given[0] if len(given) == 1 else None
-            yield ".".join(owner), str(code.value) if isinstance(code, ast.Constant) else None
-        elif isinstance(node, ast.Call) and callee(node) == "_incomplete":
-            yield ".".join(owner), "request_incomplete"
-        for child in ast.iter_child_nodes(node):
-            yield from visit(child, owner)
-
-    yield from visit(ast.parse(source), ())
 
 
 def check_code(table: Table, sources: dict[str, str]) -> None:
