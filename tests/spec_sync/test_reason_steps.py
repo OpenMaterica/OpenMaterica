@@ -157,6 +157,7 @@ def test_each_code_is_given_at_the_steps_the_table_names_and_no_other() -> None:
 # and `tagged` copies those found reading one alternative, with its index. Step 8's checks of shape construct
 # theirs in `value_shapes.invalid` and `unknown_token`. `parse_declaration` gives the reader's refusal of a
 # declaration's text, which no read reports: the build refuses the declaration at the empty pointer.
+# `_build_reasons` gives the build's own reasons, which no step gives (`test_build_reasons.py`).
 STEP_OF: dict[tuple[str, str], int | None] = {
     ("jsonio.py", "parse"): None,
     ("declarations.py", "parse_declaration"): None,
@@ -204,6 +205,7 @@ STEP_OF: dict[tuple[str, str], int | None] = {
     ("read.py", "_nominal_read"): 13,
     ("value_shapes.py", "invalid"): 8,
     ("value_shapes.py", "unknown_token"): 8,
+    ("build.py", "_build_reasons"): None,
 }
 # Every module of the core, a new one included.
 MODULES = tuple(sorted(path.name for path in CORE.glob("*.py")))

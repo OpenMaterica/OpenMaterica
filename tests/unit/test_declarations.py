@@ -83,10 +83,16 @@ def refusals(declaration: DeclarationInput, claims: frozenset[Suite] | None = No
     return {(refusal.item, refusal.pointer) for refusal in checked}
 
 
-def test_the_valid_declaration_is_taken_and_raises_past_its_reads() -> None:
+def test_the_valid_declaration_is_taken_and_gives_its_results() -> None:
+    """BC-016's declaration over water alone: no refusal, and its two records' results, the second's record
+    absent from the store."""
     assert isinstance(Declaration.from_json(VALID), Declaration)
-    with pytest.raises(NotImplementedError, match="S7a-2b gives the build's own reasons"):
-        check_build(VALID, store())
+    report = check_build(VALID, store())
+    assert report.refusals == ()
+    assert [result.record.id for result in report.results] == [
+        "conformance/water_fixture",
+        "conformance/plasma_fixture",
+    ]
 
 
 # A pointer's reference tokens, escaped by RFC 6901: `~` as `~0`, then `/` as `~1`.
@@ -132,9 +138,9 @@ def test_a_declaration_reads_alike_as_text_bytes_and_a_value() -> None:
     faulty = a_declaration(lambda d: cast(Json, acceptances(d)[0]).pop("reason"))
     for given in as_given(faulty):
         assert refusals(given) == {("BC-005", "/models/0/acceptances/0")}, type(given)
-    for given in as_given(VALID):
-        with pytest.raises(NotImplementedError):
-            check_build(given, store())
+    reports = [check_build(given, store()).to_json() for given in as_given(VALID)]
+    assert reports == [reports[0]] * len(reports)
+    assert reports[0]["refusals"] == []
 
 
 def test_a_text_that_is_no_json_and_a_value_that_is_none_are_refused_at_the_empty_pointer() -> None:

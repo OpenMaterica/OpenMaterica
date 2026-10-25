@@ -228,8 +228,9 @@ DATA_RULES = (
         r"|src/materica/data/conformance/plain_read/inputs/density_overlay\.json"
         r"|docs/specification/read_side_contract\.md",
         "the build tests load build-check declarations and their records, an overlay record a read raises "
-        "for, and section 1's list of the kinds of acceptance a read takes",
-        tests=("tests/unit/test_build.py",),
+        "for, and section 1's list of the kinds of acceptance a read takes; the report's tests build "
+        "build-check declarations over their records",
+        tests=("tests/unit/test_build.py", "tests/unit/test_report.py"),
     ),
     DataRule(
         "an example record",
