@@ -566,7 +566,7 @@ MUTANTS = [
         "HP41 shape",
         replacing("_shape", dropping(SHAPE, lambda finding, _: finding.aspect == "target")),
         ("missing",),
-        "^(taken|the check raised KeyError)",
+        REFUSALS,
         "a model entry without `target` taken",
     ),
     Mutant(
@@ -695,7 +695,7 @@ MUTANTS = [
         "HP41 shape",
         replacing("_shape", dropping(SHAPE, _in_a_model_member)),
         ("missing", "breaks_holds", "unknown", "slip"),
-        f"{REFUSALS}|^the check raised KeyError",
+        REFUSALS,
         "a `model` missing `name` or `version`, holding another member or of another type, taken",
     ),
     Mutant(

@@ -428,42 +428,45 @@ check's reader (the last bullet).
   only where that end lies past the readable range's (HP12's tables below); HP40's three moves of the range by a
   test of each on a table written by hand (`off_the_value`); the others' own draws are S4a's, which S4a's
   properties hold.
-- **The declaration on its own (S7a-1):** (21) the S7 design's HP41 and HP42 (`test_declaration_properties.py`,
-  in the `build` shard): the declaration's own check (`declarations.md` section 1; `core/declarations.py`)
-  against an oracle written in the test from the text: each planted fault's rules by its name (`RULES`, each
-  cited from its sentence), the refusal paragraph's order for a member two rules name ("one fault is one member
-  at fault", maintainer, 2026-10-24), and one refusal for two faults of one case and one pointer.
-  `declaration_strategies.py` draws, from the text alone and never from `SHAPE` or `TOKENS`, declarations the
-  text takes: one to three models over one to three of `stores.py`'s records, one to four fields read each
-  with a requirement or none, acceptances of every kind a build that claims none of item 12's suites can
-  check, located at a record, an accepted difference located or not, `trainable` entries (two of one field at
-  two records among them), `target` facts of every shape, the optional members present or absent, and texts of
-  white space, of a degree sign and of 120 characters, which the text takes. A planter changes a copy and
-  records each fault's name, pointer and, for a missing member, which; it puts no second member at fault,
-  planting where nothing rests on what it changes (a labelled waiver on its requirement, a `trainable` entry on
-  the listed records) or clearing what rests there first. Every part checks first that the declaration drawn is
-  taken, and that the check never raises. HP41 runs in seven parts, each drawing its way first among at most
-  five alike: `reasons` (a tolerance's, an accept list's, an acceptance's and a basis's absence, an empty
-  string), `locations` (acceptances of the kinds that need a location naming none, an accepted difference, an
-  overlay or an `overlay_scope` naming none, one located, at a region or an interval among them), `shape` (a
-  required member missing, a value its Holds column refuses, of another JSON type or breaking constraints the
-  column states, members no place names or another place names at several depths, a slip of a named one,
-  empty lists where one entry is asked), `tokens` (tokens outside their members' lists, slips of them, other
-  members' tokens, tokens in another case, each at members of the sweep by chance; a field or a condition
-  misspelt), `names` (a name given twice, a requirement or a `trainable` entry for a field not read, a
-  `trainable` entry at a record not listed, a label-resting waiver its requirement does not hold up),
-  `precedence` (a fault two rules name, a missing member, a text that is not JSON, a value that is not an
-  object, two members missing from one object) and `every_fault` (two to five faults across models, of
-  planters that only append or add, drawing no feature). Where a way plants several faults at once (its
-  constraints, sweep members, depths, kinds or lists, each in about half its draws and one at least, at places
-  apart), each check is met often enough to kill its mutant well before the margin guard, and the several faults
-  hold the search to every one of them. HP42 draws a domain, a path, `region_conditions`, an engine (over
-  records or a domain, its crosswalk pinned or not) or a sampling member (which, and `sampling` absent, valid,
-  off its bounds or missing a member, by chance) beside none to two of HP41's faults, and holds the refusals to
-  items 7 and 8, the `population_level` rule and item 12's sparing, to the check of the same declaration
-  without the member, and a build that claims the member's suite to `NotImplementedError` (fail closed,
-  maintainer, 2026-10-24). HP1, HP2 and HP11 hold a result's `read`, and S7a-1 gives none: they join with
-  S7a-2's results.
+- **The declaration on its own (S7a-1):** (21) the S7 design's HP41 and HP42 (`test_declaration_properties.py`, in
+  the `build` shard): the declaration's own check (`declarations.md` section 1; `core/declarations.py`) against an
+  oracle written in the test from the text: each planted fault's rules by its name (`RULES`, each cited from its
+  sentence), the refusal paragraph's order for a member two rules name ("one fault is one member at fault",
+  maintainer, 2026-10-24), and one refusal for two faults of one case and one pointer. `declaration_strategies.py`
+  draws, from the text alone and never from `SHAPE` or `TOKENS`, declarations the text takes: one to three models
+  over one to three of `stores.py`'s records, one to four fields read each with a requirement or none, acceptances
+  of every kind a build that claims none of item 12's suites can check, located at a record, an accepted difference
+  located or not, `trainable` entries (two of one field at two records among them), `target` facts of every shape,
+  the optional members present or absent, and texts of white space, of a degree sign and of 120 characters, which
+  the text takes. A planter changes a copy and records each fault's name, pointer and, for a missing member, which;
+  it puts no second member at fault, planting where nothing rests on what it changes (a labelled waiver on its
+  requirement, a `trainable` entry on the listed records), clearing what rests there first, and never taking out a
+  member that holds a fault planted before. Every part checks first that the declaration drawn is taken, and that
+  the check never raises. HP41 runs in seven parts, each drawing its way first among at most five alike: `reasons`
+  (a tolerance's, an accept list's, an acceptance's and a basis's absence, an empty string), `locations`
+  (acceptances of the kinds that need a location naming none, an accepted difference, an overlay or an
+  `overlay_scope` naming none, one located, at a region or an interval among them), `shape` (two required members
+  missing at objects of two places, a value its Holds column refuses, of another JSON type or breaking constraints
+  the column states, members no place names or another place names at several depths, two slips of named members at
+  objects of two places, empty lists where one entry is asked), `tokens` (tokens outside their members' lists, slips
+  of them, other members' tokens, tokens in another case, each at members of the sweep by chance; a field or a
+  condition misspelt), `names` (names given twice in several lists, a requirement or a `trainable` entry for a field
+  not read, a `trainable` entry at a record not listed, a label-resting waiver its requirement does not hold up),
+  `precedence` (a fault two rules name, missing members, a text that is not JSON, a value that is not an object, two
+  members missing from one object) and `every_fault` (two to five faults across models, of planters that only append
+  or add, drawing no feature). Where a way's second choice is a list of independent places (the constraints, the
+  sweep's members, the depths, the kinds, the empty lists, the lists a name is given twice in), several are planted
+  at once, each in about half the draws and one at least (included where its boolean is drawn false, so that a run's
+  first examples hold every one), at places apart: each check is then met often enough to kill its mutant well
+  before the margin guard, and the several faults hold the search to every one of them. Two missing members, and two
+  slips, at objects of two places, keep a check that took one from building its typed result of a model that lacks
+  the member, so that a mutant of it dies at its own assertion, not at the check raising. HP42 draws a domain, a
+  path, `region_conditions`, an engine (over records or a domain, its crosswalk pinned or not) or a sampling member
+  (which, and `sampling` absent, valid, off its bounds or missing a member, by chance) beside none to two of HP41's
+  faults, and holds the refusals to items 7 and 8, the `population_level` rule and item 12's sparing, to the check
+  of the same declaration without the member, and a build that claims the member's suite to `NotImplementedError`
+  (fail closed, maintainer, 2026-10-24). HP1, HP2 and HP11 hold a result's `read`, and S7a-1 gives none: they join
+  with S7a-2's results.
 - **The anomaly check's reader:** the YAML reader of `scripts/check_anomalies.py` and its specifier syntax
   against PyYAML's `safe_load` and `packaging` (`test_anomaly_reader_properties.py`, in the `agreement` shard).
   A document the reader reads is read as PyYAML reads it; one PyYAML refuses is refused; one inside the subset
@@ -1906,9 +1909,8 @@ it runs (a rule's function, `_precedence`, `_holds`, `_suite_members`, `_join`, 
 and each dying at a way it names and at the assertion it names: the S7 design's 35 mutants of HP41 and HP42 (its
 section 6.4; `test_declaration_mutant_table.py` holds each to the row that stands for it), and 35 more, the
 rules the build's reference model's listed survivors and S7a-1b's review's hand mutants leave to these
-properties, where the draws reach them: blank text refused, an empty condition reason given item 3's case, a
-missing `target` crashing the typed result (the check raising is a failure: "the check raised"), an empty
-`reads` or `accepts`, two exclusive alternatives, a `consumer`'s or a `model`'s shape, a range upside down, a
+properties, where the draws reach them: blank text refused, an empty condition reason given item 3's case, an
+empty `reads` or `accepts`, two exclusive alternatives, a `consumer`'s or a `model`'s shape, a range upside down, a
 number below zero, an index not whole, a status object where none is taken, a boolean taken as a number, a
 nominal's `params`, a distribution's parameters, a `basis` on another kind, a chain's members, an accepted
 difference of `"any"` refused, the never-waived code, a mixing rule, a family, a precision, a unit, a
@@ -1921,81 +1923,82 @@ engine value without `reason` or `basis`, or a fault at an engine model's requir
 names first at pointers the text does not fix (the reference model's open point `item_7_pointers`); a
 `trainable` entry at a region or an interval, S7a-4's; a `represents` or a `population_level` of another
 shape, and an independence entry's members, the sampling suite's, which no build claims yet; an empty `reads`
-beside a requirement, whose reading an open point of the pull request asks.
+beside a requirement, and an accepted difference of no kind (its `acceptance` missing or of another type),
+whose readings are not settled.
 
 <!-- kill points of every search of test_declaration_mutants.py::test_the_declaration_mutant_is_killed (scripts/gen_kill_counts.py) -->
 | Mutant | Fault | At | Killed by | Dies at | Examples |
 |---|---|---|---|---|---|
-| `empty_reason_taken` | an empty `reason` or `basis` taken | `_reasons` | HP41, reasons | `empty_text` | 6, 6 |
+| `empty_reason_taken` | an empty `reason` or `basis` taken | `_reasons` | HP41, reasons | `empty_text` | 6, 10 |
 | `accept_reason_unchecked` | an accept list's `reason` not checked by item 3 | `_reasons` | HP41, reasons | `accept_reason` | 2, 2 |
-| `reason_checked_on_waivers_only` | an acceptance's `reason` checked by item 4 only on waivers | `_reasons` | HP41, reasons | `acceptance_reason` | 4, 4 |
-| `basis_checked_on_nominals_only` | `basis` checked by item 4 on nominals but not extrapolations | `_reasons` | HP41, reasons | `basis` | 9, 8 |
-| `basis_required_of_a_waiver` | `basis` required of a waiver | `_reasons` | HP41, reasons | `tolerance_reason`, `accept_reason`, `acceptance_reason`, `basis`, `empty_text` | 63, 16 |
-| `empty_condition_reason_as_item_3` | an empty `reason` of a requirement condition refused by item 3, not by its row's Holds | `_reasons` | HP41, reasons | `empty_text` | 6, 6 |
+| `reason_checked_on_waivers_only` | an acceptance's `reason` checked by item 4 only on waivers | `_reasons` | HP41, reasons | `acceptance_reason` | 11, 4 |
+| `basis_checked_on_nominals_only` | `basis` checked by item 4 on nominals but not extrapolations | `_reasons` | HP41, reasons | `basis` | 18, 95 |
+| `basis_required_of_a_waiver` | `basis` required of a waiver | `_reasons` | HP41, reasons | `tolerance_reason`, `accept_reason`, `acceptance_reason`, `basis`, `empty_text` | 26, 7 |
+| `empty_condition_reason_as_item_3` | an empty `reason` of a requirement condition refused by item 3, not by its row's Holds | `_reasons` | HP41, reasons | `empty_text` | 6, 10 |
 | `blank_reason_refused` | a `reason` or `basis` of white space alone refused | `_reasons` | HP41, reasons | `tolerance_reason`, `accept_reason`, `acceptance_reason`, `basis`, `empty_text` | 3, 3 |
-| `implied_condition_location_unchecked` | an `implied_condition` naming no location taken | `_locations` | HP41, locations | `unlocated` | 41, 23 |
+| `implied_condition_location_unchecked` | an `implied_condition` naming no location taken | `_locations` | HP41, locations | `unlocated` | 1, 1 |
 | `accepted_difference_location_required` | an `accepted_difference` naming no location refused | `_locations` | HP41, locations | `unlocated`, `accepted_difference_unlocated`, `overlay_unlocated`, `located` | 2, 2 |
-| `unknown_member_ignored` | a member the table does not name ignored | `_shape` | HP41, shape | `unknown`, `slip` | 4, 4 |
-| `plural_slip_missed` | a member one plural slip from a named one ignored | `_shape` | HP41, shape | `slip` | 6, 10 |
+| `unknown_member_ignored` | a member the table does not name ignored | `_shape` | HP41, shape | `unknown`, `slip` | 4, 6 |
+| `plural_slip_missed` | a member one plural slip from a named one ignored | `_shape` | HP41, shape | `slip` | 4, 31 |
 | `target_absence_taken` | a model entry without `target` taken | `_shape` | HP41, shape | `missing` | 1, 1 |
-| `empty_records_taken` | an empty `checked_over.records` taken | `_holds` | HP41, shape | `empty_list` | 35, 81 |
-| `empty_reads_taken` | an empty `reads` taken | `_holds` | HP41, shape | `empty_list` | 11, 36 |
-| `empty_accepts_taken` | an `overlay_scope` accepting nothing taken | `_holds` | HP41, shape | `empty_list` | 13, 74 |
-| `exactly_one_unchecked` | two of a place's exclusive alternatives taken | `_shape` | HP41, shape | `breaks_holds` | 3, 18 |
-| `consumer_shape_unchecked` | a `consumer` missing a member, holding another or of another type, taken | `_shape` | HP41, shape | `missing`, `breaks_holds`, `unknown`, `slip` | 6, 10 |
-| `range_order_unchecked` | a `range` whose `lo` is above its `hi` taken | `_holds` | HP41, shape | `breaks_holds` | 65, 18 |
-| `number_below_zero_taken` | a tolerance or a `fraction_sum_tolerance` below zero taken | `_holds` | HP41, shape | `breaks_holds` | 65, 23 |
-| `index_not_whole_taken` | a pick's `index` with a fractional part, or below zero, taken | `_holds` | HP41, shape | `breaks_holds` | 3, 18 |
-| `status_object_taken` | a status object as a target's fact or an implied condition's value taken | `_holds` | HP41, shape | `breaks_holds` | 3, 18 |
-| `params_taken` | a nominal's `params` for a field whose row allows no parameter set taken | `_tokens` | HP41, shape | `breaks_holds` | 3, 18 |
-| `distribution_parameters_unchecked` | a distribution's parameters other than its token's taken | `_tokens` | HP41, shape | `breaks_holds` | 159, 18 |
-| `basis_on_any_kind_taken` | a `basis` on a waiver, an implied condition, an accepted difference, a pick or an overlay taken | `_shape` | HP41, shape | `unknown` | 9, 19 |
-| `chains_unchecked` | a chain's members unchecked | `_shape` | HP41, shape | `missing`, `breaks_holds`, `unknown`, `slip` | 124, 57 |
-| `model_name_and_version_unchecked` | a `model` missing `name` or `version`, holding another member or of another type, taken | `_shape` | HP41, shape | `missing`, `breaks_holds`, `unknown`, `slip` | 5, 61 |
-| `boolean_taken_as_a_number` | a boolean taken where the table asks for another type | `_holds` | HP41, shape | `breaks_holds` | 93, 90 |
+| `empty_records_taken` | an empty `checked_over.records` taken | `_holds` | HP41, shape | `empty_list` | 53, 219 |
+| `empty_reads_taken` | an empty `reads` taken | `_holds` | HP41, shape | `empty_list` | 137, 202 |
+| `empty_accepts_taken` | an `overlay_scope` accepting nothing taken | `_holds` | HP41, shape | `empty_list` | 53, 107 |
+| `exactly_one_unchecked` | two of a place's exclusive alternatives taken | `_shape` | HP41, shape | `breaks_holds` | 64, 249 |
+| `consumer_shape_unchecked` | a `consumer` missing a member, holding another or of another type, taken | `_shape` | HP41, shape | `missing`, `breaks_holds`, `unknown`, `slip` | 4, 12 |
+| `range_order_unchecked` | a `range` whose `lo` is above its `hi` taken | `_holds` | HP41, shape | `breaks_holds` | 3, 114 |
+| `number_below_zero_taken` | a tolerance or a `fraction_sum_tolerance` below zero taken | `_holds` | HP41, shape | `breaks_holds` | 3, 255 |
+| `index_not_whole_taken` | a pick's `index` with a fractional part, or below zero, taken | `_holds` | HP41, shape | `breaks_holds` | 64, 114 |
+| `status_object_taken` | a status object as a target's fact or an implied condition's value taken | `_holds` | HP41, shape | `breaks_holds` | 65, 243 |
+| `params_taken` | a nominal's `params` for a field whose row allows no parameter set taken | `_tokens` | HP41, shape | `breaks_holds` | 3, 114 |
+| `distribution_parameters_unchecked` | a distribution's parameters other than its token's taken | `_tokens` | HP41, shape | `breaks_holds` | 3, 249 |
+| `basis_on_any_kind_taken` | a `basis` on a waiver, an implied condition, an accepted difference, a pick or an overlay taken | `_shape` | HP41, shape | `unknown` | 235, 7 |
+| `chains_unchecked` | a chain's members unchecked | `_shape` | HP41, shape | `missing`, `breaks_holds`, `unknown`, `slip` | 8, 9 |
+| `model_name_and_version_unchecked` | a `model` missing `name` or `version`, holding another member or of another type, taken | `_shape` | HP41, shape | `missing`, `breaks_holds`, `unknown`, `slip` | 6, 15 |
+| `boolean_taken_as_a_number` | a boolean taken where the table asks for another type | `_holds` | HP41, shape | `breaks_holds` | 22, 137 |
 | `difference_of_any_refused` | an accepted difference of value `"any"` refused | `_shape` | HP41, locations | `unlocated`, `accepted_difference_unlocated`, `overlay_unlocated`, `located` | 2, 2 |
-| `review_unchecked` | a requirement's `review` holding any string taken | `TOKENS` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 6, 3 |
+| `review_unchecked` | a requirement's `review` holding any string taken | `TOKENS` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 1, 1 |
 | `token_slip_taken` | a token one slip from one its member takes taken | `_tokens` | HP41, tokens | `slip_of_token`, `misspelt_name` | 2, 2 |
-| `tokens_compared_without_case` | a member's tokens compared without case | `TOKENS` | HP41, tokens | `other_case` | 5, 10 |
+| `tokens_compared_without_case` | a member's tokens compared without case | `TOKENS` | HP41, tokens | `other_case` | 5, 7 |
 | `want_left_to_the_read` | a requirement's `want` left to the read | `TOKENS` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 1, 1 |
-| `mixing_rule_unchecked` | a mixing rule holding any string taken | `TOKENS` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 3, 7 |
-| `precision_unchecked` | a `precision` holding any string taken | `TOKENS` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 3, 3 |
-| `never_waived_code_taken` | a waiver of `condition_unknown_name` taken | `TOKENS` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 19, 41 |
-| `families_unchecked` | a `families` entry for a field whose row allows no parameter set taken | `_tokens` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 10, 3 |
-| `space_unchecked` | a distribution's `space` holding any string taken | `TOKENS` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 8, 3 |
-| `unit_unchecked` | a unit other than its condition's or its fact's taken | `_tokens` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 6, 3 |
-| `waiver_condition_token_unchecked` | a waiver's `condition` holding any string taken | `_tokens` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case`, `misspelt_name` | 3, 13 |
-| `waiver_condition_missing_taken` | a waiver whose code names a condition taken without its `condition` | `_tokens` | HP41, shape | `breaks_holds`, `slip`, `missing` | 315, 130 |
-| `two_models_of_one_name_taken` | two models of one `name` taken | `_names` | HP41, names | `twice` | 11, 88 |
+| `mixing_rule_unchecked` | a mixing rule holding any string taken | `TOKENS` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 1, 1 |
+| `precision_unchecked` | a `precision` holding any string taken | `TOKENS` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 1, 1 |
+| `never_waived_code_taken` | a waiver of `condition_unknown_name` taken | `TOKENS` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 1, 1 |
+| `families_unchecked` | a `families` entry for a field whose row allows no parameter set taken | `_tokens` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 1, 1 |
+| `space_unchecked` | a distribution's `space` holding any string taken | `TOKENS` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 1, 1 |
+| `unit_unchecked` | a unit other than its condition's or its fact's taken | `_tokens` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case` | 1, 1 |
+| `waiver_condition_token_unchecked` | a waiver's `condition` holding any string taken | `_tokens` | HP41, tokens | `outside_list`, `slip_of_token`, `other_members_token`, `other_case`, `misspelt_name` | 1, 1 |
+| `waiver_condition_missing_taken` | a waiver whose code names a condition taken without its `condition` | `_tokens` | HP41, shape | `breaks_holds`, `slip`, `missing` | 64, 114 |
+| `two_models_of_one_name_taken` | two models of one `name` taken | `_names` | HP41, names | `twice` | 1, 1 |
 | `requirement_for_a_field_not_read_taken` | a requirement for a field not in `reads` taken | `_names` | HP41, names | `requirement_unread` | 2, 2 |
 | `two_requirements_for_one_field_taken` | two requirements for one field taken | `_names` | HP41, names | `twice` | 1, 1 |
-| `field_twice_in_reads_taken` | a field twice in `reads` taken | `_names` | HP41, names | `twice` | 129, 49 |
-| `trainable_for_a_field_not_read_taken` | a `trainable` entry for a field not in `reads` taken | `_names` | HP41, names | `trainable_unread` | 5, 6 |
-| `trainable_at_an_unlisted_record_taken` | a `trainable` entry at a record its model is not checked over taken | `_names` | HP41, names | `trainable_unlisted` | 7, 9 |
-| `trainable_twice_by_field` | two `trainable` entries for one field at two locations refused | `_names` | HP41, names | `twice`, `requirement_unread`, `trainable_unread`, `trainable_unlisted`, `label_unreviewed` | 6, 32 |
-| `combination_unchecked` | a combination of one field, or of fields of one section, taken | `_names` | HP41, shape | `breaks_holds` | 65, 18 |
-| `repeated_accepts_taken` | an `accepts` token given twice taken | `_names` | HP41, names | `twice` | 109, 11 |
-| `label_beside_an_unregistered_field_unjudged` | a waiver's `label` beside a `field` that is not registered left to the field's own fault | `_labels` | HP41, names | `label_unreviewed` | 116, 38 |
+| `field_twice_in_reads_taken` | a field twice in `reads` taken | `_names` | HP41, names | `twice` | 1, 1 |
+| `trainable_for_a_field_not_read_taken` | a `trainable` entry for a field not in `reads` taken | `_names` | HP41, names | `trainable_unread` | 109, 6 |
+| `trainable_at_an_unlisted_record_taken` | a `trainable` entry at a record its model is not checked over taken | `_names` | HP41, names | `trainable_unlisted` | 9, 9 |
+| `trainable_twice_by_field` | two `trainable` entries for one field at two locations refused | `_names` | HP41, names | `twice`, `requirement_unread`, `trainable_unread`, `trainable_unlisted`, `label_unreviewed` | 6, 111 |
+| `combination_unchecked` | a combination of one field, or of fields of one section, taken | `_names` | HP41, shape | `breaks_holds` | 3, 114 |
+| `repeated_accepts_taken` | an `accepts` token given twice taken | `_names` | HP41, names | `twice` | 1, 1 |
+| `label_beside_an_unregistered_field_unjudged` | a waiver's `label` beside a `field` that is not registered left to the field's own fault | `_labels` | HP41, names | `label_unreviewed` | 58, 27 |
 | `label_waiver_taken_without_review` | a label-resting waiver taken without its requirement's `review` | `_labels` | HP41, names | `label_unreviewed` | 4, 4 |
 | `bc048_beside_bc005` | BC-048 given beside BC-005 for one missing `reason` | `_precedence` | HP41, precedence | `two_rules` | 1, 1 |
 | `missing_member_at_the_member` | a missing member's pointer at the member, not at its parent | `_precedence` | HP41, precedence | `missing_member`, `two_missing`, `two_rules` | 1, 1 |
-| `two_missing_members_given_twice` | two members missing from one object given as two refusals | `_precedence` | HP41, precedence | `two_missing` | 10, 4 |
-| `not_json_pointer_not_empty` | a text that is not JSON refused at "/", not at "" | `_precedence` | HP41, precedence | `not_json` | 9, 9 |
+| `two_missing_members_given_twice` | two members missing from one object given as two refusals | `_precedence` | HP41, precedence | `two_missing` | 4, 4 |
+| `not_json_pointer_not_empty` | a text that is not JSON refused at "/", not at "" | `_precedence` | HP41, precedence | `not_json` | 11, 122 |
 | `first_fault_only` | the search stopping at the first fault | `_precedence` | HP41, `every_fault` | `every_fault` | 1, 1 |
 | `model_index_off_by_one` | a pointer's model index off by one | `_join` | HP41, `every_fault` | `every_fault` | 1, 1 |
 | `region_conditions_taken` | `region_conditions` taken without the scene suite | `_suite_members` | HP42 | `region_conditions` | 4, 4 |
 | `path_taken` | a model checked over a path taken without the scene suite | `_suite_members` | HP42 | `path` | 2, 2 |
-| `interval_location_taken` | an acceptance located at an interval taken without the scene suite | `_suite_members` | HP41, locations | `located` | 28, 111 |
-| `engine_over_a_domain_refused_by_item_7` | an engine model over a domain refused by item 7 as one over records is | `_suites` | HP42 | `engine` | 152, 136 |
-| `sampling_independence_unrequired` | a `sampling` block without `independence` taken | `_shape` | HP42 | `sampling` | 97, 81 |
-| `engine_taken` | a model with `engine` taken | `_suites` | HP42 | `engine` | 7, 8 |
-| `distribution_taken` | a `distribution` acceptance taken without the sampling suite | `_suite_members` | HP42 | `sampling` | 3, 46 |
-| `represents_taken` | a requirement's `represents` taken without the sampling suite | `_suite_members` | HP42 | `sampling` | 140, 81 |
-| `engine_over_records_left_to_item_12` | BC-051 for an engine model over records in place of BC-040 | `_suites` | HP42 | `engine` | 7, 8 |
-| `item_12_beside_item_8` | BC-051 beside BC-044 for a `represents` with no `sampling` | `_suites` | HP42 | `sampling` | 9, 12 |
-| `population_level_beside_any_represents` | a `population_level` beside another `represents`, or none, left to item 12 | `_suites` | HP42 | `sampling` | 9, 12 |
-| `min_acceptance_one_refused` | a `min_acceptance` of 1 refused by item 8 | `_in_unit_interval` | HP42 | `sampling` | 140, 172 |
-| `min_acceptance_zero_taken` | a `min_acceptance` of 0 taken by item 8 | `_in_unit_interval` | HP42 | `sampling` | 9, 12 |
+| `interval_location_taken` | an acceptance located at an interval taken without the scene suite | `_suite_members` | HP41, locations | `located` | 154, 151 |
+| `engine_over_a_domain_refused_by_item_7` | an engine model over a domain refused by item 7 as one over records is | `_suites` | HP42 | `engine` | 93, 463 |
+| `sampling_independence_unrequired` | a `sampling` block without `independence` taken | `_shape` | HP42 | `sampling` | 172, 248 |
+| `engine_taken` | a model with `engine` taken | `_suites` | HP42 | `engine` | 39, 8 |
+| `distribution_taken` | a `distribution` acceptance taken without the sampling suite | `_suite_members` | HP42 | `sampling` | 3, 35 |
+| `represents_taken` | a requirement's `represents` taken without the sampling suite | `_suite_members` | HP42 | `sampling` | 165, 54 |
+| `engine_over_records_left_to_item_12` | BC-051 for an engine model over records in place of BC-040 | `_suites` | HP42 | `engine` | 39, 8 |
+| `item_12_beside_item_8` | BC-051 beside BC-044 for a `represents` with no `sampling` | `_suites` | HP42 | `sampling` | 9, 54 |
+| `population_level_beside_any_represents` | a `population_level` beside another `represents`, or none, left to item 12 | `_suites` | HP42 | `sampling` | 9, 54 |
+| `min_acceptance_one_refused` | a `min_acceptance` of 1 refused by item 8 | `_in_unit_interval` | HP42 | `sampling` | 165, 245 |
+| `min_acceptance_zero_taken` | a `min_acceptance` of 0 taken by item 8 | `_in_unit_interval` | HP42 | `sampling` | 9, 58 |
 
 ## Audits
 
