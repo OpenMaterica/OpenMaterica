@@ -415,7 +415,7 @@ every family entry goes in `families/CHANGELOG.md`.
   draw is written: the owner of a strategy built once in a cached function is the first caller on a worker, so
   the sites it made, and with them the counts, varied with how the tests were split among the recording's
   workers (S3c's 151, 160 and 165 sites at 2, 4 and 8 workers), where the places and what is drawn at them do
-  not, nor did a count by the selection's own owner and the place (120, 128 and 132 sites). The count is a
+  not (a count by the selection's own owner and the place varied too, 120, 128 and 132 sites). The count is a
   floor: another owner or another call of a place already drawn adds nothing, until the draw-time ownership
   restores a count by owner. The pull-request run is advisory (maintainer, 2026-10-25): it
   blocks no merge, until it has run cleanly on a few feature pull requests. `measure.yml` leaves the
