@@ -25,6 +25,11 @@ Each fault is a `Finding`: its case, the pointer of the member at fault (of the 
 missing member), and, for a missing member or a place's exclusive alternatives, which. `_precedence` keeps one
 refusal per fault, of the case first in the refusal paragraph's order, and merges those of one case and
 pointer. A declaration that breaks no rule gives a `Declaration`.
+
+No rule is judged against a member that is itself at fault (section 1: one fault is one refusal), and the rest
+of the declaration is still checked for its own faults: a `population_level` beside a `represents` that is no
+token, a requirement against a `reads` at fault, and a waiver's missing `condition` beside a `code` refused as
+a token give no refusal of their own.
 """
 
 import dataclasses
@@ -440,6 +445,11 @@ CONDITION_CODES = (
 )
 
 
+# The required members item 7 judges, by place and name: an engine value without one is item 7's fault, a
+# model's refusal at its `engine` (the refusal paragraph), and not also a member missing at the value.
+_ITEM_7_MEMBERS = frozenset({("engine value", "reason"), ("engine value", "basis")})
+
+
 # A fault, and the refusals the build reports.
 
 
@@ -556,7 +566,8 @@ def _entries(value: JsonValue, member: str) -> Iterator[tuple[int, JsonObject]]:
 
 def _shape(declaration: JsonObject) -> list[Finding]:
     """BC-048: at each place, a member it does not name, a member one slip from a named one included; a member
-    it requires and lacks; none or two of its exclusive alternatives; and each member's value against what the
+    it requires and lacks (but an engine value's `reason` and `basis`, which are item 7's); none or two of its
+    exclusive alternatives; and each member's value against what the
     member holds (`_holds`)."""
     found: list[Finding] = []
     for visit in _places(declaration):
@@ -567,7 +578,9 @@ def _shape(declaration: JsonObject) -> list[Finding]:
             else:
                 found.append(Finding("BC-048", _join(at, name), _not_listed(name, members, "a member here")))
         for name, member in members.items():
-            if member.required == "yes" and name not in visit.value:
+            # An engine value's `reason` and `basis` are item 7's, which refuses the model at its `engine`.
+            judged_by_item_7 = (visit.place, name) in _ITEM_7_MEMBERS
+            if member.required == "yes" and name not in visit.value and not judged_by_item_7:
                 found.append(Finding("BC-048", at, f"{name!r} missing", name))
         # None of a place's exclusive alternatives is a member missing; two of them, a fault of the member
         # holding them, at it.
@@ -718,8 +731,14 @@ def _kind_tokens(kind: str, value: JsonObject, at: str) -> list[Finding]:
         check("condition", _CONDITIONS, "a registered condition")
         if "label" in value:
             check("label", _labels_of(value.get("field")), "a label of its field")
-        # A code names a condition where its reasons always carry one, and one that is no reason names none.
-        if isinstance(code, str) and code in CONDITION_CODES and "condition" not in value:
+        # A code names a condition where its reasons always carry one, and one that is no reason names none. A
+        # code refused as a token is a member at fault, and the condition it names is not judged against it.
+        if (
+            isinstance(code, str)
+            and code in CONDITION_CODES
+            and code in TOKENS["waiver", "code"]
+            and "condition" not in value
+        ):
             found.append(Finding("BC-048", at, f"a waiver of {code} names its condition", "condition"))
         elif isinstance(code, str) and code not in CONDITION_CODES and "condition" in value:
             found.append(Finding("BC-048", f"{at}/condition", f"{code!r} names no condition"))

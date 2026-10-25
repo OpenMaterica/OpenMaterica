@@ -326,6 +326,31 @@ def test_a_population_level_is_refused_but_beside_population() -> None:
         Declaration.from_json(sampled(None), frozenset({"plain_read", "build_checks", "sampling"}))
 
 
+def test_a_population_level_beside_a_represents_at_fault_is_not_judged_by_the_population_level_rule() -> None:
+    """A `represents` that is no token is a member at fault, and the level beside it is not judged against it
+    (no rule is judged against a member at fault): item 12 refuses the level as the sampling suite's, and the
+    `population_level` rule, whose case comes first where it applies, gives no BC-043."""
+    at = "/models/0/requirements/0"
+
+    def sampled(represents: JsonValue) -> Json:
+        def change(declaration: Json) -> None:
+            declaration["sampling"] = {"min_acceptance": 0.5, "reason": "a reason", "independence": []}
+            requirement(declaration)["represents"] = represents
+            requirement(declaration)["population_level"] = {"level": "donor", "within": {"status": "none"}}
+
+        return a_declaration(change)
+
+    at_fault: list[JsonValue] = ["bogus", 5.0, ["population"]]
+    for represents in at_fault:
+        assert refusals(sampled(represents)) == {
+            ("BC-051", "/sampling"),
+            ("BC-051", f"{at}/represents"),
+            ("BC-051", f"{at}/population_level"),
+        }, represents
+    # The control: beside a `represents` that is a token, the same level is BC-043's.
+    assert ("BC-043", f"{at}/population_level") in refusals(sampled("estimate"))
+
+
 # The report of a declaration refused on its own (section 2): its consumer and declaration as given, where it
 # can hold them.
 
@@ -498,6 +523,12 @@ def test_a_waiver_names_its_condition_exactly_where_its_code_names_one() -> None
         return a_declaration(change)
 
     assert refusals(waived("condition_unstated", None)) == {("BC-048", "/models/0/acceptances/0")}
+    # A code refused as a token is a member at fault, and the condition it would name is not judged against
+    # it: one refusal, at the `code`, whether or not the waiver names a condition.
+    assert refusals(waived("condition_unknown_name", None)) == {("BC-048", "/models/0/acceptances/0/code")}
+    assert refusals(waived("condition_unknown_name", "temperature")) == {
+        ("BC-048", "/models/0/acceptances/0/code")
+    }
     assert refusals(waived("no_requirement", "temperature")) == {
         ("BC-048", "/models/0/acceptances/0/condition")
     }
@@ -656,6 +687,20 @@ NAMES: list[tuple[Callable[[Json], object], Refusals]] = [
         lambda d: requirement(d).update(field="fluid.viscosity", label="materica.fluid.newtonian.v1"),
         {("BC-048", f"{AT}/field")},
     ),
+    # The registered fields a `mixing` rule and a `families` entry name, and a mixing rule's token: a valid
+    # rule is taken, a field with no parameter set (every field of 0.1.0) is no family's.
+    (
+        entries(mixing={"fraction_sum_tolerance": 0.0, "rules": {"fluid.dynamic_viscosity": "identity"}}),
+        set(),
+    ),
+    (
+        entries(mixing={"fraction_sum_tolerance": 0.0, "rules": {"fluid.dynamic_viscosity": "bogus"}}),
+        {("BC-048", "/models/0/mixing/rules/fluid.dynamic_viscosity")},
+    ),
+    (
+        entries(families={"fluid.dynamic_viscosity": "a family"}),
+        {("BC-048", "/models/0/families/fluid.dynamic_viscosity")},
+    ),
     # Checked over a domain and records, two alternatives: no `trainable` record is judged against them.
     (
         entries(
@@ -801,3 +846,37 @@ def test_an_engine_model_is_refused_by_item_7_at_its_engine_once() -> None:
         cast(list[Json], model(declaration)["requirements"])[0]["want"] = "bounds"
 
     assert refusals(a_declaration(over_records_wanting_bounds)) == {("BC-040", "/models/0/engine")}
+
+
+# An engine value without its `reason` or `basis` is one fault, which item 7 and the shape's required members
+# both name: BC-040 at the model's `engine` and none at the value (the refusal paragraph). A member of the
+# value that item 7 does not judge (its `value`), and an empty `reason`, are refused at the value, BC-048's.
+
+ENGINE = "/models/0/engine"
+ENGINE_VALUES: list[tuple[Json, Json | None, Refusals]] = [
+    ({"mu": {"value": 1.0, "reason": "r", "basis": "b"}}, None, {("BC-040", ENGINE)}),
+    ({"mu": {"value": 1.0, "reason": "r"}}, None, {("BC-040", ENGINE)}),
+    ({"mu": {"value": 1.0, "basis": "b"}}, None, {("BC-040", ENGINE)}),
+    ({"mu": {"value": 1.0}}, None, {("BC-040", ENGINE)}),
+    ({}, {"lumen": {"mu": {"value": 1.0, "reason": "r"}}}, {("BC-040", ENGINE)}),
+    ({"mu": {"reason": "r", "basis": "b"}}, None, {("BC-040", ENGINE), ("BC-048", f"{ENGINE}/values/mu")}),
+    (
+        {"mu": {"value": 1.0, "reason": "", "basis": "b"}},
+        None,
+        {("BC-040", ENGINE), ("BC-048", f"{ENGINE}/values/mu/reason")},
+    ),
+]
+
+
+@pytest.mark.parametrize(("values", "region_values", "expected"), ENGINE_VALUES)
+def test_an_engine_value_without_reason_or_basis_is_item_7s_alone_at_the_engine(
+    values: Json, region_values: Json | None, expected: Refusals
+) -> None:
+    def change(declaration: Json) -> None:
+        engine(declaration)
+        pinned = cast(Json, model(declaration)["engine"])
+        pinned["values"] = values
+        if region_values is not None:
+            pinned["region_values"] = region_values
+
+    assert refusals(a_declaration(change)) == expected
