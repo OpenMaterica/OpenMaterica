@@ -158,10 +158,14 @@ SHARDS = {
         "test_table_alternatives_mutants",
         "test_table_alternatives_mutant_table",
     ),
-    # S7a's build check (the S7 design's 6.1): S7a-1's declaration on its own (HP41 and HP42); S7a's later
-    # pieces' properties join it. Each example checks a declaration twice, or three times (HP42), and reads no
-    # record.
-    "build": ("test_declaration_properties",),
+    # S7a's build check (the S7 design's 6.1): S7a-1's declaration on its own (HP41 and HP42), its mutant
+    # searches, which set no example database, and their table's check; S7a's later pieces' properties join
+    # it. Each example checks a declaration twice, or three times (HP42), and reads no record.
+    "build": (
+        "test_declaration_properties",
+        "test_declaration_mutants",
+        "test_declaration_mutant_table",
+    ),
 }
 
 
