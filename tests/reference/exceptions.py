@@ -183,6 +183,7 @@ BUILD_EXCEPTIONS: Final[Mapping[str, Excepted]] = {
                 "BC-009.implied_condition_applied.json",
                 "BC-009.nominal_applied.json",
                 "BC-009.one_waiver_index.json",
+                "BC-009.two_implied_conditions_of_one_value.json",
                 "BC-009.two_acceptances_indexes.json",
                 "BC-010.all_accepted.json",
                 "BC-010.each_model_judged_by_its_own_acceptances.json",
