@@ -173,7 +173,7 @@ kind, `floors`, `drift`, `regions`, `fuzz` or `cuts`; the selection, paths or no
 controls by name, or for cuts `all` or selections of the input coverage's baseline, each as `NAME:whole` to
 run the cuts its `!` patterns leave out too; the count, streams or runs (the rule's: 20, 40, 18 and 10; none for
 cuts); the streams a job (none for cuts); the base, for regions; and the Python. A selection's cuts are split
-into slices by its baseline's `timing` (its cuts and its longest cut measured on CI), each slice's cuts planned
+into slices by its baseline's `timing` (its cuts, or those of a whole recording for `NAME:whole`, and its longest cut measured on CI), each slice's cuts planned
 to fill half its job's 120 minutes at two at once, the rest left to the selection's recording and a slower
 runner.
 

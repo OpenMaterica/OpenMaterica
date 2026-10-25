@@ -16,6 +16,8 @@ share.
   pattern took, counted by the place a draw is written (`left_out_by_place`): the owner of a strategy built
   once in a cached function is the first caller on a worker, so the owners a place has, and the sites that
   make, depend on how the tests are split among the workers; the places and what is drawn at them do not.
+  So it is a floor, and not the cuts a whole run makes (`--whole` counts those): another owner or another
+  call of a place already drawn adds nothing.
 - `run` does the same, then runs each cut as its own process, `--parallel` at a time, stopping at the first
   test that fails (the plugin stops pytest; this script ends the process group at once), and records each
   cut's result in the report (`--report`, JSON, written after each cut): `held` (the first test that failed,
@@ -51,6 +53,7 @@ import ast
 import fnmatch
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -177,8 +180,9 @@ def blank(kind: str) -> Json:
 
 def left_out_by_place(sites: dict[str, Json], patterns: Sequence[str]) -> dict[str, int]:
     """What the `!` patterns leave out, counted by the place a draw is written: each place with what every
-    owner's calls of it drew from. The owners a place has vary with the schedule of the tests, the places and
-    what is drawn at them do not."""
+    owner's calls of it drew from. The owners a place has, and the calls they make into it, vary with the
+    schedule of the tests, the places and what is drawn at them do not. So the count is a floor: another owner
+    or another call of a place already drawn adds nothing, and a new place does."""
     leaving: dict[str, Json] = {}
     for site, seen in sorted(sites.items()):
         if judged(site, patterns) == LEFT_OUT_BY_A_PATTERN:
@@ -204,12 +208,16 @@ def merged(out: Path) -> tuple[dict[str, Json], list[str]]:
     return sites, sorted(randoms)
 
 
+PLACE = re.compile(r" > (?=\S+\.py::)(?!.* > \S+\.py::)")
+
+
 def place_of(site: str) -> str:
     """Where a site's constructor is written, without the owner and the call it is made through
-    (`owner > call > place`): the owner of a strategy built once in a cached function is the first caller in
-    the process, so the owners a place has depend on how the tests are split among the workers, and the place
-    does not."""
-    return site.rpartition(" > ")[2]
+    (`owner > call > place`; a site written where its owner is has only a place). The call's text and the
+    place's label may hold ` > ` (a comparison), so the place is what follows the last one that a path
+    follows."""
+    found = PLACE.search(site)
+    return site[found.end() :] if found else site
 
 
 def pytest_command(tests: Sequence[str], out: Path, workers: int, cut: Json | None) -> list[str]:
@@ -706,6 +714,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     made = len(report["cuts"])
     if timing.get("cuts") is not None and not args.whole and timing["cuts"] != made:
         print(f"the baseline's timing counts {timing['cuts']} cuts, and the selection makes {made}")
+    # A recording without the patterns makes a cut for each owner and call of a place, so its count moves a
+    # little with the tests' schedule: `whole_cuts` is the largest measured, and the note says where it is
+    # too small to plan from.
+    if timing.get("whole_cuts") is not None and args.whole and timing["whole_cuts"] < made:
+        print(
+            f"the baseline's timing counts {timing['whole_cuts']} cuts of a whole recording, it makes {made}"
+        )
     slowest = max((cut.get("seconds", 0.0) for cut in report["cuts"].values()), default=0.0)
     if timing.get("seconds") is not None and slowest > timing["seconds"]:
         print(f"a cut took {slowest} s, longer than the {timing['seconds']} s the baseline's timing plans on")
@@ -714,12 +729,14 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 def from_records(directory: Path, selection: Json, profile: str) -> tuple[Json, list[str]]:
     """The selection's report merged from the records of `measure.yml`'s cut kind under `directory` (as
-    `measure.py fetch` downloads them), and where they do not make one report."""
+    `measure.py fetch` downloads them), and where they do not make one report. The self-test's records (their
+    job's answer names a count of cuts, `baseline:2`) are of a scope of their own and not the selection's."""
     reports: list[Json] = []
     for path in sorted(directory.rglob("record.json")):
         record: Any = json.loads(path.read_text(encoding="utf-8"))
         held: Any = cast(Json, record).get("report") if isinstance(record, dict) else None
-        if isinstance(held, dict):
+        answer: Any = cast(Json, record).get("job", {}).get("expect", "") if isinstance(record, dict) else ""
+        if isinstance(held, dict) and ":" not in str(answer):
             report = cast(Json, held)
             if (report.get("selection"), report.get("profile")) == (selection, profile):
                 reports.append(report)

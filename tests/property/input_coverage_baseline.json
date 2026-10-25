@@ -85,6 +85,7 @@
   },
   "timing": {
    "cuts": 93,
+   "whole_cuts": 351,
    "seconds": 726.4,
    "measured": "the longest of the selection's cuts in the cut kind's first dispatch on CI (all selections, at 9cb1c364, 2026-10-25), on two workers a cut, two cuts at once, on a runner of four vCPUs; run locally before it: 368.7 s"
   },
@@ -92,7 +93,7 @@
    "sites": 61,
    "cuts": 258,
    "uncut": 10,
-   "reason": "temporary: the earlier pieces' strategies that this one draws inside its own are left out by the `!` patterns and not yet run; the whole-repository run on the CI matrix (the next piece of this tool) runs them first and removes the patterns, and each cut of them not held then gets its reason"
+   "reason": "temporary: the earlier pieces' strategies that this one draws inside its own are left out by the `!` patterns and not yet run; the whole-repository run on the CI matrix (the next piece of this tool) runs them first and removes the patterns, and each cut of them not held then gets its reason. The counts are by place, a floor and not the cuts a whole run makes (`timing.whole_cuts`): another owner or call of a place already drawn adds nothing, until the draw-time ownership restores a count by owner"
   },
   "cuts": {
    "tests/property/table_alternatives_strategies.py::table_alternatives > changed(draw, alternative, other, request, FIELD) > tests/property/alternatives_strategies.py::changed::st.sampled_from(others) :: drop 'bulk'": {
@@ -430,14 +431,15 @@
   },
   "timing": {
    "cuts": 213,
+   "whole_cuts": 828,
    "seconds": 214.1,
-   "measured": "the longest of the selection's cuts in the cut kind's first dispatch on CI (all selections, at 9cb1c364, 2026-10-25), on two workers a cut, two cuts at once, on a runner of four vCPUs; run locally before it: 147.1 s"
+   "measured": "the longest of the selection's cuts in the cut kind's first dispatch on CI (all selections, at 9cb1c364, 2026-10-25), on two workers a cut, two cuts at once, on a runner of four vCPUs; run locally before it: 147.1 s; whole_cuts: the largest of a recording without the `!` patterns, 768, 800, 820 and 828 cuts at 2, 4, 8 and 12 workers (a cut for each owner and call of a place, so it moves with the schedule); S4d's is 351 at every width measured"
   },
   "left_out": {
    "sites": 20,
    "cuts": 80,
    "uncut": 9,
-   "reason": "temporary: the earlier pieces' strategies that this one draws inside its own are left out by the `!` patterns and not yet run; the whole-repository run on the CI matrix (the next piece of this tool) runs them first and removes the patterns, and each cut of them not held then gets its reason"
+   "reason": "temporary: the earlier pieces' strategies that this one draws inside its own are left out by the `!` patterns and not yet run; the whole-repository run on the CI matrix (the next piece of this tool) runs them first and removes the patterns, and each cut of them not held then gets its reason. The counts are by place, a floor and not the cuts a whole run makes (`timing.whole_cuts`): another owner or call of a place already drawn adds nothing, until the draw-time ownership restores a count by owner"
   },
   "cuts": {
    "tests/property/extrapolation_strategies.py::<module>::st.booleans() :: drop False": {

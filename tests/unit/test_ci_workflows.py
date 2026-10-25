@@ -9715,6 +9715,21 @@ def test_the_measure_jobs_are_wired_as_the_readme_says(
     assert (problems == []) if not problem else any(problem in line for line in problems), problems
 
 
+# The longest recording of each selection in a cut job on CI (the pull request's first run of the cut kind,
+# four workers), in seconds: the request job records every selection that a change to a module scopes, one
+# after the other, to count the cuts the scope holds (`scripts/measure.py` `scope_cuts`).
+RECORDING_SECONDS = {"table_alternatives": 411.7, "extrapolation": 128.1}
+REQUEST_MARGIN = 3
+
+
+def test_the_request_job_has_three_times_the_time_to_record_every_selection_a_change_scopes() -> None:
+    """A declared 30 minutes, held to what was measured: the recordings of both selections, with a margin for
+    a slower runner and the checkout."""
+    assert set(RECORDING_SECONDS) == set(measure.baseline_of(REPOSITORY))
+    minutes = as_number(setting(workflow(MEASURE)["jobs"]["request"].get("timeout-minutes"), {}))
+    assert minutes >= REQUEST_MARGIN * sum(RECORDING_SECONDS.values()) / 60
+
+
 def measure_timeout_problems(found: Workflow) -> list[str]:
     """Where a job has no timeout, or the measurement is not interrupted three minutes before its job's, as
     counted from the job's start, by one SIGINT to the script that passes it on."""
@@ -9926,7 +9941,7 @@ def test_a_cut_dispatch_makes_the_slices_of_each_selection_its_timing_plans(
     baseline = measure.baseline_of(REPOSITORY)
     for name in slices:
         entry = baseline[name.partition(":")[0]]
-        cuts = entry["timing"]["cuts"] + (entry["left_out"]["cuts"] if name.endswith(":whole") else 0)
+        cuts = entry["timing"]["whole_cuts" if name.endswith(":whole") else "cuts"]
         planned = math.ceil(cuts * entry["timing"]["seconds"] / (0.5 * 120 * 60 * 2))
         mine = [job for job in made if job.nodes == name]
         assert [(job.first, job.length) for job in mine] == [(part, planned) for part in range(planned)]

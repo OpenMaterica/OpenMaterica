@@ -421,8 +421,9 @@ def cut_jobs(
     words: Sequence[str], python: str, root: Path, expect: str = "", scope: str = "", count: int = 0
 ) -> list[Job]:
     """The jobs of a cut request: each selection named (`all`, every one) split into slices of about equal
-    planned time, by the cuts its baseline's `timing` counts (with those its `!` patterns leave out, where
-    whole) and its longest cut measured (`slices_for`); `count` slices where given."""
+    planned time, by the cuts its baseline's `timing` counts (`cuts`, or `whole_cuts`, those of a recording
+    without its `!` patterns, where whole) and its longest cut measured (`slices_for`); `count` slices where
+    given."""
     baseline = baseline_of(root)
     named: list[tuple[str, str]] = []
     for word in words:
@@ -434,7 +435,7 @@ def cut_jobs(
     for name, whole in named:
         entry = baseline[name]
         timing: dict[str, Any] = entry["timing"]
-        cuts = timing["cuts"] + (entry["left_out"]["cuts"] if whole else 0)
+        cuts = timing["whole_cuts"] if whole else timing["cuts"]
         slices = count or slices_for(cuts, timing["seconds"])
         selection = f"{name}:{whole}" if whole else name
         jobs += [
@@ -500,7 +501,7 @@ def baseline_at(commit: str, root: Path) -> dict[str, Any]:
 
 def scope_cuts(name: str, scope: str, root: Path) -> int:
     """The cuts of a selection that a scope's patterns match, counted from the selection's recording
-    (`scripts/input_coverage.py list`, on the width its baseline states): a scope's size is known only so."""
+    (`scripts/input_coverage.py list`, on its default workers): a scope's size is known only so."""
     with tempfile.TemporaryDirectory(prefix="measure-scope-") as scratch:
         report_path = Path(scratch) / "report.json"
         command = [sys.executable, str(root / "scripts" / "input_coverage.py"), "list", name]

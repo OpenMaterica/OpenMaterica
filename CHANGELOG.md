@@ -386,8 +386,8 @@ every family entry goes in `families/CHANGELOG.md`.
   the value-field draws S4a's and S2's helpers make for the other alternatives and the table set aside, 6
   equivalents, 5 of them empty) and S3c's extrapolation (213 cuts: 56 held, 127 gaps, 30 equivalents, 6 of them
   empty); the earlier pieces' table and value strategies drawn inside the two are left out of their selections
-  by `!` patterns, for now and not yet run (S4d's: 61 sites, 258 cuts, 10 uncut draws; S3c's: 165 sites, 607
-  cuts, 70 uncut draws), counted in the baseline, whose check fails when the counts change; the
+  by `!` patterns, for now and not yet run (S4d's: 61 places, 258 cuts, 10 uncut draws; S3c's: 20 places, 80
+  cuts, 9 uncut draws, a floor of what a whole run makes), counted in the baseline, whose check fails when the counts change; the
   whole-repository run on the CI matrix runs them first and removes the patterns. None is fixed here. On the
   trees before S3c's fix round and at S4d's first round it reports not held the draws those rounds' reviews
   and builder found unheld by hand. The plugin loaded with no cut draws what is drawn without it, every
@@ -395,8 +395,8 @@ every family entry goes in `families/CHANGELOG.md`.
 - The input coverage's cuts run on CI as a kind of `.github/workflows/measure.yml`, `cuts` (maintainer,
   2026-10-23 and 2026-10-24): a dispatch names selections of the baseline, or `all`, each alone or as
   `NAME:whole`, without its `!` patterns, so that the cuts they leave out run too. The request job splits each
-  selection's cuts into slices by the baseline's new `timing` (the cuts the selection makes and its longest
-  cut, from the first dispatch on CI), each slice's cuts planned to fill half of its job's 120 minutes at two
+  selection's cuts into slices by the baseline's new `timing` (the cuts the selection makes, those of a whole
+  recording where it is run `:whole`, and its longest cut, from the first dispatch on CI), each slice's cuts planned to fill half of its job's 120 minutes at two
   at once; each job records the selection and runs its slice, starting no cut it could not finish before its interrupt and reporting how many cuts its share
   held; the report merges the slices into the selection's report, refusing a slice missing, doubled or
   recording other cuts, naming a selection that held no cut ("0 in scope: nothing checked"), and holds it to
@@ -415,7 +415,9 @@ every family entry goes in `families/CHANGELOG.md`.
   draw is written: the owner of a strategy built once in a cached function is the first caller on a worker, so
   the sites it made, and with them the counts, varied with how the tests were split among the recording's
   workers (S3c's 151, 160 and 165 sites at 2, 4 and 8 workers), where the places and what is drawn at them do
-  not. The pull-request run is advisory (maintainer, 2026-10-25): it
+  not, nor did a count by the selection's own owner and the place (120, 128 and 132 sites). The count is a
+  floor: another owner or another call of a place already drawn adds nothing, until the draw-time ownership
+  restores a count by owner. The pull-request run is advisory (maintainer, 2026-10-25): it
   blocks no merge, until it has run cleanly on a few feature pull requests. `measure.yml` leaves the
   concurrency queue at GitHub's default, since `queue: max` beside a pull request's cancelling run is a
   workflow validation error (a pending dispatch of the same inputs on the same ref is replaced by a newer one).
