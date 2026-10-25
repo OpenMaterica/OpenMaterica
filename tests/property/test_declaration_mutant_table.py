@@ -4,9 +4,9 @@ searches, so that it runs on every Python (`--property-controls` in `tests/conft
 
 from materica.core import declarations
 from tests.property import declaration_strategies as strategies
-from tests.property.test_declaration_mutants import KILLERS, MUTANTS
+from tests.property.test_declaration_mutants import KILLERS, MUTANTS, stratum
 
-# What each part's examples draw as their way, which a mutant's `dies_at` names.
+# What each part's examples draw as their way, which a mutant's `dies_at` names, in the part's strata.
 DRAWN = {
     **{f"HP41 {part}": tuple(ways) for part, ways in strategies.PARTS.items()},
     "HP41 every_fault": ("every_fault",),
@@ -14,18 +14,32 @@ DRAWN = {
 }
 
 
+def test_each_part_draws_its_ways_in_strata_of_at_most_two() -> None:
+    """Every way of a part in one stratum, and none of more than two ways (the floors at the variance
+    measured)."""
+    for killer, (_, strata, _) in KILLERS.items():
+        ways = [way for ways in strata for way in ways]
+        assert sorted(ways) == sorted(DRAWN[killer]), killer
+        assert all(1 <= len(ways) <= 2 for ways in strata), killer
+
+
 def test_each_mutant_names_a_killer_the_ways_that_show_it_its_assertion_and_its_function() -> None:
     assert len({mutant.name for mutant in MUTANTS}) == len(MUTANTS)
     assert set(DRAWN) == set(KILLERS)
     assert all(mutant.killer in KILLERS for mutant in MUTANTS)
-    assert all(mutant.dies_at and set(mutant.dies_at) <= set(DRAWN[mutant.killer]) for mutant in MUTANTS)
+    for mutant in MUTANTS:
+        within = [ways for ways in KILLERS[mutant.killer][1] if set(mutant.dies_at) <= set(ways)]
+        assert mutant.dies_at, mutant.name
+        assert len(within) == 1, f"{mutant.name}: the ways it names lie in no one stratum"
     assert all(mutant.says.strip() and mutant.fault.strip() for mutant in MUTANTS)
     assert all(hasattr(declarations, mutant.function) for mutant in MUTANTS)
 
 
-def test_every_part_kills_a_mutant() -> None:
-    """HP41's seven parts and HP42 each kill one at least: none is a check no fault fails."""
-    assert {mutant.killer for mutant in MUTANTS} == set(KILLERS)
+def test_every_stratum_kills_a_mutant() -> None:
+    """Each stratum of HP41's seven parts and of HP42, a test of its own, kills one at least: none is a check
+    no fault fails."""
+    strata = {(killer, ways) for killer, (_, all_strata, _) in KILLERS.items() for ways in all_strata}
+    assert {(mutant.killer, stratum(mutant)) for mutant in MUTANTS} == strata
 
 
 # The S7 design's mutants of HP41 and HP42 (its section 6.4), by the function it names, each by the row that

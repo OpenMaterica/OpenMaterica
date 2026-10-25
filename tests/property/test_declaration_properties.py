@@ -20,7 +20,8 @@ draws of `declaration_strategies.py`, against an oracle written here from the te
 
 The oracle: each planted fault's rules, by its name (`RULES`, each from its sentence); a fault more than one
 rule names (one member at fault: maintainer, 2026-10-24) carries the case first in the refusal paragraph's
-order (`ORDER`); two faults of one case and one pointer are one refusal.
+order (`ORDER`); two faults of one case and one pointer are one refusal; and a fault a rule judges against a
+member itself at fault, or inside an acceptance that names no known kind, is not judged (`judged`).
 
 HP1, HP2 and HP11's checks (`check_totality`, `check_status_law`, `check_claims`) are of a result's `read`:
 S7a-1 gives none, a declaration being refused or raising `NotImplementedError` past its check, so none applies
@@ -32,12 +33,13 @@ from typing import cast
 
 import pytest
 from hypothesis import given
+from hypothesis import strategies as st
 
 from materica.core.declarations import Declaration
 from materica.core.jsonio import JsonValue
 from materica.shapes import Suite
 from tests.property import declaration_strategies as strategies
-from tests.property.declaration_strategies import Drawn, Planted
+from tests.property.declaration_strategies import KINDS, Drawn, Planted, model_of
 from tests.property.strategies import SIZE
 from tests.property.support import feature
 
@@ -89,13 +91,18 @@ RULES: Mapping[str, frozenset[str]] = {
 
 
 def item_7(facts: Mapping[str, object]) -> frozenset[str]:
-    """Item 7 refuses a model with `engine` "checked over a path or records, ..., or with another `want`", and
-    "a pinned crosswalk that is not passed", which every pinned crosswalk is to this version's build; at its
-    `engine`, one refusal per model (the refusal paragraph). Item 12 names its `engine` too, where USD read is
-    not claimed."""
+    """Item 7 refuses a model with `engine` "checked over a path or records, ..., or with another `want`", "a
+    declared engine value without `reason` and `basis`", and "a pinned crosswalk that is not passed", which
+    every pinned crosswalk is to this version's build; at its `engine`, one refusal per model "whichever of
+    that item's rules it breaks" (the refusal paragraph), and none at the value, though the shape table names
+    its `reason` and `basis` too (`changes.md`, S7a-1b's second review). Item 12 names its `engine` too, where
+    USD read is not claimed."""
     wants = cast(tuple[str, ...], facts["wants"])
     refused = (
-        facts["over"] in ("path", "records") or facts["crosswalk"] or any(want != "value" for want in wants)
+        facts["over"] in ("path", "records")
+        or facts["crosswalk"]
+        or facts["unexplained"]
+        or any(want != "value" for want in wants)
     )
     return frozenset({"BC-040", "BC-051"}) if refused else frozenset({"BC-051"})
 
@@ -150,11 +157,53 @@ def faults_of(planted: Sequence[Planted]) -> Iterator[tuple[str, str | None, fro
             yield fault.pointer, fault.aspect, RULES[fault.fault]
 
 
-def expected(planted: Sequence[Planted]) -> set[tuple[str, str]]:
-    """The refusals the text gives the planted faults: one fault per member at fault, of the case first in
-    `ORDER` of the rules that name it; two of one case and one pointer, one refusal."""
+def kindless_and_unread(declaration: JsonValue | bytes) -> tuple[list[str], set[int]]:
+    """The acceptances of `declaration` that name no known kind (their `acceptance` missing, or no kind of
+    section 4.1), by pointer, and the models whose `reads` is at fault (missing, no list, or empty), by
+    index."""
+    kindless: list[str] = []
+    unread: set[int] = set()
+    models = declaration.get("models") if isinstance(declaration, dict) else None
+    for m, model in enumerate(models if isinstance(models, list) else []):
+        if not isinstance(model, dict):
+            continue
+        reads = model.get("reads")
+        if not (isinstance(reads, list) and reads):
+            unread.add(m)
+        listed = model.get("acceptances")
+        for k, held in enumerate(listed if isinstance(listed, list) else []):
+            if isinstance(held, dict) and held.get("acceptance") not in KINDS:
+                kindless.append(f"/models/{m}/acceptances/{k}")
+    return kindless, unread
+
+
+def judged(planted: Sequence[Planted], declaration: JsonValue | bytes) -> list[Planted]:
+    """The planted faults the refusal paragraph judges: "A rule that judges one member against another stands
+    aside where the other is itself at fault, so that one fault is one refusal: ... a requirement's `field`
+    against a `reads` at fault (an empty one too) ...; an acceptance that names no known kind is refused at
+    itself, and none of its other members is judged." A field not read is judged against `reads` alike for a
+    requirement and a `trainable` entry (the members table: "each for a field in `reads`", "a field in
+    `reads`"). An acceptance of no kind keeps the fault of its kind alone: its `acceptance` missing, at it, or
+    no kind, at that member."""
+    kindless, unread = kindless_and_unread(declaration)
+
+    def kept(fault: Planted) -> bool:
+        for at in kindless:
+            if (fault.pointer == at and fault.aspect == "acceptance") or fault.pointer == at + "/acceptance":
+                return True
+            if fault.pointer == at or fault.pointer.startswith(at + "/"):
+                return False
+        return not (fault.fault == "unread" and model_of(fault.pointer) in unread)
+
+    return [fault for fault in planted if kept(fault)]
+
+
+def expected(planted: Sequence[Planted], declaration: JsonValue | bytes) -> set[tuple[str, str]]:
+    """The refusals the text gives the planted faults it judges in `declaration`: one fault per member at
+    fault, of the case first in `ORDER` of the rules that name it; two of one case and one pointer, one
+    refusal."""
     named: dict[tuple[str, str | None], set[str]] = {}
-    for at, aspect, rules in faults_of(planted):
+    for at, aspect, rules in faults_of(judged(planted, declaration)):
         named.setdefault((at, aspect), set()).update(rules)
     return {(min(rules, key=ORDER.index), at) for (at, _), rules in named.items()}
 
@@ -179,7 +228,7 @@ def check_valid(drawn: Drawn) -> None:
 
 def check_refusals(drawn: Drawn) -> None:
     """The planted faults give exactly the oracle's refusals, each once."""
-    wanted = expected(drawn.planted)
+    wanted = expected(drawn.planted, drawn.declaration)
     found = refusals_of(drawn.declaration, drawn.claims)
     if not wanted:
         assert found is None, f"refused {found}, where the text refuses nothing"
@@ -203,7 +252,7 @@ def check_unbuilt(drawn: Drawn) -> None:
     assert drawn.without is not None
     assert suite is not None
     without = set(refusals_of(drawn.without, drawn.claims) or ())
-    member = expected(drawn.planted[drawn.beside :])
+    member = expected(drawn.planted[drawn.beside :], drawn.declaration)
     found = set(refusals_of(drawn.declaration, drawn.claims) or ())
     assert found == without | member, (
         f"refused otherwise than without the member: {sorted(found)}, without it {sorted(without)} and the"
@@ -220,47 +269,69 @@ def check_unbuilt(drawn: Drawn) -> None:
     raise AssertionError(f"a build claiming {suite} did not fail closed: {shown}")
 
 
-WAYS = {part: tuple(ways) for part, ways in strategies.PARTS.items()}
+# Each part's strata (`strategies.STRATA`), each a test of its own drawing its way first among them.
+STRATA = {
+    part: [pytest.param(stratum, id="-".join(stratum), marks=pytest.mark.drawn(*stratum)) for stratum in ways]
+    for part, ways in (*strategies.STRATA.items(), ("HP42", strategies.HP42_STRATA))
+}
 
 
-@pytest.mark.drawn(*WAYS["reasons"])
-@given(strategies.hp41("reasons", SIZE))
-def test_a_reason_or_a_basis_missing_or_empty_is_refused_by_items_3_and_4(drawn: Drawn) -> None:
+@pytest.mark.parametrize("ways", STRATA["reasons"])
+@given(data=st.data())
+def test_a_reason_or_a_basis_missing_or_empty_is_refused_by_items_3_and_4(
+    ways: tuple[str, ...], data: st.DataObject
+) -> None:
+    drawn = data.draw(strategies.hp41("reasons", SIZE, ways))
     feature(drawn.way)
     check_declaration(drawn)
 
 
-@pytest.mark.drawn(*WAYS["locations"])
-@given(strategies.hp41("locations", SIZE))
-def test_an_acceptance_whose_kind_needs_a_location_and_names_none_is_refused(drawn: Drawn) -> None:
+@pytest.mark.parametrize("ways", STRATA["locations"])
+@given(data=st.data())
+def test_an_acceptance_whose_kind_needs_a_location_and_names_none_is_refused(
+    ways: tuple[str, ...], data: st.DataObject
+) -> None:
+    drawn = data.draw(strategies.hp41("locations", SIZE, ways))
     feature(drawn.way)
     check_declaration(drawn)
 
 
-@pytest.mark.drawn(*WAYS["shape"])
-@given(strategies.hp41("shape", SIZE))
-def test_a_declaration_off_its_shape_is_refused_at_the_member_at_fault(drawn: Drawn) -> None:
+@pytest.mark.parametrize("ways", STRATA["shape"])
+@given(data=st.data())
+def test_a_declaration_off_its_shape_is_refused_at_the_member_at_fault(
+    ways: tuple[str, ...], data: st.DataObject
+) -> None:
+    drawn = data.draw(strategies.hp41("shape", SIZE, ways))
     feature(drawn.way)
     check_declaration(drawn)
 
 
-@pytest.mark.drawn(*WAYS["tokens"])
-@given(strategies.hp41("tokens", SIZE))
-def test_a_token_or_a_registered_name_off_its_members_list_is_refused(drawn: Drawn) -> None:
+@pytest.mark.parametrize("ways", STRATA["tokens"])
+@given(data=st.data())
+def test_a_token_or_a_registered_name_off_its_members_list_is_refused(
+    ways: tuple[str, ...], data: st.DataObject
+) -> None:
+    drawn = data.draw(strategies.hp41("tokens", SIZE, ways))
     feature(drawn.way)
     check_declaration(drawn)
 
 
-@pytest.mark.drawn(*WAYS["names"])
-@given(strategies.hp41("names", SIZE))
-def test_a_name_given_twice_a_field_not_read_and_an_unreviewed_label_are_refused(drawn: Drawn) -> None:
+@pytest.mark.parametrize("ways", STRATA["names"])
+@given(data=st.data())
+def test_a_name_given_twice_a_field_not_read_and_an_unreviewed_label_are_refused(
+    ways: tuple[str, ...], data: st.DataObject
+) -> None:
+    drawn = data.draw(strategies.hp41("names", SIZE, ways))
     feature(drawn.way)
     check_declaration(drawn)
 
 
-@pytest.mark.drawn(*WAYS["precedence"])
-@given(strategies.hp41("precedence", SIZE))
-def test_a_fault_carries_the_first_case_of_the_rules_that_name_it_once(drawn: Drawn) -> None:
+@pytest.mark.parametrize("ways", STRATA["precedence"])
+@given(data=st.data())
+def test_a_fault_carries_the_first_case_of_the_rules_that_name_it_once(
+    ways: tuple[str, ...], data: st.DataObject
+) -> None:
+    drawn = data.draw(strategies.hp41("precedence", SIZE, ways))
     feature(drawn.way)
     check_declaration(drawn)
 
@@ -270,10 +341,11 @@ def test_every_fault_of_a_declaration_is_refused_at_once(drawn: Drawn) -> None:
     check_declaration(drawn)
 
 
-@pytest.mark.drawn(*strategies.HP42_WAYS)
-@given(strategies.hp42(SIZE))
+@pytest.mark.parametrize("ways", STRATA["HP42"])
+@given(data=st.data())
 def test_what_a_build_cannot_check_is_refused_after_items_7_and_8_and_fails_closed_where_claimed(
-    drawn: Drawn,
+    ways: tuple[str, ...], data: st.DataObject
 ) -> None:
+    drawn = data.draw(strategies.hp42(SIZE, ways))
     feature(drawn.way)
     check_unbuilt(drawn)

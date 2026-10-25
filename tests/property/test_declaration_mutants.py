@@ -20,7 +20,7 @@ import pytest
 from hypothesis import strategies as st
 
 from materica.core import declarations
-from materica.core.declarations import Finding, Holds, JsonObject
+from materica.core.declarations import Finding, Holds, JsonObject, Member
 from materica.core.jsonio import JsonValue
 from materica.core.report import BuildRefusal
 from materica.core.slips import one_slip
@@ -32,16 +32,30 @@ from tests.property.declaration_strategies import Drawn
 from tests.property.strategies import ORIGINAL, SMALL, Size
 from tests.property.test_condition_mutants import kill
 
+# Each property part that kills a mutant, by name: its examples at a size over a stratum of its ways, its
+# strata (each a test of `test_declaration_properties.py`), and its check.
+Examples = Callable[[Size, tuple[str, ...]], st.SearchStrategy[Drawn]]
 
-# Each property part that kills a mutant, by name: its examples at a size and its check.
-def part_of(part: str) -> Callable[[Size], st.SearchStrategy[Drawn]]:
-    return lambda size: strategies.hp41(part, size)
+
+def part_of(part: str) -> Examples:
+    return lambda size, ways: strategies.hp41(part, size, ways)
 
 
-KILLERS: dict[str, tuple[Callable[[Size], st.SearchStrategy[Drawn]], Callable[[Drawn], None]]] = {
-    **{f"HP41 {part}": (part_of(part), properties.check_declaration) for part in strategies.PARTS},
-    "HP41 every_fault": (strategies.every_fault, properties.check_declaration),
-    "HP42": (strategies.hp42, properties.check_unbuilt),
+KILLERS: dict[str, tuple[Examples, tuple[tuple[str, ...], ...], Callable[[Drawn], None]]] = {
+    **{
+        f"HP41 {part}": (part_of(part), strategies.STRATA[part], properties.check_declaration)
+        for part in strategies.PARTS
+    },
+    "HP41 every_fault": (
+        lambda size, _: strategies.every_fault(size),
+        (("every_fault",),),
+        properties.check_declaration,
+    ),
+    "HP42": (
+        lambda size, ways: strategies.hp42(size, ways),
+        strategies.HP42_STRATA,
+        properties.check_unbuilt,
+    ),
 }
 
 
@@ -53,6 +67,11 @@ class Mutant(NamedTuple):
     dies_at: tuple[str, ...]  # the ways, one of which the example that kills it must show
     says: str  # a pattern the message of the assertion that kills it must match: what the fault changes
     fault: str  # the fault, in words
+
+
+def stratum(mutant: Mutant) -> tuple[str, ...]:
+    """The stratum of its killer's ways holding every way the mutant names: the test whose draws kill it."""
+    return next(ways for ways in KILLERS[mutant.killer][1] if set(mutant.dies_at) <= set(ways))
 
 
 def replacing(name: str, value: object) -> Callable[[pytest.MonkeyPatch], None]:
@@ -242,7 +261,32 @@ def _in_a_model_member(finding: Finding, _: JsonObject) -> bool:
     return re.fullmatch(r"/models/[0-9]+/model(/.*)?", finding.pointer) is not None
 
 
+# An acceptance of no known kind judged by the members some kind names, each by the last kind that names it
+# and none required but its kind: the check before the refusal paragraph had an acceptance that names no
+# known kind refused at itself alone.
+_EVERY_KIND = {
+    member.name: Member(member.name, "yes" if member.name == "acceptance" else "rule", member.holds)
+    for kind in declarations.KINDS
+    for member in declarations.SHAPE[kind]
+}
+
+
 # `_names`.
+
+
+def _fields_judged_against_an_empty_reads(declaration: JsonObject) -> list[Finding]:
+    """A requirement's and a `trainable` entry's `field` judged against an empty `reads`, a `reads` itself at
+    fault, where the refusal paragraph has that rule stand aside."""
+    found = NAMES(declaration)
+    for index, model in ENTRIES(declaration, "models"):
+        if model.get("reads") != []:
+            continue
+        for member in ("requirements", "trainable"):
+            for position, entry in ENTRIES(model, member):
+                if isinstance(entry.get("field"), str):
+                    at = f"/models/{index}/{member}/{position}/field"
+                    found.append(Finding("BC-048", at, "not in an empty reads"))
+    return found
 
 
 def _trainable_twice_by_field(declaration: JsonObject) -> list[Finding]:
@@ -441,12 +485,14 @@ def _model_index_off_by_one(pointer: str, name: str | int) -> str:
     return JOIN(pointer, name + 1 if pointer == "/models" and isinstance(name, int) else name)
 
 
-REASONS_WAYS = tuple(strategies.REASONS)
-LOCATIONS_WAYS = tuple(strategies.LOCATIONS)
-SWEPT = ("outside_list", "slip_of_token", "other_members_token", "other_case")
-NAMES_WAYS = tuple(strategies.NAMES_PART)
+# The ways of a stratum a mutant names whole: the token sweep's two ways of no slip, and the two ways where
+# an acceptance names no location.
+SWEPT = ("outside_list", "other_members_token")
+UNLOCATED = ("unlocated", "accepted_difference_unlocated")
+# The stratum whose faulty declaration no rule but the parse judges, so that a mutant of a rule that refuses
+# what the text takes dies at the valid declaration alone, never at a fault planted beside such a value.
+NOT_PARSED = ("not_json", "not_object")
 EVERY = ("every_fault",)
-HP42_WAYS = strategies.HP42_WAYS
 REFUSALS = "^(refusals|taken|refused)"
 VALID = "^a valid declaration refused"
 
@@ -492,9 +538,9 @@ MUTANTS = [
     Mutant(
         "basis_required_of_a_waiver",
         "_reasons",
-        "HP41 reasons",
+        "HP41 precedence",
         replacing("_reasons", _basis_required_of_a_waiver),
-        REASONS_WAYS,
+        NOT_PARSED,
         VALID,
         "`basis` required of a waiver",
     ),
@@ -510,9 +556,9 @@ MUTANTS = [
     Mutant(
         "blank_reason_refused",
         "_reasons",
-        "HP41 reasons",
+        "HP41 precedence",
         replacing("_reasons", _blank_reason_refused),
-        REASONS_WAYS,
+        NOT_PARSED,
         VALID,
         "a `reason` or `basis` of white space alone refused",
     ),
@@ -537,7 +583,7 @@ MUTANTS = [
         "_locations",
         "HP41 locations",
         replacing("_locations", _accepted_difference_location_required),
-        LOCATIONS_WAYS,
+        UNLOCATED,
         f"{VALID}|^refused",
         "an `accepted_difference` naming no location refused",
     ),
@@ -597,6 +643,15 @@ MUTANTS = [
         "an `overlay_scope` accepting nothing taken",
     ),
     Mutant(
+        "empty_reads_judged",
+        "_names",
+        "HP41 shape",
+        replacing("_names", _fields_judged_against_an_empty_reads),
+        ("empty_list",),
+        "^refusals",
+        "a requirement's or a `trainable` entry's `field` judged against an empty `reads`",
+    ),
+    Mutant(
         "exactly_one_unchecked",
         "_shape",
         "HP41 shape",
@@ -610,7 +665,7 @@ MUTANTS = [
         "_shape",
         "HP41 shape",
         replacing("_shape", dropping(SHAPE, lambda finding, _: finding.pointer.startswith("/consumer"))),
-        ("missing", "breaks_holds", "unknown", "slip"),
+        ("unknown", "slip"),
         REFUSALS,
         "a `consumer` missing a member, holding another or of another type, taken",
     ),
@@ -685,7 +740,7 @@ MUTANTS = [
         "_shape",
         "HP41 shape",
         replacing("_shape", dropping(SHAPE, _in_a_chain)),
-        ("missing", "breaks_holds", "unknown", "slip"),
+        ("unknown", "slip"),
         REFUSALS,
         "a chain's members unchecked",
     ),
@@ -694,7 +749,7 @@ MUTANTS = [
         "_shape",
         "HP41 shape",
         replacing("_shape", dropping(SHAPE, _in_a_model_member)),
-        ("missing", "breaks_holds", "unknown", "slip"),
+        ("unknown", "slip"),
         REFUSALS,
         "a `model` missing `name` or `version`, holding another member or of another type, taken",
     ),
@@ -712,7 +767,7 @@ MUTANTS = [
         "_shape",
         "HP41 locations",
         replacing("_shape", _difference_of_any_refused),
-        LOCATIONS_WAYS,
+        UNLOCATED,
         f"{VALID}|^refused",
         'an accepted difference of value `"any"` refused',
     ),
@@ -820,7 +875,7 @@ MUTANTS = [
                 ),
             ),
         ),
-        (*SWEPT, "misspelt_name"),
+        SWEPT,
         REFUSALS,
         "a waiver's `condition` holding any string taken",
     ),
@@ -829,9 +884,18 @@ MUTANTS = [
         "_tokens",
         "HP41 shape",
         replacing("_tokens", dropping(TOKENS, detail_says("names its condition"))),
-        ("breaks_holds", "slip", "missing"),
+        ("missing",),
         REFUSALS,
         "a waiver whose code names a condition taken without its `condition`",
+    ),
+    Mutant(
+        "kindless_acceptance_judged",
+        "_ANY_KIND",
+        "HP41 shape",
+        replacing("_ANY_KIND", _EVERY_KIND),
+        ("missing",),
+        "^refusals",
+        "an acceptance of no known kind judged by the members other kinds name",
     ),
     # `_names` and `_labels` (the design's seven; the reviews' combinations, `accepts` and `trainable`).
     Mutant(
@@ -905,9 +969,9 @@ MUTANTS = [
     Mutant(
         "trainable_twice_by_field",
         "_names",
-        "HP41 names",
+        "HP41 precedence",
         replacing("_names", _trainable_twice_by_field),
-        NAMES_WAYS,
+        NOT_PARSED,
         VALID,
         "two `trainable` entries for one field at two locations refused",
     ),
@@ -962,7 +1026,7 @@ MUTANTS = [
         "_precedence",
         "HP41 precedence",
         replacing("_precedence", _missing_member_at_the_member),
-        ("missing_member", "two_missing", "two_rules"),
+        ("two_rules", "missing_member"),
         "^refusals",
         "a missing member's pointer at the member, not at its parent",
     ),
@@ -1066,7 +1130,7 @@ MUTANTS = [
         "_suite_members",
         "HP42",
         replacing("_suite_members", members_without(lambda _, words: words == "a distribution")),
-        HP42_WAYS,
+        ("sampling",),
         REFUSALS,
         "a `distribution` acceptance taken without the sampling suite",
     ),
@@ -1087,6 +1151,15 @@ MUTANTS = [
         ("engine",),
         REFUSALS,
         "BC-051 for an engine model over records in place of BC-040",
+    ),
+    Mutant(
+        "engine_value_refused_at_the_value",
+        "_ITEM_7_MEMBERS",
+        "HP42",
+        replacing("_ITEM_7_MEMBERS", frozenset[tuple[str, str]]()),
+        ("engine",),
+        "^refusals",
+        "an engine value without `reason` or `basis` refused at the value beside the model's `engine`",
     ),
     Mutant(
         "item_12_beside_item_8",
@@ -1137,7 +1210,7 @@ def test_the_declaration_mutant_is_killed(
 ) -> None:
     """At an example of one of the ways it names, and at the assertion it names."""
     mutant.inject(monkeypatch)
-    examples, check = KILLERS[mutant.killer]
+    examples, _, check = KILLERS[mutant.killer]
     said: list[str] = []
 
     def checked(example: Drawn) -> None:
@@ -1147,7 +1220,7 @@ def test_the_declaration_mutant_is_killed(
             said.append(str(error))
             raise
 
-    tried, example = kill(examples(size), checked)
+    tried, example = kill(examples(size, stratum(mutant)), checked)
     record_property("examples_to_kill", tried)
     assert cast(Drawn, example).way in mutant.dies_at, cast(Drawn, example).way
     assert re.search(mutant.says, said[0]), said[0]
