@@ -12,6 +12,9 @@ quoted text that ends it. A cell or a list not of the form expected stops the sc
 listed twice in one table; every list of tokens is read in full or not at all: the specification is the
 source, and a change to it must change a file or fail here, never drop a token. A parenthetical in a list is
 prose and is read as none of its tokens; in a table cell of tokens, a code span inside one stops the script.
+`coverage.json` is the one file of a rule: `declarations.md` section 4.2's table of what covers which reason,
+each "Covered by" cell read by a fixed table of the phrasings it uses (`COVERED_BY`), a phrasing not in it
+stopping the script.
 """
 
 import json
@@ -557,6 +560,158 @@ def acceptances(rows: list[Row]) -> Vocabulary:
     return {"kinds": kinds, "$defs": {"extrapolation_method": enumeration(listed(own, "`method` (", ")"))}}
 
 
+# `declarations.md` section 4.2's "Covered by" column: each phrasing the table uses, and the rule it states. A
+# phrasing not listed here stops the generator, so that a row is never read loosely (the S7 design's 6.5).
+# `kind` is the kind of acceptance that covers; each flag is false unless given: `names_code`, the
+# acceptance's `code` is the reason's; `names_condition`, its `condition` is the reason's; `on_assumption`,
+# only on a result whose `assumption` names the acceptance; `names_differing_members`, an `overlay_scope`
+# naming every member that differs; `carries_value`, only on a result that carries a value.
+COVERED_BY: dict[str, dict[str, object]] = {
+    "a `waiver` naming that condition and code": {
+        "kind": "waiver",
+        "names_code": True,
+        "names_condition": True,
+    },
+    "a `waiver` naming that code": {"kind": "waiver", "names_code": True},
+    "a `pick` only": {"kind": "pick"},
+    "an `extrapolation` only": {"kind": "extrapolation"},
+    "an `extrapolation`, only on a result whose `assumption` names it": {
+        "kind": "extrapolation",
+        "on_assumption": True,
+    },
+    "a `nominal`, only on a result whose `assumption` names it": {"kind": "nominal", "on_assumption": True},
+    "an `overlay_scope` naming every member that differs": {
+        "kind": "overlay_scope",
+        "names_differing_members": True,
+    },
+    "an `accepted_difference`": {"kind": "accepted_difference"},
+    "its `trainable` entry (section 7), on a result that carries a value": {
+        "kind": "trainable",
+        "carries_value": True,
+    },
+}
+# Every flag a coverage row holds: the rule's, and `trainable`, that the row covers on a field listed in
+# `trainable` alone, which its Reason column states.
+COVERAGE_FLAGS = (
+    "names_code",
+    "names_condition",
+    "on_assumption",
+    "names_differing_members",
+    "carries_value",
+    "trainable",
+)
+# The Reason column's phrases beside code spans, joined as prose joins a list.
+SPECIMEN_DIFFERENCE, CONDITION_REASON = "a specimen difference", "a condition reason"
+# The qualifiers a Reason cell may end with, each with what its row's rule must already hold, and what the
+# qualifier adds. A nominal's `assumption` names it only where it supplied the value, which it does only for a
+# value read from an interval or a vector read from a parameter set with none (`read_side_contract.md`
+# section 6), so that qualifier adds nothing to its row's own condition, which it requires.
+REASON_QUALIFIERS: dict[str, tuple[dict[str, object], dict[str, object]]] = {
+    ", for a value read from an interval, or a vector read from a parameter set with none": (
+        {"on_assumption": True},
+        {},
+    ),
+    ", on a field listed in `trainable`": ({"kind": "trainable"}, {"trainable": True}),
+}
+# The Status column: a read status, or the two cells of the rows that are not a reason's.
+STATUS_CELLS: dict[str, str | None] = {
+    "unknown": "unknown",
+    "not_met": "not_met",
+    "(not a status)": None,
+    "any": "any",
+}
+# A list in the Reason column: items joined by commas, `or` and `and`.
+_REASON_ITEMS = re.compile(r", or |, and |, | or | and ")
+
+
+def coverage(read: Documents) -> Vocabulary:
+    """`declarations.md` section 4.2: per row, the reasons it covers and the rule of what covers them. "A
+    condition reason" is each of section 4's `condition_*` codes (the six `condition_*` codes, section 1) but
+    those the paragraph above the table says are never accepted ("`condition_unknown_name` among them"), which
+    no row may list."""
+    document = read("declarations.md")
+    reason_rows = table(read("read_side_contract.md"), "## 4. Reason codes")
+    statuses = {
+        code: row["Status"] for code, row in zip(names(reason_rows, "Code"), reason_rows, strict=True)
+    }
+    kinds = names(table(document, "### 4.1 The list"), "`acceptance`")
+    never = listed(prose(document), "A reason not listed is never accepted, ", " among them")
+    condition_reasons = [code for code in statuses if code.startswith("condition_") and code not in never]
+    rows: list[object] = []
+    for row in table(document, "### 4.2 What covers which reason"):
+        rule = covering(row["Covered by"], kinds)
+        reasons, specimen_difference = covered_reasons(row["Reason"], rule, statuses, condition_reasons)
+        if listed_never := sorted(set(reasons) & set(never)):
+            raise TableError(f"a row lists a reason the table never accepts: {listed_never}")
+        rows.append(
+            {
+                "reasons": reasons,
+                "specimen_difference": specimen_difference,
+                "status": row_status(row["Status"], reasons, specimen_difference, statuses),
+                "covered_by": row["Covered by"],
+                **rule,
+            }
+        )
+    return {"coverage": rows}
+
+
+def covering(cell: str, kinds: list[str]) -> dict[str, object]:
+    """The rule a "Covered by" cell states, by `COVERED_BY`: its kind, of section 4.1 or the `trainable`
+    acceptance section 7 gives, and every flag."""
+    if cell not in COVERED_BY:
+        raise TableError(f"a phrasing of what covers a reason this script does not know: {cell!r}")
+    rule = {"kind": "", **dict.fromkeys(COVERAGE_FLAGS, False), **COVERED_BY[cell]}
+    if rule["kind"] not in (*kinds, "trainable"):
+        raise TableError(f"{cell!r} names no kind of acceptance")
+    return rule
+
+
+def covered_reasons(
+    cell: str, rule: dict[str, object], statuses: dict[str, str], condition_reasons: list[str]
+) -> tuple[list[str], bool]:
+    """A Reason cell's codes, "a condition reason" read as those codes, and whether it names a specimen
+    difference. A qualifier it ends with must agree with the row's rule (`REASON_QUALIFIERS`), and sets the
+    flags it adds in `rule`."""
+    for qualifier, (required, added) in REASON_QUALIFIERS.items():
+        if cell.endswith(qualifier):
+            if any(rule[name] != value for name, value in required.items()):
+                raise TableError(f"{cell!r} qualifies a row whose rule does not hold {required}")
+            rule.update(added)
+            cell = cell.removesuffix(qualifier)
+            break
+    reasons: list[str] = []
+    specimen_difference = False
+    for item in _REASON_ITEMS.split(cell):
+        if item == SPECIMEN_DIFFERENCE:
+            specimen_difference = True
+        elif item == CONDITION_REASON:
+            reasons += condition_reasons
+        elif re.fullmatch(r"`[a-z0-9_]+`", item) and item[1:-1] in statuses:
+            reasons.append(item[1:-1])
+        else:
+            raise TableError(f"neither a reason code nor a phrase this script knows: {item!r} in {cell!r}")
+    if len(set(reasons)) != len(reasons):
+        raise TableError(f"a reason listed twice in {cell!r}")
+    return reasons, specimen_difference
+
+
+def row_status(
+    cell: str, reasons: list[str], specimen_difference: bool, statuses: dict[str, str]
+) -> str | None:
+    """A row's Status cell, which for a read status is each of its codes' status in `read_side_contract.md`
+    section 4, and is not a status exactly where the row lists a specimen difference alone."""
+    if cell not in STATUS_CELLS:
+        raise TableError(f"not a status this script knows: {cell!r}")
+    status = STATUS_CELLS[cell]
+    if (status is None) != (specimen_difference and not reasons):
+        raise TableError(f"{cell!r} beside the reasons {reasons}")
+    if status in ("unknown", "not_met") and (
+        differing := [code for code in reasons if statuses[code] != status]
+    ):
+        raise TableError(f"a row of status {status} lists codes of another status: {differing}")
+    return status
+
+
 def forms(read: Documents) -> Vocabulary:
     """`record_format.md` sections 5 and 6: the form tokens, a table's schemes, an interval's and a
     composition's tokens, and the components, `element:<symbol>` for each symbol of the element table."""
@@ -687,6 +842,10 @@ SOURCES: dict[str, tuple[str, Callable[[Documents], Vocabulary]]] = {
         provenance,
     ),
     "labels.json": ("read_side_contract.md, 2. The read result", labels),
+    "coverage.json": (
+        "declarations.md, 4.2 What covers which reason, with read_side_contract.md, 4. Reason codes",
+        coverage,
+    ),
 }
 
 

@@ -669,6 +669,7 @@ KEYWORDS = (
 VOCABULARY_TABLES = {
     "vocabulary/acceptances.json": "kinds",
     "vocabulary/conditions.json": "conditions",
+    "vocabulary/coverage.json": "coverage",
     "vocabulary/fields.json": "fields",
     "vocabulary/reasons.json": "reasons",
     "vocabulary/specimen_facts.json": "facts",
