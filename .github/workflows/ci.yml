@@ -614,13 +614,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Eight shards (`SHARDS` in tests/conftest.py): the JSON reader, RFC 8785, the hash and the table
+        # Nine shards (`SHARDS` in tests/conftest.py): the JSON reader, RFC 8785, the hash and the table
         # evaluator; the envelope checks, versions and the read; the writer schema's value fields; the two JSON
         # Schema libraries' agreement, whose python-jsonschema validations make it the longest; step 8's mutant
         # searches, which were most of the records shard's time; steps 9 and 10's properties and the result's,
         # with their mutant searches; the read's relations (HP12, the agreement with the reference model,
-        # HP4, HP10 and the information-monotonicity relations), with theirs; and S4a's step 7 over
-        # alternatives (HP27 to HP29), with theirs.
+        # HP4, HP10 and the information-monotonicity relations), with theirs; S4a's step 7 over alternatives
+        # (HP27 to HP29), with theirs; and S7a's build check (HP41 and HP42), with theirs, whose timeouts are
+        # the defaults until CI measures it.
         # The three longest, `agreement`, `relations` and `alternatives`, each run as two jobs side by side,
         # `agreement_1of2` and `agreement_2of2` (`--shard`, tests/partition.py): the shard's tests in two parts of
         # about equal time, which together hold every one once (tests/unit/test_ci_workflows.py checks it on the
@@ -629,7 +630,7 @@ jobs:
         # 39335066688, took 7.3 and 5.9 for the first two), the longest of the Hypothesis job's shards. The times
         # by test of run 39390324975, summed over each half's tests, are 1,038 and 1,039 s for `relations`, 498
         # and 498 s for `agreement` and 680 and 678 s for `alternatives`, where the longest single test is 185 s.
-        shard: [json, records, writer, agreement_1of2, agreement_2of2, step8_mutants, conditions, relations_1of2, relations_2of2, alternatives_1of2, alternatives_2of2]
+        shard: [json, records, writer, agreement_1of2, agreement_2of2, step8_mutants, conditions, relations_1of2, relations_2of2, alternatives_1of2, alternatives_2of2, build]
     env:
       MATERICA_HYPOTHESIS_PROFILE: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'deep' || 'ci' }}
       # The job's `timeout-minutes`, as above, from which the pytest step's interrupt is set.

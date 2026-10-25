@@ -4852,6 +4852,7 @@ NUMBERS = {
     "nine": 9,
     "ten": 10,
     "eleven": 11,
+    "twelve": 12,
 }
 
 
@@ -4881,9 +4882,9 @@ def test_the_workflows_readme_names_the_jobs_and_shards_of_ci() -> None:
     ("old", "new", "problem"),
     [
         ("| `controls` |", "| `mutants` |", "the table's jobs are"),
-        ("eleven jobs side by side", "ten jobs side by side", "the table's shards are ten"),
-        (", `alternatives_2of2`)", ")", "the table's shards are eleven"),
-        ("in eleven jobs side by side (", "in eleven jobs (", "names no jobs"),
+        ("twelve jobs side by side", "eleven jobs side by side", "the table's shards are eleven"),
+        (", `build`)", ")", "the table's shards are twelve"),
+        ("in twelve jobs side by side (", "in twelve jobs (", "names no jobs"),
     ],
     ids=["a-job-renamed", "a-count-wrong", "a-shard-missing", "no-shards"],
 )
