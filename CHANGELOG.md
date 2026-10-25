@@ -230,8 +230,8 @@ every family entry goes in `families/CHANGELOG.md`.
   S7a-2a), written through the case tools: refused at step 0, which S2a-2's step 0 runs, and passes. The S7
   design's notes ask for the slip among the arms of the read's refusal of `review`, which it has made since
   S7-spec; and `tests/spec_sync/unknown_member_positions.json` names `review` at a requirement's place, so the
-  positions test plants a slip of it as of `label`. 1238 of 1637 case files pass, 35 are verified against the
-  reference evaluator, and 364 are not yet runnable.
+  positions test plants a slip of it as of `label`. 1238 of 1638 case files pass, 35 are verified against the
+  reference evaluator, and 365 are not yet runnable.
 - The measurements a property piece makes before review run on CI as a matrix (maintainer, 2026-10-23), with
   the counts and judgement of a local run: `scripts/measure.py` (floors at the variance measured, at the mean and the least share, kill drift over
   streams, regions of a base against the head with every mutant search's kill, a fuzz control's rate), run alike
