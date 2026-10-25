@@ -4,7 +4,7 @@ or the reasons it is refused. The steps run in order, and the first that refuses
 """
 
 from collections.abc import Collection
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from materica.core.hashing import content_hash
 from materica.core.identifiers import CONTENT_HASH, MaterialRef
@@ -31,7 +31,9 @@ class Refused:
 
     reasons: tuple[Reason, ...]
     labels: tuple[str, ...] = ()
-    record_found: bool = True
+    record_found: bool = field(default=True, compare=False, repr=False)
+    """Outside equality and `repr`, as `ReadResult.applied` and `resolved` are: bookkeeping for a build, so
+    two refusals with the same reasons and labels are equal whichever step gave them."""
 
 
 def resolve_record(
