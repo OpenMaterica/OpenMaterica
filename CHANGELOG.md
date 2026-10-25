@@ -37,9 +37,12 @@ every family entry goes in `families/CHANGELOG.md`.
   `schema/0.1/vocabulary/coverage.json`, each "Covered by" cell read by a fixed table of the phrasings it uses,
   a phrasing the generator does not know stopping it; with the table in a file, `not_reviewed` dropped from it
   fails the vocabulary check, where it passed every check before (the S7 design's 9). The report omits
-  `watches`, which S7a-4 emits, rather than holding an empty list, and `BuildReport.watches` raises until then.
-  Where a waiver naming a label would cover a reason, the build raises `NotImplementedError`: whether that label
-  is trusted is S7a-2's label trust, after 0.1.0.dev4. The conformance runner compares a build's results and
+  `watches`, which S7a-4 emits, rather than holding an empty list, and `BuildReport.watches` raises until then;
+  it omits `combinations` too, which S7a-3 adds with the combinations it builds, and has no such member until
+  then. Where a waiver naming a label fits a reason of a result that label trust could still accept (every
+  reason of the result fits some acceptance), the build raises `NotImplementedError`: whether that label is
+  trusted is S7a-2's label trust, after 0.1.0.dev4; a result with a reason nothing fits is refused whatever the
+  label is, and is reported as if the label were not trusted. The conformance runner compares a build's results and
   unused acceptances and runs S7a-2's 58 build-check files, which pass, also under a build claiming the fits and
   reference data suite (a third build configuration); 1296 of 1638 case files pass, 35 are verified against the
   reference evaluator and 307 are not yet runnable. 34 broken builds each fail an S7a-2 file by the difference

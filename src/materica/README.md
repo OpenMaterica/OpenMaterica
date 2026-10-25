@@ -38,6 +38,8 @@ standard library; and nothing imports `materica_authoring`.
   `value`, or under an extrapolation `end_value`), the acceptances unused, `refused` and `status_lines()`,
   the lines `materica status` will print. `check_build` raises `NotImplementedError` where a later piece
   would change its answer: before any read, for a pick or an overlay (S7c), a non-empty `target` or
-  `combinations` (S7a-3) or a non-empty `trainable` (S7a-4); and where a waiver naming a label would cover a
-  reason, which S7a-2's label trust judges after 0.1.0.dev4. `BuildReport.watches` raises until S7a-4, and
-  the JSON report leaves `watches` out rather than give it empty.
+  `combinations` (S7a-3) or a non-empty `trainable` (S7a-4); and where a waiver naming a label fits a reason
+  of a result that label trust could still accept, which S7a-2's label trust judges after 0.1.0.dev4.
+  `BuildReport.watches` raises until S7a-4, and the JSON report leaves `watches` out rather than give it empty;
+  `BuildReport.combinations` is added with S7a-3, which builds the combinations, and the report has no such
+  member until then.

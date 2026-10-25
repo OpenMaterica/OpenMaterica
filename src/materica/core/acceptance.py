@@ -14,8 +14,11 @@ reason and each the read applied; `not_accepted` each reason nothing covers. `un
 acceptance none of that model's results used (item 9).
 
 A waiver naming a `label` covers only where the stored label is that label and is trusted (section 4.1 item
-4), which this version does not judge: where such a waiver would otherwise cover a reason, `judge` raises
-`NotImplementedError`, naming S7a-2's label trust, which comes after 0.1.0.dev4 (maintainer, 2026-10-21).
+4), which this version does not judge. `judge` raises `NotImplementedError`, naming S7a-2's label trust, which
+comes after 0.1.0.dev4 (maintainer, 2026-10-21), where label trust could change the result's verdict: such a
+waiver fits a reason, and every reason of the result fits some acceptance. Where one fits none, the result is
+refused whatever label trust says: `accepted` is final, and `accepted_by`, `not_accepted` and the unused list
+are those of a judgement that does not trust the label.
 Rows no acceptance here can meet are never reached: a `pick` raises before any read (S7c), an
 `overlay_scope` names no field, and no declared acceptance is the `trainable` one section 7 gives (S7a-4).
 """
@@ -60,13 +63,20 @@ def judge(
     and `read`'s other members, by the model's `acceptances`, of which those at `applied` the read applied."""
     used = set(applied)
     not_accepted: list[Reason] = []
+    waiting: list[Acceptance] = []
+    fitted = True
     for reason in reasons:
-        covering = [
-            acceptance.index for acceptance in acceptances if _covers(acceptance, reason, read, record, field)
+        fitting = [
+            acceptance for acceptance in acceptances if _covers(acceptance, reason, read, record, field)
         ]
-        used.update(covering)
+        covering = [acceptance for acceptance in fitting if "label" not in acceptance.members]
+        waiting += [acceptance for acceptance in fitting if "label" in acceptance.members]
+        used.update(acceptance.index for acceptance in covering)
         if not covering:
             not_accepted.append(reason)
+        fitted &= bool(fitting)
+    if waiting and fitted:
+        _label_rests(waiting[0])
     return Judgement(not not_accepted, tuple(sorted(used)), tuple(not_accepted))
 
 
@@ -106,13 +116,12 @@ def _covers(
 ) -> bool:
     """The build's terms (section 2): `acceptance` covers `reason` where it names the result's field, is
     located at its record, and is of the kind a row of section 4.2 listing the reason names, under that row's
-    own condition; and, for a waiver naming a label, as section 4.1 item 4 says."""
+    own condition. A waiver naming a label also needs the label trusted (section 4.1 item 4), which `judge`
+    decides."""
     if acceptance.field != field or not located_at(acceptance, record):
         return False
     rows = (row for row in COVERAGE if reason.code in row.reasons and row.kind == acceptance.kind)
-    if not any(_under(row, acceptance, reason, read) for row in rows):
-        return False
-    return "label" not in acceptance.members or _label_rests(acceptance, read)
+    return any(_under(row, acceptance, reason, read) for row in rows)
 
 
 def _under(row: CoverageRow, acceptance: Acceptance, reason: Reason, read: ReadResult | None) -> bool:
@@ -127,7 +136,7 @@ def _under(row: CoverageRow, acceptance: Acceptance, reason: Reason, read: ReadR
     )
 
 
-def _label_rests(waiver: Acceptance, read: ReadResult | None) -> NoReturn:
+def _label_rests(waiver: Acceptance) -> NoReturn:
     """Section 4.1 item 4: a waiver naming a label covers only on a result whose stored label is that label
     and is trusted. Not judged before S7a-2's label trust (maintainer, 2026-10-21)."""
     raise NotImplementedError(
