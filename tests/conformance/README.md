@@ -40,7 +40,7 @@ so nothing that did not run can show as a pass or a skip. `test_cases.py` assert
 | `content_hash` (HS-001 to HS-003) | 51 | run, passed |
 | reads S1 runs, which end by step 5 (plain read, HS-010, HS-011) | 341 | run, passed |
 | `list_records` | 25 | run, passed |
-| S2's reads that end at step 0, 7 or 8 (plain read) | 171 | run, passed |
+| S2's reads that end at step 0, 7 or 8 (plain read) | 172 | run, passed |
 | S2's reads that end at step 9 or 10, or at step 0 on an implied condition (plain read) | 58 | run, passed |
 | S2's reads that go on to steps 11 to 13 for a constant, or end at step 7 on alternatives as far as S4's decision 12 lets S2 go, or at step 0 on an implied value holding a member of the other kind of condition's shape, its unit compared beside it (plain read) | 170 | run, passed |
 | S2's reads of an interval or a composition, to their bounds or components, or ending at step 8 on their own member, or at step 7 over alternatives that hold one (plain read) | 54 | run, passed |
@@ -80,11 +80,13 @@ refuse the field. PR-339's arm across a declared edge (`PR-339.across_edge_no_va
 which builds the trainable read (the S7 design's map, 5.5): it needs S3b-2's step 11 as well, which comes
 before S7a-4. PR-330's arm of a requirement holding `review` (`PR-330.review_in_requirement`, 2026-10-23),
 which the S7 design gives S7a-2, is S2a-2's: since the S7 specification the read refuses it at step 0, as it
-refuses a requirement's `label`, and S2a-2's step 0 runs PR-330's other requirement arms.
+refuses a requirement's `label`, and S2a-2's step 0 runs PR-330's other requirement arms. So is its arm of a
+member one slip from `review` (`PR-330.near_typo_requirement_review`, S7a-2a), which the read has refused
+since then too, as it refuses a slip of every member section 1 names there.
 
-Of the 1636 case files, 1276 agree with plain read and the hash suite, 1218 with plain read alone, and 1276
-with the fits and reference data suite too; 1389 with the build checks, plain read and the hash suite, and
-1331 with the build checks and plain read alone, the 113 of the build-check suite among each; the 35 of the
+Of the 1637 case files, 1277 agree with plain read and the hash suite, 1219 with plain read alone, and 1277
+with the fits and reference data suite too; 1390 with the build checks, plain read and the hash suite, and
+1332 with the build checks and plain read alone, the 113 of the build-check suite among each; the 35 of the
 table evaluation suite agree with the reference evaluator's configuration alone, since this implementation
 claims no evaluator, and the 197 of the record-check suite agree with none, since it claims no record checks.
 

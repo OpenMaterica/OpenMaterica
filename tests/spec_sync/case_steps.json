@@ -1244,6 +1244,7 @@
     "PR-330.near_typo_in_target_record.json": "S2a-2",
     "PR-330.near_typo_in_tolerance.json": "S2a-2",
     "PR-330.near_typo_requirement_labels.json": "S2a-2",
+    "PR-330.near_typo_requirement_review.json": "S2a-2",
     "PR-330.near_typo_requirement_tolerances.json": "S2a-2",
     "PR-330.near_typo_target_fields.json": "S2a-2",
     "PR-330.nominal_basis_not_string_read.json": [
