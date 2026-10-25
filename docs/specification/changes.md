@@ -601,9 +601,11 @@ naming it on every kind, and the declaration's schema took it on all nine (BC-04
 Settled with the same open points (maintainer, 2026-10-24, as recommended): a requirement holding
 `population_level` beside a `represents` that is not `population`, or beside none, is refused at build, by the
 `population_level` rule (`declarations.md` section 1, the members table and the table of the declaration's
-shape), at its `population_level`, whatever suites the build claims. Before, that rule refused only a
-population requirement without one, and a build claiming the sampling suite took a `population_level` beside
-another `represents` or beside none (BC-043).
+shape), at its `population_level`, in every build this version makes, except where the build claims the
+sampling suite, where it fails closed (a claimed suite this version does not build raises, even where a refusal
+is certain; maintainer, 2026-10-24). Before, that rule refused only a population requirement without one, and a
+build claiming the sampling suite took a `population_level` beside another `represents` or beside none
+(BC-043).
 
 Settled with the same open points (maintainer, 2026-10-24, as recommended): a watch holds `unit` with an
 `interval` only, a token condition having none (`declarations.md` section 8 item 1). Before, the item listed
@@ -615,11 +617,23 @@ Settled with the same open points (maintainer, 2026-10-24, as recommended): the 
 refused on its own holds the declaration as given where its text is JSON, and its `consumer` where the
 declaration declares one (`declarations.md` section 2). Before, `declarations.md` section 2 listed both among
 the report's members with no word on a text that is not JSON, of which neither can be given, and the report's
-schema let a refused report omit both. The schema now requires the declaration but beside a single refusal at the
-empty pointer, which it cannot tell from a text that is not JSON, as `declarations.md` section 2 says.
+schema let a refused report omit both. The schema now requires the declaration unless the report's one refusal
+is BC-048 at the empty pointer, which it cannot tell from a text that is not JSON, as `declarations.md` section 2
+says.
 
 Settled with S7a-1b's review (maintainer, 2026-10-24, as recommended): a model that item 7 refuses gives one
 refusal, at its `engine`, whichever of the item's rules it breaks (`declarations.md` section 1, the refusal
 paragraph). Before, the paragraph's most specific member would have placed an engine value without its `basis`
 at that value and another `want` at the requirement's `want`, so one engine model could give several refusals
 (BC-040).
+
+Settled with S7a-1b's second review (2026-10-25, a default the maintainer has yet to confirm): a rule that
+judges one member against another stands aside where the other is itself at fault, so that one fault is one
+member at fault (`declarations.md` section 1, the refusal paragraph). A `population_level` beside a `represents`
+that is no token is not refused by the `population_level` rule, a requirement for a field is not judged against
+a `reads` at fault, and a waiver of `condition_unknown_name` naming no `condition` is refused once, at its
+`code`, not again at the waiver for the `condition` that a refused code is not judged to need; the rest of the
+declaration is still checked for its own faults. An engine value without its `reason` or `basis` is likewise one
+fault, which item 7 and the shape's required members both name: one refusal, BC-040 at the model's `engine`,
+and none at the value. Before, the paragraph did not say, and a second implementation could read each of these
+cases as a second refusal (BC-040, BC-043, BC-048).

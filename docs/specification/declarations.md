@@ -153,7 +153,10 @@ Holds, that member; for what item 12 refuses, the member that needs the suite (`
 `path`, `region_conditions`, `sampling`, a requirement's `represents` or `population_level`, the model's
 `engine`), or the acceptance or `trainable` entry itself. A member deeper down that holds another JSON type is
 a member at fault like any other: the pointer names it, nothing inside it is checked, and the rest of the
-declaration is. A fault more than one rule names carries the case of the first of: items 3, 4, 7 and 8, the
+declaration is. A rule that judges one member against another stands aside where the other is itself at
+fault, so that one fault is one refusal: the `population_level` rule beside a `represents` that is no token, a
+requirement's `field` against a `reads` at fault, and a waiver's missing `condition` beside a `code` that is
+refused. A fault more than one rule names carries the case of the first of: items 3, 4, 7 and 8, the
 `population_level` rule and section 4.1's location rule [BC-004] [BC-005] [BC-040] [BC-044] [BC-043] [BC-037];
 section 4.1 item 4 [BC-050]; item 12 [BC-051]; this paragraph [BC-048]. Two faults with one case and one
 pointer are one refusal. The build reports every refusal it finds, and reads nothing for a declaration it
@@ -259,9 +262,9 @@ The build gives one report:
 
 A declaration the build refuses on its own gives no results, no watches and nothing unused; its report holds the
 declaration as given where the text is JSON, and its `consumer` where the declaration declares one. The report's
-schema cannot tell a text that is not JSON from a declaration refused at the empty pointer alone, and requires
-the declaration only beside another refusal. [not yet covered] The build refuses to build while the report holds
-a refusal, as it does while a result is not accepted (item 5). The material input sheet (section 9) holds the
+schema cannot tell a text that is not JSON from a declaration whose one refusal is BC-048 at the empty pointer,
+and requires the declaration unless the report's one refusal is that. [not yet covered] The build refuses to
+build while the report holds a refusal, as it does while a result is not accepted (item 5). The material input sheet (section 9) holds the
 report's `consumer`, `records`, `declaration`, `results` and `watches` under those names, and adds its own;
 `refusals` and `unused` are the report's alone. [BC-010]
 
