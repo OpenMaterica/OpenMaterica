@@ -451,6 +451,7 @@ LOCATES_NO_RULED_DATA = {
     "module it imports came from; it opens no data file",
     "scripts/pre_review.py": "reads the tree through git and `ast`; its own tests read it again and hold it",
     "tests/conftest.py": "locates the example database; a change to a conftest selects every test",
+    "tests/fuzz/build_bytes.py": "an Atheris target: Atheris runs it, this script cannot",
     "tests/fuzz/jsonio_bytes.py": "an Atheris target: CI's fuzz job runs it, this script cannot",
     "tests/fuzz/read_field_bytes.py": "an Atheris target: CI's fuzz job runs it, this script cannot",
     "tests/fuzz/read_acceptance_bytes.py": "an Atheris target: CI's fuzz job runs it, this script cannot",

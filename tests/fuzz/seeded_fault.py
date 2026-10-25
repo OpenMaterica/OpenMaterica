@@ -63,6 +63,15 @@
   range beside alternatives all set aside, a change that makes another stay (a byte of its condition's name,
   which leaves the condition unstated). The control's local runs found it both ways.
 
+- In the declaration's own check, S7a-1's control for `build_bytes.py` (the S7 design's 6.4): item 4 skips
+  every acceptance after a model's second, so that a third acceptance without its `reason` or `basis` is
+  refused only by the shape table, as a member missing (BC-048), where the text gives BC-005. Nothing raises,
+  and the pointer and the case are ones the target allows: only the build's reference model tells it wrong,
+  so the control waits for the model's relation in the target. The design's fault skipped every acceptance
+  after the first: seven of the 113 seed declarations, BC-005's arms of a second acceptance without its
+  `reason` or `basis`, show that one unchanged (2026-10-25), so the fuzzer would find it at once and show
+  nothing; no seed holds a third acceptance without either.
+
 Each of the first four raises its own message, and so does the seventh, so that CI can tell which fault a run
 found; the fifth, the sixth and the ninth are found by the oracle's assertion that the implementation and the
 model disagree, and the eighth by the oracle's assertion that an extrapolation breaking its shape is refused.
@@ -73,7 +82,8 @@ third, since the property targets draw conditions too and would find it before t
 `composition`, the variable seeds the composition's fault alone, in the third target and the fourth; set to
 `alternatives`, step 7's alone, in the fourth; set to `tables`, step 8's table fault alone, in the fourth;
 set to `table_edges`, the table value's alone, in the fourth; set to `extrapolation_method`, step 0's method
-alone, in the fifth; set to `table_alternatives`, step 7's over a table alternative alone, in the fourth.
+alone, in the fifth; set to `table_alternatives`, step 7's over a table alternative alone, in the fourth; set
+to `declarations`, the declaration's check's alone, in `build_bytes.py`.
 """
 
 import dataclasses
@@ -84,7 +94,7 @@ from typing import Protocol, TypeVar
 
 import pytest
 
-from materica.core import conditions, evaluate, fields, jsonio, read
+from materica.core import conditions, declarations, evaluate, fields, jsonio, read
 from materica.core.conditions import AxisEntry, ConditionsRead, ImpliedCondition
 from materica.core.fields import RecordField
 from materica.core.identifiers import MaterialRef
@@ -103,7 +113,16 @@ TABLES = "tables"
 TABLE_EDGES = "table_edges"
 EXTRAPOLATION_METHOD = "extrapolation_method"
 TABLE_ALTERNATIVES = "table_alternatives"
-NAMED = (COMPOSITION, ALTERNATIVES, TABLES, TABLE_EDGES, EXTRAPOLATION_METHOD, TABLE_ALTERNATIVES)
+DECLARATIONS = "declarations"
+NAMED = (
+    COMPOSITION,
+    ALTERNATIVES,
+    TABLES,
+    TABLE_EDGES,
+    EXTRAPOLATION_METHOD,
+    TABLE_ALTERNATIVES,
+    DECLARATIONS,
+)
 
 _parse = jsonio.parse
 
@@ -232,6 +251,25 @@ def faulty_form_range(table: JsonObject, request: read.ReadRequest) -> read.Form
     return found
 
 
+_reasons = declarations._reasons  # pyright: ignore[reportPrivateUsage]
+
+
+def faulty_reasons(declaration: JsonObject) -> list[declarations.Finding]:
+    """S7a-1's control: item 4 skips every acceptance after a model's second (`declarations.md` section 1:
+    "Every acceptance MUST carry a `reason`"), so a later acceptance without its `reason` or `basis` is left
+    to the shape table's missing member."""
+
+    def after_the_second(pointer: str) -> bool:
+        parts = pointer.split("/")
+        return len(parts) == 5 and parts[3] == "acceptances" and parts[4] not in ("0", "1")
+
+    return [
+        finding
+        for finding in _reasons(declaration)
+        if not (finding.case == "BC-005" and after_the_second(finding.pointer))
+    ]
+
+
 def seed() -> None:
     jsonio.parse = faulty_parse
     read.resolve_record = faulty_resolve_record  # type: ignore[attr-defined]  # read's own name for it, not exported
@@ -298,6 +336,13 @@ def seed_table_alternatives_if_asked(instrument: Instrument) -> None:
     its other faults are."""
     if os.environ.get("MATERICA_FUZZ_SEEDED_FAULT") == TABLE_ALTERNATIVES:
         read.form_range = instrument(faulty_form_range)
+
+
+def seed_declarations_if_asked(instrument: Instrument) -> None:
+    """S7a-1's control, which `build_bytes.py` seeds where the variable asks for it by name, instrumented as
+    the other targets' faults are."""
+    if os.environ.get("MATERICA_FUZZ_SEEDED_FAULT") == DECLARATIONS:
+        declarations._reasons = instrument(faulty_reasons)  # pyright: ignore[reportPrivateUsage]
 
 
 def pytest_configure(config: pytest.Config) -> None:
