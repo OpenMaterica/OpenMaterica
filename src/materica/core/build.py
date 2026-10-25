@@ -8,10 +8,9 @@ S7a-2a builds the reads over records (section 2), `_results`: for each model, ea
 lists, in the order listed, and each field in its `reads`, in that order, one result. A field with no
 requirement is read for nothing (section 1 item 1). Any other is read through `read` by the build's own
 request (`_request`, item 7), which is given the acceptances of the kinds a read takes, overlays aside, that
-name the field and are located at the record (`_given`). The acceptances the read applied are mapped to their
-indexes in the model's `acceptances`, each kept only where the result shows it as the build's terms say
-(`_applied`). `_stored` gives the label and its basis as stored on the value a result rests on, for the
-build's own reasons.
+name the field and are located at the record (`_given`). The acceptances applied, by the build's terms (which
+define "applied" on the result), are mapped to their indexes in the model's `acceptances` (`_applied`).
+`_stored` gives the label and its basis as stored on the value a result rests on, for the build's own reasons.
 
 Before any read, a declaration holding what a later piece reads raises `NotImplementedError`, naming each,
 so that no answer is given that the later piece would change (the S7 design's 1.3): a pick or an overlay,
@@ -50,8 +49,8 @@ from materica.shapes import Suite
 
 # The kinds of acceptance the build gives a read (section 2 item 7): of those a read takes ("A request's
 # `acceptances` take only the kinds `pick`, `overlay`, `extrapolation`, `nominal`, `implied_condition` and
-# `trainable`", `read_side_contract.md` section 1), overlays aside, which overlays a read is given being
-# [not yet covered]; and the `trainable` acceptance is the one the build makes from a `trainable` entry
+# `trainable`", `read_side_contract.md` section 1), overlays aside (which overlays a read is given is not
+# decided yet); and the `trainable` acceptance is the one the build makes from a `trainable` entry
 # (section 7), never a declaration's.
 _GIVEN_KINDS = ("pick", "extrapolation", "nominal", "implied_condition")
 
@@ -193,10 +192,13 @@ def _request(
 
 
 def _applied(result: ReadResult, given: Sequence[Acceptance]) -> tuple[int, ...]:
-    """The indexes, in the model's `acceptances`, of the acceptances given to the read that it applied: those
-    the result's `applied` names (by their indexes in the request's `acceptances`, which are `given`'s), each
-    kept only where the result shows it, as the build's terms say (section 2)."""
-    return tuple(sorted({given[index].index for index in result.applied if _shown(given[index], result)}))
+    """The indexes, in the model's `acceptances`, of the acceptances given to the read that it applied. The
+    build's terms define "applied" on the result alone (`declarations.md` section 2: "A read **applied** an
+    acceptance given to it where its result shows it"), so an acceptance given is applied wherever the result
+    shows it (`_shown`), whether or not the read itself named it in `result.applied`: of two implied
+    conditions of one value, each is applied once an entry shows that value, though only one may state a token
+    the field's specimen states."""
+    return tuple(sorted({acceptance.index for acceptance in given if _shown(acceptance, result)}))
 
 
 def _shown(acceptance: Acceptance, result: ReadResult) -> bool:

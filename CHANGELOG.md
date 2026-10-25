@@ -21,15 +21,17 @@ every family entry goes in `families/CHANGELOG.md`.
   read), and none for a record not listed; a field with no requirement is read for nothing (section 1 item 1).
   Each read is of the build's own request, item 7: the requirement's `want` and `conditions` alone, every
   declared operating condition, and the acceptances of the kinds a read takes, overlays aside, that name the
-  field and are located at the record. The acceptances a read applied are mapped to their indexes in the
-  model's `acceptances`, each kept only where the result shows it by the build's terms, and the label and its
-  basis stored on the value a result rests on are read from the record as stored, for the build's own reasons;
-  `ReadResult` records which value that is outside its JSON and equality (`resting_on`), as it records
-  `applied`. Past the reads, `check_build` still raises `NotImplementedError`, naming S7a-2b, which gives the
-  build's own reasons, the judgement, the verdict and the report's results. Before any read it raises for a
-  pick or an overlay (S7c), a non-empty `target` or `combinations` (S7a-3) and a non-empty `trainable` (S7a-4),
-  and no longer for an `overlay_scope` or an accepted difference, which with no overlay applied and an empty
-  `target` cover nothing (the S7 design's 1.3). No case file changes its expected answer.
+  field and are located at the record. The acceptances applied are mapped to their indexes in the model's
+  `acceptances` by the build's terms, which define "applied" on the result alone: an acceptance given to the
+  read is applied wherever the result shows it (an implied condition, a `conditions` entry with the value it
+  supplies; a nominal or an extrapolation, the `assumption`), whether or not the read named it.
+  The label and its basis stored on the value a result rests on are read from the record as stored, for the
+  build's own reasons; `ReadResult` records which value that is outside its JSON and equality (`resting_on`),
+  as it records `applied`. Past the reads, `check_build` still raises `NotImplementedError`, naming S7a-2b,
+  which gives the build's own reasons, the judgement, the verdict and the report's results. Before any read it
+  raises for a pick or an overlay (S7c), a non-empty `target` or `combinations` (S7a-3) and a non-empty
+  `trainable` (S7a-4), and no longer for an `overlay_scope` or an accepted difference, which with no overlay
+  applied and an empty `target` cover nothing (the S7 design's 1.3). No case file changes its expected answer.
 - `materica.check_build(declaration, store, *, claims=...)`, the build check up to the declaration's own check
   (S7a-1b; `declarations.md` section 1). The declaration, JSON text or a value, is read by `record_format.md`
   section 1 item 6 and checked by hand against `SHAPE`, the table of its shape (`core/declarations.py`): every

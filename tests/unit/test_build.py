@@ -347,8 +347,8 @@ def with_temperature(record: Json, *, applied: tuple[int, ...] = (0,)) -> ReadRe
         ),
         pytest.param(
             with_temperature({"value": 310.15, "unit": "K", "basis": "implied"}, applied=()),
-            (),
-            id="not_applied",
+            (3,),
+            id="filled_though_the_read_named_none",
         ),
     ],
 )
@@ -358,13 +358,16 @@ def test_an_implied_condition_counts_applied_only_where_its_value_filled_an_entr
     assert applied_of(result, (IMPLIED,)) == applied
 
 
-def test_two_implied_conditions_that_agree_each_count_applied_where_the_read_says_it_filled() -> None:
-    """The second, of the same value, counts only where the read names it: the read alone knows which
-    applied (its fact and token stated by the field's specimen)."""
+def test_two_implied_conditions_that_agree_each_count_applied_where_the_result_shows_the_value() -> None:
+    """The build's terms define "applied" on the result alone (`declarations.md` section 2): the second, of
+    the same value, counts whether or not the read named it, as the first does, and neither counts where no
+    entry shows the value."""
     other = an_acceptance("implied_condition", 5, fact="tissue_state", token="in_vitro", implies=IMPLIES_310)
     filled: Json = {"value": 310.15, "unit": "K", "basis": "implied"}
-    assert applied_of(with_temperature(filled, applied=(0, 1)), (IMPLIED, other)) == (3, 5)
-    assert applied_of(with_temperature(filled, applied=(0,)), (IMPLIED, other)) == (3,)
+    for named in ((0, 1), (0,), (1,), ()):
+        assert applied_of(with_temperature(filled, applied=named), (IMPLIED, other)) == (3, 5), named
+    stated: Json = {"value": 310.15, "unit": "K", "basis": "stated"}
+    assert applied_of(with_temperature(stated, applied=(0, 1)), (IMPLIED, other)) == ()
 
 
 @pytest.mark.parametrize(
@@ -393,13 +396,15 @@ def test_two_implied_conditions_that_agree_each_count_applied_where_the_read_say
         ),
     ],
 )
+@pytest.mark.parametrize("named", [(0,), ()])
 def test_a_nominal_or_an_extrapolation_counts_applied_only_where_the_assumption_names_it(
-    given: Acceptance, assumption: Json | None, applied: tuple[int, ...]
+    given: Acceptance, assumption: Json | None, applied: tuple[int, ...], named: tuple[int, ...]
 ) -> None:
+    """Defined on the result alone, so whether the read named it in its `applied` changes nothing."""
     result = ReadResult(
         "not_met",
         (Reason("want_mismatch"),),
-        applied=(0,),
+        applied=named,
         value=0.0007,
         assumption=cast("shapes.Assumption | None", assumption),
     )
