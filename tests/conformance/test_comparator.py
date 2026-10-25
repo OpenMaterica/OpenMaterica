@@ -834,6 +834,14 @@ def test_accepted_by_is_a_set_and_not_accepted_a_multiset() -> None:
         )
         == []
     )
+    # A specimen difference is its section and its fact: another of either is another difference.
+    for name, other in (("section", "tissue"), ("fact", "genus")):
+        moved: JsonObject = {**difference, name: other}
+        (found_difference,) = differences(
+            results_case(with_difference), with_results(a_result(accepted=False, not_accepted=[moved]))
+        )
+        assert found_difference.startswith("results: "), name
+        assert "not_accepted: missing" in found_difference, name
 
 
 def test_only_the_result_members_named_are_compared_and_one_named_not_expected_must_be_absent() -> None:
