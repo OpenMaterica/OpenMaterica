@@ -11,8 +11,10 @@ and the hash suite, as a read claims by default; plain read alone, as a reader w
 with the fits and reference data suite too, whose `want`s step 0 then accepts. A read under the last ends by
 step 10 or raises, and steps 1 to 10 check the same under it as without it, so that claim gives no answer a
 step not built yet could change. Then a build's: the build checks with plain read and the hash suite, as a
-build claims by default, and with plain read alone; a build claims neither the scene suite, USD read nor the
-sampling suite yet. A read case runs under these too, since they claim plain read. `materica` claims no table
+build claims by default; with plain read alone; and with the fits and reference data suite too, as the read's
+third, so that the one build-check file stating that claim false
+(`BC-020.want_mismatch_at_step_0_nominal_unused`) runs under the other two alone; a build claims neither the
+scene suite, USD read nor the sampling suite yet. A read case runs under these too, since they claim plain read. `materica` claims no table
 evaluation (TE): the last configuration, the TE suite alone, is the test-only reference evaluator's
 (`tests/reference/table_evaluator.py`, the S3 design's S3Q15), which runs each TE file four times, in
 `binary64` and `binary32`, declaring each side (`EVALUATOR_CLAIMS`). Each case file runs under every
@@ -55,7 +57,7 @@ so nothing that did not run can show as a pass or a skip. `test_cases.py` assert
 | `evaluate` (TE-002 to TE-012) | 35 | run, verified against the reference evaluator under each of its four configurations |
 | record checks (`check`: RC-031, RC-032, RC-220 to RC-226) and `quote_sha256` (RC-033's vectors) | 184 and 13 | not yet runnable: no executor; C2, with S5's record checks, adds them |
 | build checks (`check_build`: BC-004, BC-005, BC-037, BC-048, BC-050, BC-051), a declaration checked on its own and refused | 56 | run, passed |
-| build checks (`check_build`: BC-001, BC-002, BC-003, BC-006, BC-009, BC-010, BC-016, BC-017, BC-019, BC-020, BC-027, BC-028, BC-038, BC-049, BC-053), a declaration over records that passes its own check: the results and the verdict | 58 | not yet runnable: S7a-2, which builds the results, is not done |
+| build checks (`check_build`: BC-001, BC-002, BC-003, BC-006, BC-009, BC-010, BC-016, BC-017, BC-019, BC-020, BC-027, BC-028, BC-038, BC-049, BC-053), a declaration over records that passes its own check: the results and the verdict | 58 | run, passed |
 
 Each read is counted by the step whose code runs it (`case_steps.json`), not by what it reads:
 `PR-044.alternatives_beside_value` holds alternatives and is S2a-4's, and `PR-007.target_is_overlay` ends at
@@ -85,8 +87,10 @@ member one slip from `review` (`PR-330.near_typo_requirement_review`, S7a-2a), w
 since then too, as it refuses a slip of every member section 1 names there.
 
 Of the 1638 case files, 1277 agree with plain read and the hash suite, 1219 with plain read alone, and 1277
-with the fits and reference data suite too; 1391 with the build checks, plain read and the hash suite, and
-1333 with the build checks and plain read alone, the 114 of the build-check suite among each; the 35 of the
+with the fits and reference data suite too; 1391 with the build checks, plain read and the hash suite, 1333
+with the build checks and plain read alone, the 114 of the build-check suite among each, and 1390 with the
+build checks, plain read, the hash suite and the fits and reference data suite, 113 of the build-check suite
+among them; the 35 of the
 table evaluation suite agree with the reference evaluator's configuration alone, since this implementation
 claims no evaluator, and the 197 of the record-check suite agree with none, since it claims no record checks.
 
@@ -102,8 +106,7 @@ refusal counts as reported" (`read_side_contract.md` section 7 item 7): the exec
 as any executor's does, so that a crash never passes as a refusal. The `check_build` executor builds the
 declaration the file `inputs.declaration` names, its bytes as they are, so that one that breaks
 `record_format.md` section 1 item 6 can be given, over the files `inputs.records` names, and passes the report
-through JSON text; each report validates against `build_report.json` too (`test_cases.py`, with a control). A
-declaration that passes its own check raises `NotImplementedError` until S7a-2, so its files wait there.
+through JSON text; each report validates against `build_report.json` too (`test_cases.py`, with a control).
 
 ## How a result is compared
 
@@ -133,11 +136,19 @@ comparison wrong answers of each kind.
 
 A build-check case compares a build's report by the specification's README ("Case files") and the S7 design's
 5.1: `refusals` as a set of each refusal's `item` and `pointer`, never its `detail`, and only those of the
-rules `compare.rules_compared` names where the case names any; and a member `compare` names and `expected`
-omits or gives empty must be absent or empty, as a refused declaration's `results`, `watches` and `unused`
-are. A case that expects results, watches or unused acceptances is a defect until S7a-2 builds their
-comparison (`CaseFileError`), so that none can pass unread. `test_comparator.py` holds each arm, and
-`test_runner_can_fail.py` S7a-1's broken builds, each caught by an S7a-1 file.
+rules `compare.rules_compared` names where the case names any; a member `compare` names and `expected` omits
+or gives empty must be absent or empty, as a refused declaration's `results`, `watches` and `unused` are;
+`results` as a set keyed by `model`, the location and `field` (`fields` for a combination), compared both
+ways, each result's members those `compare.result_members` names, compared as a read result's are, with
+`accepted_by` a set of indexes and `not_accepted` a multiset of reasons and of specimen differences by section
+and fact; and `unused` as a set of `{"model", "acceptance"}`. A case that expects watches is a defect until
+S7a-4 builds their comparison (`CaseFileError`), so that none can pass unread. `test_comparator.py` holds
+each arm, and `test_runner_can_fail.py` S7a-1's broken builds, each caught by an S7a-1 file, and S7a-2's, each
+failing an S7a-2 file by the difference named beside it and never by raising: the S7 design's 6.5 list and the
+faults of its HP43 to HP46 rows a file can show (a waiver covering a `not_met` reason, `not_reviewed` dropped
+from section 4.2's table, the status lowered when accepted, an acceptance at another record taken, among 34);
+the faults no file can show are unit tests (`tests/unit/test_acceptance.py`, `test_build.py`,
+`test_report.py`).
 
 ## The case files themselves
 

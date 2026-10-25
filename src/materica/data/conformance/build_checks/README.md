@@ -33,8 +33,9 @@ A declaration over records that passes its own check, and what the build gives a
 - the `review` requirement and `not_reviewed`, never on a result that holds no `provenance` (BC-049);
   acceptances no result used, per model (BC-053).
 
-None runs yet: S7a-1 builds the declaration's own check, and with it the runner's `check_build` executor, and
-S7a-2 builds the results (`tests/spec_sync/case_steps.json` maps each file to `S7a-1` or `S7a-2`). `CASES.md`
+S7a-1 builds the declaration's own check, and with it the runner's `check_build` executor, and S7a-2 the
+results (`tests/spec_sync/case_steps.json` maps each file to `S7a-1` or `S7a-2`); both have run every file
+here since S7a-2. `CASES.md`
 beside this file gives one row per case file: what the arm tests, the text that decides it, and what the build
 gives. Start there.
 
