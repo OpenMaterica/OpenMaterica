@@ -3,20 +3,21 @@
 their chances (`@pytest.mark.chances`), of the conditions shard's, steps 9 and 10's and the result's, which
 declare them by their chances or draw them alike (`@pytest.mark.drawn`), of HP12's and HP4's form of the field
 read (S2b-1, and PR #37's review), of S2b-2's evidence and nominal, of the relations shard's audit of the
-monotonicity relations' worlds, by their chances, of S4a's outcome of step 7, drawn first, of HP12's draws
-of S4a's alternatives, by their chance, of the regions where a planned search's mutant shows, each held on
-the property whose own draws the search stands in for, by their chances, of S3a's HP13 to HP16, each
-drawing its fault, kind or way first, among them the regions of HP13's planned searches, and of S3b-2's HP20
-to HP23, HP21's relation, the monotonicity property over a table, HP12's table part and HP1, HP2 and HP11's
-table reads, each drawing its way or kind first, and the monotonicity property's worlds stated without origin,
-by their chance, of S3c's HP24 to HP26 and the monotonicity property over an extrapolation, each drawing
-its way first, and that property's worlds stated without origin, by their chance, and of S4d's HP39, the
-others' outcome drawn first and the table's way by its chance, and HP12's part over tables among
-alternatives, its part drawn first: run at the `ci` profile's examples with a generator that
-stops producing one of them, each property fails its audit, on that feature alone; a parametrised property,
-on one of its parameters, by the marks that parameter carries. The controls of the floors held at `deep`
-alone, which run where `deep` runs, are in `tests/property/test_model_deep_floor_controls.py` and use the run
-defined here. Outside `tests/property/`, whose audits would fail these runs too."""
+monotonicity relations' worlds, by their chances, of S4a's outcome of step 7, drawn first, of HP12's draws of
+S4a's alternatives, by their chance, of the regions where a planned search's mutant shows, each held on the
+property whose own draws the search stands in for, by their chances, of S3a's HP13 to HP16, each drawing its
+fault, kind or way first, among them the regions of HP13's planned searches, and of S3b-2's HP20 to HP23,
+HP21's relation, the monotonicity property over a table, HP12's table part and HP1, HP2 and HP11's table
+reads, each drawing its way or kind first, and the monotonicity property's worlds stated without origin, by
+their chance, of S3c's HP24 to HP26 and the monotonicity property over an extrapolation, each drawing its way
+first, and that property's worlds stated without origin, by their chance, of S4d's HP39, the others' outcome
+drawn first and the table's way by its chance, and HP12's part over tables among alternatives, its part drawn
+first, and of S7a-1's HP41 and HP42, each part drawing its way first: run at the `ci` profile's examples with
+a generator that stops producing one of them, each property fails its audit, on that feature alone; a
+parametrised property, on one of its parameters, by the marks that parameter carries. The controls of the
+floors held at `deep` alone, which run where `deep` runs, are in
+`tests/property/test_model_deep_floor_controls.py` and use the run defined here. Outside `tests/property/`,
+whose audits would fail these runs too."""
 
 import sys
 from collections.abc import Callable
@@ -32,6 +33,7 @@ from tests.property import audits, result_strategies
 from tests.property import test_alternatives_properties as alternatives_properties
 from tests.property import test_canonical_properties as canonical_properties
 from tests.property import test_condition_properties as condition_properties
+from tests.property import test_declaration_properties as declaration_properties
 from tests.property import test_evaluate_properties as evaluate_properties
 from tests.property import test_extrapolation_properties as extrapolation_properties
 from tests.property import test_hashing_properties as hashing_properties
@@ -468,6 +470,43 @@ CONTROLS = [
         model_properties.test_the_read_agrees_with_the_model_on_tables_among_alternatives,
         "refuses",
         ("check_agreement",),
+    ),
+    # S7a-1's: HP41's six drawing parts and HP42, each drawing its way first among at most five alike
+    # (`every_fault` draws none).
+    Control(
+        declaration_properties.test_a_reason_or_a_basis_missing_or_empty_is_refused_by_items_3_and_4,
+        "empty_text",
+        ("check_declaration",),
+    ),
+    Control(
+        declaration_properties.test_an_acceptance_whose_kind_needs_a_location_and_names_none_is_refused,
+        "accepted_difference_unlocated",
+        ("check_declaration",),
+    ),
+    Control(
+        declaration_properties.test_a_declaration_off_its_shape_is_refused_at_the_member_at_fault,
+        "slip",
+        ("check_declaration",),
+    ),
+    Control(
+        declaration_properties.test_a_token_or_a_registered_name_off_its_members_list_is_refused,
+        "other_case",
+        ("check_declaration",),
+    ),
+    Control(
+        declaration_properties.test_a_name_given_twice_a_field_not_read_and_an_unreviewed_label_are_refused,
+        "label_unreviewed",
+        ("check_declaration",),
+    ),
+    Control(
+        declaration_properties.test_a_fault_carries_the_first_case_of_the_rules_that_name_it_once,
+        "not_json",
+        ("check_declaration",),
+    ),
+    Control(
+        declaration_properties.test_what_a_build_cannot_check_is_refused_after_items_7_and_8_and_fails_closed_where_claimed,
+        "engine",
+        ("check_unbuilt",),
     ),
 ]
 

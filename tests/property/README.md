@@ -428,6 +428,42 @@ check's reader (the last bullet).
   only where that end lies past the readable range's (HP12's tables below); HP40's three moves of the range by a
   test of each on a table written by hand (`off_the_value`); the others' own draws are S4a's, which S4a's
   properties hold.
+- **The declaration on its own (S7a-1):** (21) the S7 design's HP41 and HP42 (`test_declaration_properties.py`,
+  in the `build` shard): the declaration's own check (`declarations.md` section 1; `core/declarations.py`)
+  against an oracle written in the test from the text: each planted fault's rules by its name (`RULES`, each
+  cited from its sentence), the refusal paragraph's order for a member two rules name ("one fault is one member
+  at fault", maintainer, 2026-10-24), and one refusal for two faults of one case and one pointer.
+  `declaration_strategies.py` draws, from the text alone and never from `SHAPE` or `TOKENS`, declarations the
+  text takes: one to three models over one to three of `stores.py`'s records, one to four fields read each
+  with a requirement or none, acceptances of every kind a build that claims none of item 12's suites can
+  check, located at a record, an accepted difference located or not, `trainable` entries (two of one field at
+  two records among them), `target` facts of every shape, the optional members present or absent, and texts of
+  white space, of a degree sign and of 120 characters, which the text takes. A planter changes a copy and
+  records each fault's name, pointer and, for a missing member, which; it puts no second member at fault,
+  planting where nothing rests on what it changes (a labelled waiver on its requirement, a `trainable` entry on
+  the listed records) or clearing what rests there first. Every part checks first that the declaration drawn is
+  taken, and that the check never raises. HP41 runs in seven parts, each drawing its way first among at most
+  five alike: `reasons` (a tolerance's, an accept list's, an acceptance's and a basis's absence, an empty
+  string), `locations` (acceptances of the kinds that need a location naming none, an accepted difference, an
+  overlay or an `overlay_scope` naming none, one located, at a region or an interval among them), `shape` (a
+  required member missing, a value its Holds column refuses, of another JSON type or breaking constraints the
+  column states, members no place names or another place names at several depths, a slip of a named one,
+  empty lists where one entry is asked), `tokens` (tokens outside their members' lists, slips of them, other
+  members' tokens, tokens in another case, each at members of the sweep by chance; a field or a condition
+  misspelt), `names` (a name given twice, a requirement or a `trainable` entry for a field not read, a
+  `trainable` entry at a record not listed, a label-resting waiver its requirement does not hold up),
+  `precedence` (a fault two rules name, a missing member, a text that is not JSON, a value that is not an
+  object, two members missing from one object) and `every_fault` (two to five faults across models, of
+  planters that only append or add, drawing no feature). Where a way plants several faults at once (its
+  constraints, sweep members, depths, kinds or lists, each in about half its draws and one at least, at places
+  apart), each check is met often enough to kill its mutant well before the margin guard, and the several faults
+  hold the search to every one of them. HP42 draws a domain, a path, `region_conditions`, an engine (over
+  records or a domain, its crosswalk pinned or not) or a sampling member (which, and `sampling` absent, valid,
+  off its bounds or missing a member, by chance) beside none to two of HP41's faults, and holds the refusals to
+  items 7 and 8, the `population_level` rule and item 12's sparing, to the check of the same declaration
+  without the member, and a build that claims the member's suite to `NotImplementedError` (fail closed,
+  maintainer, 2026-10-24). HP1, HP2 and HP11 hold a result's `read`, and S7a-1 gives none: they join with
+  S7a-2's results.
 - **The anomaly check's reader:** the YAML reader of `scripts/check_anomalies.py` and its specifier syntax
   against PyYAML's `safe_load` and `packaging` (`test_anomaly_reader_properties.py`, in the `agreement` shard).
   A document the reader reads is read as PyYAML reads it; one PyYAML refuses is refused; one inside the subset
@@ -482,9 +518,9 @@ failure prints a blob that replays it anywhere.
 
 ## Shards
 
-CI runs the groups in eight shards, the three longest of them, `agreement`, `relations` and `alternatives`, in two parts each
+CI runs the groups in nine shards, the three longest of them, `agreement`, `relations` and `alternatives`, in two parts each
 (`--shard agreement_1of2` and `--shard agreement_2of2`, and the same for `relations` and `alternatives`: the shard's tests split in
-two parts of about equal time, `tests/partition.py`), so in eleven jobs side by side: `pytest tests/property --shard
+two parts of about equal time, `tests/partition.py`), so in twelve jobs side by side: `pytest tests/property --shard
 json`, which also holds the tables group, `--shard records`, which holds the record and step-8 groups, `--shard writer`, `--shard agreement`, the
 two validators' agreement (below), `--shard step8_mutants`, step 8's mutant searches, which keep no example
 database and were most of the records shard's time, `--shard conditions`, steps 9 and 10's group and the
@@ -498,7 +534,10 @@ minutes of its 20 at `ci` on CI), and `--shard relations`, the reference
 model's, isolation and byte form's, and monotonicity groups with their mutant searches, each example reading two records or a read twice (198 s on four local
 workers at `ci`, 2026-10-17; `SHARDS` in `tests/conftest.py`), and `--shard alternatives`, S4a's step 7 over
 alternatives with its mutant searches (122 s on eight local workers at `ci`, 342 s of test time, 2026-10-19;
-`relations`, with HP12's draws of S4a's outcomes, took 163 s and 1,036 s after it, under the same lock).
+`relations`, with HP12's draws of S4a's outcomes, took 163 s and 1,036 s after it, under the same lock), and
+`--shard build`, S7a's build check, the declaration's HP41 and HP42 with their mutant searches (the S7 design's
+6.1; its time on CI is measured at its own base, and it splits in two shards, `declarations` and `build`, if it
+passes a third of its 20-minute `ci` timeout).
 S2b-1's intervals and compositions added 13%
 to `conditions` and 7% to `relations`, each timed side by side with the tests before them (475 s against 420,
 588 against 549, at loads of 15 to 25), and HP3's third part 51 s of one worker to records (172 s). S2b-2's

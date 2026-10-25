@@ -64,12 +64,12 @@ settings.load_profile(PROFILE)
 harvested_constants.pin()
 
 
-# CI's Hypothesis job runs the property modules in eight shards, `--shard json`, `--shard records`, `--shard
-# writer`, `--shard agreement`, `--shard step8_mutants`, `--shard conditions`, `--shard relations` and
-# `--shard alternatives`, the three longest, `agreement`, `relations` and `alternatives`, each as two parts
-# side by side (`--shard agreement_1of2`, `--shard agreement_2of2`: the shard's tests in two parts of about
-# equal time, `tests/partition.py`); `tests/unit/test_source_files.py` checks that each module is in exactly
-# one shard.
+# CI's Hypothesis job runs the property modules in nine shards, `--shard json`, `--shard records`, `--shard
+# writer`, `--shard agreement`, `--shard step8_mutants`, `--shard conditions`, `--shard relations`, `--shard
+# alternatives` and `--shard build`, the three longest, `agreement`, `relations` and `alternatives`, each as
+# two parts side by side (`--shard agreement_1of2`, `--shard agreement_2of2`: the shard's tests in two parts
+# of about equal time, `tests/partition.py`); `tests/unit/test_source_files.py` checks that each module is in
+# exactly one shard.
 SHARDS = {
     "json": (
         "test_jsonio_properties",
@@ -158,6 +158,10 @@ SHARDS = {
         "test_table_alternatives_mutants",
         "test_table_alternatives_mutant_table",
     ),
+    # S7a's build check (the S7 design's 6.1): S7a-1's declaration on its own (HP41 and HP42); S7a's later
+    # pieces' properties join it. Each example checks a declaration twice, or three times (HP42), and reads no
+    # record.
+    "build": ("test_declaration_properties",),
 }
 
 
