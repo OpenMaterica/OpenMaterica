@@ -507,6 +507,11 @@ SCHEMA_READERS = ("tests/unit/test_freeze_schema.py", "tests/unit/test_schema_in
         ("docs/specification/read_side_contract.md", ("tests/reference/test_cases.py",)),
         ("docs/specification/declarations.md", ("tests/reference/test_build_results_model.py",)),
         (
+            "src/materica/schema/0.1/vocabulary/coverage.json",
+            ("tests/reference/test_build_results_model.py",),
+        ),
+        ("src/materica/core/acceptance.py", ("tests/reference/test_build_results_model.py",)),
+        (
             "src/materica/data/conformance/build_checks/inputs/water_fixture.json",
             ("tests/reference/test_build_results_model.py", "tests/reference/test_seeded_faults.py"),
         ),
