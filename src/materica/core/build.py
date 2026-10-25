@@ -23,7 +23,8 @@ so that no answer is given that the later piece would change (the S7 design's 1.
 which S7c applies; a non-empty `target` or `combinations`, whose specimen differences and combinations S7a-3
 gives; and a non-empty `trainable`, which S7a-4 reads. A read lets through the `NotImplementedError` it raises
 itself (a checked record that is an overlay, `want: fit` on a field holding a fit record), and the verdict
-raises where a waiver naming a label would cover a reason (`core/acceptance.py`).
+raises where label trust could change a result's verdict: a waiver naming a label fits a reason, and every
+reason of the result fits some acceptance (`core/acceptance.py`).
 """
 
 import copy
@@ -90,7 +91,8 @@ def check_build(
     of section 1, gives a report of its refusals alone, and nothing is read. Any other gives the report of its
     results (section 2), but that it raises `NotImplementedError` in this version: before any read, naming
     each pick, overlay, `target`, `combinations` and `trainable` entry and the piece that reads it; and where
-    a waiver naming a label would cover a reason, which S7a-2's label trust judges.
+    a waiver naming a label fits a reason of a result that label trust could still accept, which S7a-2's
+    label trust judges.
     """
     checked = Declaration.from_json(declaration, claims)
     if isinstance(checked, tuple):

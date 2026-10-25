@@ -4,8 +4,8 @@
 the model's indexes and checked against the build's terms, the label stored on the value a result rests on
 (item 8), and what this version raises before any read (the S7 design's 1.3), from S7a-2a; and from S7a-2b,
 the build's own reasons and the status they give (item 8), the records a read resolved, and the raise where a
-waiver naming a label would cover a reason. Each test plants what a wrong build would do, beside the answer
-the text gives, where one example can show it."""
+waiver naming a label could change a result's verdict. Each test plants what a wrong build would do, beside
+the answer the text gives, where one example can show it."""
 
 import copy
 import json
@@ -951,11 +951,31 @@ def labelled(code: str = "condition_unstated") -> Json:
     return declaration
 
 
-def test_a_waiver_naming_a_label_raises_where_it_would_cover_a_reason() -> None:
+NOT_REVIEWED_WAIVER: Json = {
+    "acceptance": "waiver",
+    "record": WATER,
+    "field": VISCOSITY,
+    "code": "not_reviewed",
+    "reason": "the water's review is not checked",
+}
+
+
+def test_a_waiver_naming_a_label_raises_where_label_trust_could_change_the_verdict() -> None:
     """Label trust comes after 0.1.0.dev4 (maintainer, 2026-10-21): the waiver would cover the water's
-    unstated shear rate only where its label is trusted, which this version does not judge."""
+    unstated shear rate only where its label is trusted, which this version does not judge. The water's review
+    is not checked, so the result holds `not_reviewed` as well: the build raises once that is waived too, and
+    every reason fits, and not before, since the result is then refused whatever the label is."""
     store = materica.load_records([INPUTS / "water_fixture.json"])
+    declaration = labelled()
+    report = check_build(declaration, store)
+    assert [reason.code for reason in report.results[0].not_accepted] == [
+        "condition_unstated",
+        "not_reviewed",
+    ]
+    assert (report.results[0].accepted, report.results[0].accepted_by, report.refused) == (False, (), True)
+    assert [(found.model, found.acceptance) for found in report.unused] == [("drag", 0)]
+    acceptances(declaration).append(NOT_REVIEWED_WAIVER)
     with pytest.raises(NotImplementedError, match="S7a-2's label trust"):
-        check_build(labelled(), store)
+        check_build(declaration, store)
     report = check_build(labelled("stated_without_origin"), store)
     assert [(found.model, found.acceptance) for found in report.unused] == [("drag", 0)]

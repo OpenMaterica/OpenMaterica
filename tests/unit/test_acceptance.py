@@ -292,12 +292,42 @@ def test_a_reason_given_twice_by_alternative_is_covered_each_time() -> None:
 # after 0.1.0.dev4).
 
 
-def test_a_waiver_naming_a_label_raises_where_it_would_cover_and_not_where_it_would_not() -> None:
-    labelled = a_waiver("condition_unstated", "shear_rate", more={"label": "materica.fluid.newtonian.v1"})
-    with pytest.raises(NotImplementedError, match="S7a-2's label trust"):
-        covered(labelled, SHEAR)
-    assert not covered(labelled, TEST_METHOD)
-    assert not covers(labelled, SHEAR, None, PLASMA, VISCOSITY)
+LABELLED = a_waiver("condition_unstated", "shear_rate", more={"label": "materica.fluid.newtonian.v1"})
+LABEL_TRUST = "S7a-2's label trust"
+
+
+def test_a_waiver_naming_a_label_fits_a_reason_by_its_row_and_judge_decides_its_label() -> None:
+    assert covered(LABELLED, SHEAR)
+    assert not covered(LABELLED, TEST_METHOD)
+    assert not covers(LABELLED, SHEAR, None, PLASMA, VISCOSITY)
+
+
+def test_a_waiver_naming_a_label_raises_where_label_trust_could_change_the_verdict() -> None:
+    """Every reason of the result fits some acceptance, so the result is accepted or not by the label."""
+    with pytest.raises(NotImplementedError, match=LABEL_TRUST):
+        verdict([SHEAR], [LABELLED])
+    unlabelled = a_waiver("condition_unstated", "shear_rate", 1)
+    with pytest.raises(NotImplementedError, match=LABEL_TRUST):
+        verdict([SHEAR], [unlabelled, LABELLED])  # accepted_by would gain the labelled one
+    other = a_waiver("condition_unchecked", "test_method", 1)
+    with pytest.raises(NotImplementedError, match=LABEL_TRUST):
+        verdict([SHEAR, TEST_METHOD], [LABELLED, other])
+
+
+def test_a_waiver_naming_a_label_raises_nothing_where_the_verdict_is_refused_whatever_the_label_is() -> None:
+    """A reason no acceptance fits (D5's principle: an answer label trust cannot change): the result is not
+    accepted, and the labelled waiver is read as not trusted, its reason among those not accepted."""
+    uncoverable = Reason("label_mismatch")
+    assert verdict([SHEAR, uncoverable], [LABELLED]) == Judgement(False, (), (SHEAR, uncoverable))
+    other = a_waiver("condition_unchecked", "test_method", 1)
+    assert verdict([SHEAR, TEST_METHOD, uncoverable], [LABELLED, other]) == Judgement(
+        False, (1,), (SHEAR, uncoverable)
+    )
+    # The control: without the reason nothing fits, the same acceptances raise.
+    with pytest.raises(NotImplementedError, match=LABEL_TRUST):
+        verdict([SHEAR, TEST_METHOD], [LABELLED, other])
+    # A waiver that fits no reason raises nothing either way, and is unused.
+    assert verdict([TEST_METHOD], [LABELLED, other]) == Judgement(True, (1,), ())
 
 
 # The acceptances unused (item 9): "per model, each acceptance not used (the build's terms)".
