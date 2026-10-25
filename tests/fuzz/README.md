@@ -16,12 +16,12 @@ collect them. Atheris ships no types, so `typings/atheris/` holds stubs for the 
 
 `build_results_oracle.py` holds the relations the build's target is to hold a report of results to (the S7
 design's 6.5), importable without Atheris: an accepted result holds no `not_met` reason that no assumption or
-`trainable` acceptance covers (`declarations.md` section 4.2's own law), and the report is refused exactly where
-a refusal or a result not accepted is. `tests/unit/test_fuzz_build_results.py` shows them quiet on every
-build-check case's report, the first failing where `_covers` lets a waiver naming `condition_outside` cover it
-(the design's fault for the target's control) and the second where `refused` reads the first model's results
-alone. The target that runs them arrives with S7a-1's `build_bytes.py`, and the relation to the build's results
-model with that model.
+`trainable` acceptance covers (`declarations.md` section 4.2's own law); the report is refused exactly where a
+refusal or a result not accepted is; and where the build's results model decides, the report is the model's.
+`tests/unit/test_fuzz_build_results.py` shows them quiet on every build-check case's report, the first and the
+third failing where `_covers` lets a waiver naming `condition_outside` cover it (the design's fault for the
+target's control), the second where `refused` reads the first model's results alone, and the third where a
+result or an unused acceptance is left out. The target that runs them arrives with S7a-1's `build_bytes.py`.
 
 ## Running
 

@@ -107,25 +107,25 @@ every family entry goes in `families/CHANGELOG.md`.
 - HP43 to HP46, the build's results and verdict properties (S7a-2p; the S7 design's 6.5), in the `build`
   Hypothesis shard. `tests/property/test_build_properties.py` holds the build to an oracle written from
   `declarations.md` sections 1, 2 and 4.2 (section 4.2's rows, the build's terms, section 2 items 7 and 8):
-  HP43, `judge`'s verdict on results and acceptances drawn directly (a waiver matching a reason or differing in
-  its code, condition, location or field; a nominal or an extrapolation the `assumption` names or not; a reason
-  no row lists for the acceptance beside it), and each whole build's verdicts by their indexes, "applied" read
-  from each result, and the unused acceptances; HP44, each result's read equal to the read of the request built
-  from the declaration, one result per model, listed record and field read, the build's reasons only adding,
-  the status the worst, and `records` those a read's step 1 found, with HP1's, HP2's and HP11's checks on each
-  read; HP45, `label_mismatch` and `not_reviewed` exactly where the record as stored gives them, and a waiver
-  naming a label covering only where that label is stored and trusted, the build raising where label trust
-  could change the verdict (HP45's `label_trust` part waits for label trust, after 0.1.0.dev4); HP46, the
-  refusal law, and no verdict changed by permuting models, listed records and acceptances.
-  `tests/property/build_strategies.py` draws records built from the build-check cases' values and declarations
-  over them; each drawing part is a test parametrized by strata of at most two of its ways. 56 mutants
-  (`test_build_mutants.py`): the design's 41 but label trust's five, and 20 more the reviews of S7a-2a, S7a-2b
-  and S7a-2m and the parts' other ways name, each killed at both sizes at its way and its assertion, their kill
-  points recorded; an audit control for each drawing part. The fuzz target's results relations
-  (`tests/fuzz/build_results_oracle.py`: an accepted result holds no `not_met` reason that no assumption or
-  `trainable` acceptance covers, and the report is refused exactly where a refusal or a result not accepted
-  is), each shown failing by `tests/unit/test_fuzz_build_results.py`; the target that calls them and its
-  control arrive with S7a-1's, and its model relation with the build's results model.
+  HP43, `judge`'s verdict on results and acceptances drawn directly (a waiver matching a reason or differing
+  in its code, condition, location or field; a nominal or an extrapolation the `assumption` names or not; a
+  reason no row lists for the acceptance beside it), and each whole build's verdicts by their indexes,
+  "applied" read from each result, and the unused acceptances; HP44, each result's read equal to the read of
+  the request built from the declaration, one result per model, listed record and field read, the build's
+  reasons only adding, the status the worst, and `records` those a read's step 1 found, with HP1's, HP2's and
+  HP11's checks on each read; HP45, `label_mismatch` and `not_reviewed` exactly where the record as stored
+  gives them, and a waiver naming a label covering only where that label is stored and trusted, the build
+  raising where label trust could change the verdict (HP45's `label_trust` part waits for label trust, after
+  0.1.0.dev4); HP46, the refusal law, and no verdict changed by permuting models, listed records and
+  acceptances. `tests/property/build_strategies.py` draws records built from the build-check cases' values and
+  declarations over them; each drawing part is a test parametrized by strata of at most two of its ways. 56
+  mutants (`test_build_mutants.py`): the design's 41 mutants less label trust's five, and 20 more mutants the
+  reviews of S7a-2a, S7a-2b and S7a-2m and the parts' other ways name, each killed at both sizes at its way
+  and its assertion, their kill points recorded; an audit control for each drawing part. The fuzz target's
+  results relations (`tests/fuzz/build_results_oracle.py`: an accepted result holds no `not_met` reason that
+  no assumption or `trainable` acceptance covers, the report is refused exactly where a refusal or a result
+  not accepted is, and where the build's results model decides, the report is the model's), each shown failing
+  by `tests/unit/test_fuzz_build_results.py`; the target that calls them and its control arrive with S7a-1's.
 - The build's reads over records (S7a-2a; `declarations.md` section 2). `check_build` reads a declaration that
   passes its own check: for each model, each record its `checked_over` lists, in the order listed, and each
   field in its `reads`, in that order, one result (`BuildResult`: the model, the record, the field and the
