@@ -15,6 +15,21 @@ every family entry goes in `families/CHANGELOG.md`.
 ## [Unreleased]
 
 ### Added
+- The build's reads over records (S7a-2a; `declarations.md` section 2). `check_build` reads a declaration that
+  passes its own check: for each model, each record its `checked_over` lists, in the order listed, and each
+  field in its `reads`, in that order, one result (`BuildResult`: the model, the record, the field and the
+  read), and none for a record not listed; a field with no requirement is read for nothing (section 1 item 1).
+  Each read is of the build's own request, item 7: the requirement's `want` and `conditions` alone, every
+  declared operating condition, and the acceptances of the kinds a read takes, overlays aside, that name the
+  field and are located at the record. The acceptances a read applied are mapped to their indexes in the
+  model's `acceptances`, each kept only where the result shows it by the build's terms, and the label and its
+  basis stored on the value a result rests on are read from the record as stored, for the build's own reasons;
+  `ReadResult` records which value that is outside its JSON and equality (`resting_on`), as it records
+  `applied`. Past the reads, `check_build` still raises `NotImplementedError`, naming S7a-2b, which gives the
+  build's own reasons, the judgement, the verdict and the report's results. Before any read it raises for a
+  pick or an overlay (S7c), a non-empty `target` or `combinations` (S7a-3) and a non-empty `trainable` (S7a-4),
+  and no longer for an `overlay_scope` or an accepted difference, which with no overlay applied and an empty
+  `target` cover nothing (the S7 design's 1.3). No case file changes its expected answer.
 - `materica.check_build(declaration, store, *, claims=...)`, the build check up to the declaration's own check
   (S7a-1b; `declarations.md` section 1). The declaration, JSON text or a value, is read by `record_format.md`
   section 1 item 6 and checked by hand against `SHAPE`, the table of its shape (`core/declarations.py`): every
@@ -207,6 +222,12 @@ every family entry goes in `families/CHANGELOG.md`.
   `model`, location and `field` alone. A refusal case, which compares results and expects none, names none.
 
 ### Verification
+- PR-330's arm of a member one slip from a requirement's `review` (`PR-330.near_typo_requirement_review`,
+  S7a-2a), written through the case tools: refused at step 0, which S2a-2's step 0 runs, and passes. The S7
+  design's notes ask for the slip among the arms of the read's refusal of `review`, which it has made since
+  S7-spec; and `tests/spec_sync/unknown_member_positions.json` names `review` at a requirement's place, so the
+  positions test plants a slip of it as of `label`. 1238 of 1637 case files pass, 35 are verified against the
+  reference evaluator, and 364 are not yet runnable.
 - The measurements a property piece makes before review run on CI as a matrix (maintainer, 2026-10-23), with
   the counts and judgement of a local run: `scripts/measure.py` (floors at the variance measured, at the mean and the least share, kill drift over
   streams, regions of a base against the head with every mutant search's kill, a fuzz control's rate), run alike

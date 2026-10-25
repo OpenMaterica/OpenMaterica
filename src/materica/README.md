@@ -32,4 +32,6 @@ standard library; and nothing imports `materica_authoring`.
   (CONTRIBUTING, "Changing the schema").
 - `__init__.py` holds the public API built so far: `check_build`, `content_hash`, `load_records` and `read`.
   `check_build` checks a consumer's declaration on its own (`declarations.md` section 1) and reports its
-  refusals; past that check it raises `NotImplementedError` until S7a-2 builds the reads and the verdict.
+  refusals. A declaration that passes is read over its records (section 2), and `check_build` then raises
+  `NotImplementedError` until S7a-2b judges the results and gives the report; before any read it raises for
+  what a later piece reads (a pick or an overlay, a non-empty `target`, `combinations` or `trainable`).
