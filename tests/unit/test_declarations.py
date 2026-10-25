@@ -880,3 +880,28 @@ def test_an_engine_value_without_reason_or_basis_is_item_7s_alone_at_the_engine(
             pinned["region_values"] = region_values
 
     assert refusals(a_declaration(change)) == expected
+
+
+def test_item_7_finds_an_engine_values_missing_member_whatever_the_crosswalk() -> None:
+    """With no crosswalk pinned and the model over a domain, item 7 has no other fault to find: BC-040 at the
+    `engine` is then its finding of the value alone, in `values` and in `region_values`; without one, item 12
+    refuses the engine (USD read not claimed), and the missing crosswalk is BC-048's."""
+
+    def without_crosswalk(values: Json, region_values: Json) -> Json:
+        def change(declaration: Json) -> None:
+            model(declaration)["checked_over"] = {"domain": "lumen"}
+            model(declaration)["engine"] = {"values": values, "region_values": region_values}
+
+        return a_declaration(change)
+
+    complete: Json = {"value": 1.0, "reason": "r", "basis": "b"}
+    around = {("BC-048", ENGINE), ("BC-051", "/models/0/checked_over/domain")}
+    assert refusals(without_crosswalk({"mu": complete}, {"lumen": {"mu": complete}})) == around | {
+        ("BC-051", ENGINE)
+    }
+    assert refusals(without_crosswalk({"mu": {"value": 1.0, "reason": "r"}}, {})) == around | {
+        ("BC-040", ENGINE)
+    }
+    assert refusals(without_crosswalk({}, {"lumen": {"mu": {"value": 1.0, "basis": "b"}}})) == around | {
+        ("BC-040", ENGINE)
+    }
