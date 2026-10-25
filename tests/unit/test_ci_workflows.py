@@ -9505,20 +9505,34 @@ MEASURE_DIFFERING = {
 }
 
 
+QUEUE_AND_CANCEL = "combine `queue: max` with a cancel-in-progress that is true, which GitHub refuses"
+
+
 def measure_concurrency_problems(found: Workflow) -> list[str]:
-    """Where two dispatches of one request on one ref could run at once, a dispatch could cancel another or
-    wait behind another request, or a pull request's run would not give way to the next push's."""
+    """Where two dispatches of one request on one ref could run at once, a dispatch could cancel one running,
+    a pull request's run would not give way to the next push's, or the settings of an event would combine
+    `queue: max` with a `cancel-in-progress` that evaluates true (GitHub's "Control the concurrency of
+    workflows and jobs", read 2026-10-25: "not allowed and will result in a workflow validation error"; a
+    pull request's run of this file at 9cb1c364 was rejected so, with no job). A dispatch pending behind a
+    running one of its group may be replaced by a newer one: the workflow leaves `queue` at `single`."""
     settings = cast(dict[str, object], found.get("concurrency") or {})
     context = MEASURE_DISPATCHED | {"github.workflow": found["name"]}
     problems: list[str] = []
-    if truthy(setting(settings.get("cancel-in-progress", False), context)):
-        problems.append("a dispatch cancels the one running in its group")
     pulled = context | {"github.event_name": "pull_request", "github.ref": "refs/pull/1/merge"}
     pulled |= {f"inputs.{name}": "" for name in MEASURE_INPUTS}
-    if not truthy(setting(settings.get("cancel-in-progress", False), pulled)):
+    cancelled = {
+        event: truthy(setting(settings.get("cancel-in-progress", False), where))
+        for event, where in (("dispatch", context), ("pull request", pulled))
+    }
+    if cancelled["dispatch"]:
+        problems.append("a dispatch cancels the one running in its group")
+    if not cancelled["pull request"]:
         problems.append("a pull request's run is not cancelled by the next push's")
-    if settings.get("queue") != "max":
-        problems.append(PENDING_CANCELLED)
+    problems += [
+        f"a {event}'s settings {QUEUE_AND_CANCEL}"
+        for event, cancels in cancelled.items()
+        if cancels and settings.get("queue") == "max"
+    ]
     group = setting(settings.get("group"), context)
     if group in (None, "") or setting(settings.get("group"), context | {"github.run_id": "2"}) != group:
         problems.append("two dispatches of one request on one ref do not share a group")
@@ -9537,23 +9551,40 @@ def measure_concurrency_problems(found: Workflow) -> list[str]:
         ({"group": "${{ github.workflow }}-${{ github.ref }}", "queue": "max"}, "another inputs.kind shares"),
         ({"group": "${{ github.workflow }}-${{ github.run_id }}", "queue": "max"}, "do not share a group"),
         ({"group": "${{ github.workflow }}", "cancel-in-progress": True}, "cancels the one running"),
-        ("no queue", PENDING_CANCELLED),
         ("never cancelled", "a pull request's run is not cancelled"),
+        # The control: the pair the file had at 9cb1c364, which GitHub rejected for a pull request. It must be
+        # found, for the pull request alone (a dispatch's expression is false) and for a dispatch that
+        # cancels.
+        ("the pair of 9cb1c364", "a pull request's settings " + QUEUE_AND_CANCEL),
+        ("a dispatch that cancels, queued", "a dispatch's settings " + QUEUE_AND_CANCEL),
     ],
-    ids=["as-written", "a-group-per-ref", "a-group-per-run", "cancelling", "no-queue", "never-cancelled"],
+    ids=[
+        "as-written",
+        "a-group-per-ref",
+        "a-group-per-run",
+        "cancelling",
+        "never-cancelled",
+        "the-pair-of-9cb1c364",
+        "a-dispatch-queued-and-cancelling",
+    ],
 )
 def test_a_measure_dispatch_waits_only_behind_one_of_the_same_request(
     concurrency: object, problem: str
 ) -> None:
     found = workflow(MEASURE)
-    if concurrency == "no queue":
-        del found["concurrency"]["queue"]
-    elif concurrency == "never cancelled":
+    assert "queue" not in found["concurrency"]
+    if concurrency == "never cancelled":
         found["concurrency"]["cancel-in-progress"] = False
+    elif concurrency == "the pair of 9cb1c364":
+        found["concurrency"]["queue"] = "max"
+    elif concurrency == "a dispatch that cancels, queued":
+        found["concurrency"] |= {"cancel-in-progress": True, "queue": "max"}
     elif concurrency != "as written":
         found["concurrency"] = concurrency
     problems = measure_concurrency_problems(found)
     assert (problems == []) if not problem else any(problem in line for line in problems), problems
+    if concurrency == "the pair of 9cb1c364":
+        assert not any("a dispatch's settings" in line for line in problems), problems
 
 
 def measure_wiring_problems(found: Workflow) -> list[str]:

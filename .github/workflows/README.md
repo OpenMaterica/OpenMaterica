@@ -201,10 +201,14 @@ No input reaches a profile's example count, deadline or health checks: every run
 health checks `too_slow`, `filter_too_much`, `data_too_large` and `large_base_example` suppressed, as a
 measured run needs), each stream salting the test's digest. Each input reaches a step through its
 environment alone and is checked before any job reads it. The workflow reads the repository alone
-(`contents: read`), reads no secret, restores the uv cache CI saved and saves none, and never cancels another
-dispatch; a dispatch waits behind a running one of the same inputs on the same ref (`queue: max`, above), while a
-pull request's run gives way to the next push's.
-`tests/unit/test_ci_workflows.py` holds it to each of these, and runs the request, a measurement and the report
+(`contents: read`), reads no secret, restores the uv cache CI saved and saves none, and cancels no running
+dispatch; a dispatch waits behind a running one of the same inputs on the same ref, while a pull request's
+run gives way to the next push's. GitHub refuses `queue: max` beside a `cancel-in-progress` that is true, so this
+workflow leaves the queue at GitHub's default, `single`: a dispatch pending behind a running one of the same inputs
+on the same ref is replaced by a newer dispatch of those inputs (the group holds every input, so those are rare;
+a dispatch that ran is never cancelled).
+`tests/unit/test_ci_workflows.py` holds it to each of these (that no event's settings combine `queue: max` with
+a `cancel-in-progress` that is true among them), and runs the request, a measurement and the report
 as written on this repository, the report's failure cases among them.
 
 ## Claims (`claims.yml`)
