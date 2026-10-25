@@ -471,42 +471,49 @@ CONTROLS = [
         "refuses",
         ("check_agreement",),
     ),
-    # S7a-1's: HP41's six drawing parts and HP42, each drawing its way first among at most five alike
-    # (`every_fault` draws none).
+    # S7a-1's: HP41's six drawing parts and HP42, each drawing its way first among the two of a stratum (a
+    # stratum of one draws none; `every_fault` draws none), a control of one stratum a part.
     Control(
         declaration_properties.test_a_reason_or_a_basis_missing_or_empty_is_refused_by_items_3_and_4,
-        "empty_text",
+        "basis",
         ("check_declaration",),
+        (("ways", ("acceptance_reason", "basis")),),
     ),
     Control(
         declaration_properties.test_an_acceptance_whose_kind_needs_a_location_and_names_none_is_refused,
         "accepted_difference_unlocated",
         ("check_declaration",),
+        (("ways", ("unlocated", "accepted_difference_unlocated")),),
     ),
     Control(
         declaration_properties.test_a_declaration_off_its_shape_is_refused_at_the_member_at_fault,
         "slip",
         ("check_declaration",),
+        (("ways", ("unknown", "slip")),),
     ),
     Control(
         declaration_properties.test_a_token_or_a_registered_name_off_its_members_list_is_refused,
-        "other_case",
+        "misspelt_name",
         ("check_declaration",),
+        (("ways", ("slip_of_token", "misspelt_name")),),
     ),
     Control(
         declaration_properties.test_a_name_given_twice_a_field_not_read_and_an_unreviewed_label_are_refused,
-        "label_unreviewed",
+        "trainable_unlisted",
         ("check_declaration",),
+        (("ways", ("twice", "trainable_unlisted")),),
     ),
     Control(
         declaration_properties.test_a_fault_carries_the_first_case_of_the_rules_that_name_it_once,
         "not_json",
         ("check_declaration",),
+        (("ways", ("not_json", "not_object")),),
     ),
     Control(
         declaration_properties.test_what_a_build_cannot_check_is_refused_after_items_7_and_8_and_fails_closed_where_claimed,
         "engine",
         ("check_unbuilt",),
+        (("ways", ("region_conditions", "engine")),),
     ),
 ]
 

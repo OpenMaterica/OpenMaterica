@@ -1149,11 +1149,9 @@ def model_of(at: str) -> int | None:
 
 def rests_on(p: Planting, site: Site, member: str) -> bool:
     """Whether another member rests on `member` of `site`: a labelled waiver on its requirement's `field`,
-    `label` or `review`, or on its model's `requirements`; a waiver's `label` on its own `field`; an accepted
-    difference's `value` on its `acceptance`, which, of no kind, leaves which `value` it may hold open (an
-    open point: the check holds it to a nominal's, a number)."""
-    if site.place == "accepted_difference" and member == "acceptance":
-        return True
+    `label` or `review`, or on its model's `requirements`; a waiver's `label` on its own `field`. An
+    acceptance's kind is taken out or changed like any member: an acceptance that names no known kind is
+    refused at itself, and none of its other members is judged (the refusal paragraph)."""
     m = model_of(site.pointer)
     model = p.models[m] if m is not None else {}
     if site.place == "requirement" and member in ("field", "label", "review"):
@@ -1212,17 +1210,41 @@ def unplanted(p: Planting, site: Site, members: list[str]) -> list[str]:
 
 def plant_missing(p: Planting) -> None:
     """Two required members missing, each at an object of another place, which by chance from the shape
-    table, or none of a place's exclusive alternatives, each refused at the object that should hold it;
-    `target` the first in about one draw in six (the design's mutant "a required member's absence taken
-    (`target`)"). Two, at two places, so that a check taking one would still refuse the declaration, rather
-    than build its typed result of a model that lacks the member."""
+    table, or none of a place's exclusive alternatives, each refused at the object that should hold it. The
+    first is `target` in about one draw in six (the design's mutant "a required member's absence taken
+    (`target`)"), and an accepted difference's `acceptance` in about one in six, which leaves an acceptance
+    of no kind whose `value` no kind's Holds judges; the second is a waiver's `condition`, where its code
+    names one, in about one in six. Two, at two places, so that a check taking one would still refuse the
+    declaration, rather than build its typed result of a model that lacks the member."""
     places: set[str] = set()
     for turn in range(2):
-        if turn == 0 and p.draw(st.integers(0, 5)) == 0:
+        first = p.draw(st.integers(0, 5))
+        if turn == 0 and first == 0:
             m = p.model_index()
             p.kinds.append("model entry: target")
             removed(p, Site("model entry", pointer("models", m), p.models[m]), "target")
             places.add("model entry")
+            continue
+        if turn == 0 and first == 1:
+            at, held = append_acceptance(p, p.model_index(), "accepted_difference", location=None)
+            p.kinds.append("accepted_difference: acceptance")
+            removed(p, Site("accepted_difference", at, held), "acceptance")
+            places.add("accepted_difference")
+            continue
+        models = p.declaration.get("models")
+        readers = [
+            m
+            for m, model in enumerate(models if isinstance(models, list) else [])
+            if isinstance(model, dict) and isinstance(model.get("reads"), list) and registered_reads(model)
+        ]
+        if turn == 1 and first == 0 and "waiver" not in places and readers:
+            # At a model the first turn left its `reads`: a waiver covers a field it reads.
+            at, held = append_acceptance(p, readers[p.index(len(readers))], "waiver")
+            held["code"] = p.choose(WAIVED_CONDITION_CODES)
+            held["condition"] = p.choose(CONDITIONS)
+            p.kinds.append("waiver: condition")
+            removed(p, Site("waiver", at, held), "condition")
+            places.add("waiver")
             continue
         candidates = [
             site
@@ -1595,10 +1617,11 @@ def plant_slip(p: Planting) -> None:
 def plant_empty_list(p: Planting) -> None:
     """An empty list where the table asks for one entry or more: `models` alone, in one draw in four; or of
     `reads`, `checked_over.records`, an `overlay_scope`'s `accepts` and a token condition's accept list, each
-    in about half the draws and one at least. Before `reads` or the records are emptied, what rests on them in
-    that model goes: its requirements, `trainable` entries, combinations and its waivers' labels (`reads`),
-    its `trainable` entries (the records); and no accept list is set in a model whose `reads` is emptied,
-    since its requirement would need a field read."""
+    in about half the draws and one at least. A model's requirements, `trainable` entries and combinations
+    stay beside its emptied `reads`: "a requirement's `field` against a `reads` at fault (an empty one too)"
+    is not judged (the refusal paragraph), and neither is a `trainable` entry's. Before the records are
+    emptied, the `trainable` entries that rest on them go; and no accept list is set in a model whose `reads`
+    is emptied, whose requirement for it would add a field to `reads`."""
     if p.draw(st.integers(0, 3)) == 0:
         p.kinds.append("models")
         p.declaration["models"] = []
@@ -1610,12 +1633,6 @@ def plant_empty_list(p: Planting) -> None:
         m = p.model_index()
         model = p.models[m]
         if which == "reads":
-            model.pop("requirements", None)
-            model.pop("trainable", None)
-            model["combinations"] = []
-            for held in acceptances_of(model):
-                if held.get("acceptance") == "waiver":
-                    held.pop("label", None)
             model["reads"] = []
             emptied.add(m)
             p.plant("holds", pointer("models", m, "reads"))
@@ -2143,16 +2160,22 @@ def plant_requirement_unread(p: Planting) -> None:
 
 
 def plant_trainable_unread(p: Planting) -> None:
-    """ "a `trainable` entry names a field its model does not list in `reads`", at a listed record."""
+    """ "a `trainable` entry names a field its model does not list in `reads`", at a listed record at which
+    no entry names that field yet: two entries "for one field at one location" are a name given twice, a
+    second member at fault."""
     m = p.model_index()
     model = p.models[m]
-    field = p.choose([field for field in FIELDS if field not in reads_of(model)])
     listed = entries(model, "trainable")
     taken = [(held.get("field"), held.get("record")) for held in cast(list[Json], listed)]
-    records_free = [record for record in records_of(model) if (field, record) not in taken]
-    if not records_free:
-        records_free = records_of(model)
-    listed.append({"field": field, "record": copy.deepcopy(records_free[p.index(len(records_free))])})
+    pairs = [
+        (field, record)
+        for field in FIELDS
+        if field not in reads_of(model)
+        for record in records_of(model)
+        if (field, record) not in taken
+    ]
+    field, record = pairs[p.index(len(pairs))]
+    listed.append({"field": field, "record": copy.deepcopy(record)})
     p.kinds.append(field)
     p.plant("unread", pointer("models", m, "trainable", len(listed) - 1, "field"))
 
@@ -2251,10 +2274,14 @@ def plant_two_rules(p: Planting) -> None:
         at, held = append_acceptance(p, m, "waiver")
         field = p.choose(sorted(LABELS))
         held["field"] = field
+        # Not `null`: beside a reviewed requirement naming no label the check reads the two as one label and
+        # takes the waiver under item 4, where the text refuses it (an open point, not drawn until ruled).
         held["label"] = p.draw(
             st.one_of(
                 st.sampled_from([label for label in ANY_LABEL if label != LABELS[field]]),
-                other_type("string"),
+                st.sampled_from([value for value in OTHER_TYPES["string"] if value is not None]).map(
+                    copy.deepcopy
+                ),
             )
         )
         p.plant("waiver_label", at + "/label")
@@ -2338,17 +2365,37 @@ PARTS: dict[str, dict[str, Callable[[Planting], None]]] = {
     "precedence": PRECEDENCE,
 }
 
+# Each part's ways in strata of at most two, each drawn by a test of its own (the S7 design's 6.1: a test
+# function split so that each draws among fewer ways). Drawn among four or five alike, a way's count varied
+# over CI's 20 streams 6.6 times a binomial count's on average (2.6 to 12.5 by way), and 7 of the 34 ways fell
+# below their floor (110, or 160 among four) with a probability above 1e-6 at the least share and the variance
+# measured. Drawn among two, at a floor of 440, a way is so flagged in about one measurement of 20 streams in
+# 500 at that variance, and among five in one in five (a simulation; the figures in the property README).
+STRATA: dict[str, tuple[tuple[str, ...], ...]] = {
+    "reasons": (("tolerance_reason", "accept_reason"), ("acceptance_reason", "basis"), ("empty_text",)),
+    "locations": (("unlocated", "accepted_difference_unlocated"), ("overlay_unlocated", "located")),
+    "shape": (("missing", "empty_list"), ("unknown", "slip"), ("breaks_holds",)),
+    "tokens": (("outside_list", "other_members_token"), ("slip_of_token", "misspelt_name"), ("other_case",)),
+    "names": (
+        ("requirement_unread", "trainable_unread"),
+        ("twice", "trainable_unlisted"),
+        ("label_unreviewed",),
+    ),
+    "precedence": (("two_rules", "missing_member"), ("not_json", "not_object"), ("two_missing",)),
+}
+
 
 @st.composite
-def hp41(draw: st.DrawFn, part: str, size: Size) -> Drawn:
+def hp41(draw: st.DrawFn, part: str, size: Size, ways: Sequence[str]) -> Drawn:
     """A declaration the text takes, and the same with one fault of `part`'s ways planted (two, where the way
-    is two missing members, or where a slip leaves its member missing), the way drawn first, alike."""
-    ways = PARTS[part]
+    is two missing members, or where a slip leaves its member missing), the way drawn first among `ways`, a
+    stratum of the part's, alike."""
+    planters = PARTS[part]
     way = draw(st.sampled_from(tuple(ways)))
     valid = draw(declarations(size))
     chosen = draw(claims())
     p = Planting(draw, valid)
-    ways[way](p)
+    planters[way](p)
     planted = p.declaration if p.replaced is None else p.replaced[0]
     return Drawn(valid, planted, tuple(p.planted), way, "; ".join(p.kinds), chosen)
 
@@ -2417,6 +2464,7 @@ def every_fault(draw: st.DrawFn, size: Size) -> Drawn:
 # HP42: what a build cannot check (item 12), beside faults of HP41's local planters.
 
 HP42_WAYS = ("domain", "path", "region_conditions", "engine", "sampling")
+HP42_STRATA = (("domain", "path"), ("region_conditions", "engine"), ("sampling",))
 # The local planters HP42 draws beside its member: none a `trainable` entry's record or a listed record twice,
 # which a domain or a path in place of the records would take away.
 BESIDE = tuple(name for name in sorted(LOCAL) if name not in ("trainable_unlisted", "records_twice"))
@@ -2465,15 +2513,27 @@ def engine(draw: st.DrawFn) -> Json:
 
 def plant_engine(p: Planting, m: int) -> None:
     """A model with `engine`, over a domain or over its records (by chance), its crosswalk pinned in three
-    draws in four, its requirements wanting `value` in about half the draws and as drawn in the rest. The
-    oracle reads item 7 from what it is over, its crosswalk (pinned, and never passed to this version's build)
-    and its requirements' `want`s; a missing crosswalk is the shape table's fault, the draw where item 7 alone
-    tells an engine model over records from one over a domain."""
+    draws in four, its requirements wanting `value` in about half the draws and as drawn in the rest, and in
+    about one draw in three one of its values, in `values` or `region_values`, without its `reason` or
+    `basis` (item 7: "A declared engine value without `reason` and `basis` ... is refused at build", at the
+    model's `engine` and not at the value: the refusal paragraph). The oracle reads item 7 from what it is
+    over, its crosswalk (pinned, and never passed to this version's build), its values and its requirements'
+    `want`s; a missing crosswalk is the shape table's fault, the draw where item 7 alone tells an engine model
+    over records from one over a domain."""
     model = p.models[m]
     over = p.choose(("domain", "records"))
     if over == "domain":
         plant_checked_over(p, m, "domain")
     held = p.draw(engine())
+    unexplained = p.draw(st.integers(0, 2)) == 0
+    if unexplained:
+        values = cast(Json, held["values"])
+        if not values:
+            values["density"] = {"value": 1.0e3, "unit": "kg/m3", "reason": "measured", "basis": "a record"}
+        regions = cast(dict[str, Json], held.get("region_values", {}))
+        declared = [*values.values(), *(value for region in regions.values() for value in region.values())]
+        value = cast(Json, declared[p.index(len(declared))])
+        del value[p.choose(("reason", "basis"))]
     pinned = p.draw(st.integers(0, 3)) > 0
     if not pinned:
         del held["crosswalk"]
@@ -2484,12 +2544,12 @@ def plant_engine(p: Planting, m: int) -> None:
             item["want"] = "value"
     model["engine"] = held
     wants = tuple(str(item["want"]) for item in requirements_of(model) if isinstance(item.get("want"), str))
-    p.kinds.append(f"over {over}{'' if pinned else ', no crosswalk'}")
+    p.kinds.append(f"over {over}{'' if pinned else ', no crosswalk'}{', unexplained' if unexplained else ''}")
     p.plant(
         "engine",
         pointer("models", m, "engine"),
         None,
-        (("over", over), ("crosswalk", pinned), ("wants", wants)),
+        (("over", over), ("crosswalk", pinned), ("unexplained", unexplained), ("wants", wants)),
     )
 
 
@@ -2566,11 +2626,11 @@ HP42_SUITES: dict[str, Suite] = {
 
 
 @st.composite
-def hp42(draw: st.DrawFn, size: Size) -> Drawn:
+def hp42(draw: st.DrawFn, size: Size, ways: Sequence[str]) -> Drawn:
     """A declaration the text takes; beside it, none to two faults of HP41's local planters; and the same with
     one member a build that claims neither the scene suite, USD read nor the sampling suite cannot check
-    planted, which way drawn first, alike."""
-    way = draw(st.sampled_from(HP42_WAYS))
+    planted, which way drawn first among `ways`, a stratum of `HP42_STRATA`, alike."""
+    way = draw(st.sampled_from(tuple(ways)))
     valid = draw(declarations(size))
     chosen = draw(claims())
     p = Planting(draw, valid)
