@@ -767,9 +767,14 @@ def claims(draw: st.DrawFn) -> frozenset[Suite]:
 
 @st.composite
 def declarations(draw: st.DrawFn, size: Size) -> Json:
-    """A declaration the text takes, of one to three models of distinct names."""
-    count = draw(st.integers(1, 3))
-    names = draw(st.lists(NAMES, min_size=count, max_size=count, unique=True))
+    """A declaration the text takes, of one to three models of distinct names: a name drawn again is made
+    distinct by a prime added, so that no draw is thrown away."""
+    names: list[str] = []
+    for _ in range(draw(st.integers(1, 3))):
+        name = draw(NAMES)
+        while name in names:
+            name += "'"
+        names.append(name)
     return {
         "consumer": {"name": draw(NAMES), "version": draw(VERSIONS)},
         "operating_conditions": draw(operating_conditions()),
@@ -901,6 +906,13 @@ def append_acceptance(p: Planting, m: int, kind: str, *, location: str | None = 
     return at, held
 
 
+def included(p: Planting, options: Sequence[str]) -> list[str]:
+    """Some of `options`, each in about half the draws and one at least, in their order: each included where
+    its boolean is drawn false, the draw Hypothesis makes first, so that a run's first examples hold every
+    one."""
+    return [option for option in options if not p.draw(st.booleans())] or [p.choose(options)]
+
+
 def planted_under(p: Planting, at: str) -> bool:
     """Whether a fault is planted at `at` or inside the member it names."""
     return any(fault.pointer == at or fault.pointer.startswith(at + "/") for fault in p.planted)
@@ -995,7 +1007,7 @@ def plant_unlocated(p: Planting) -> None:
     each kind that needs one, each kind in about half the draws and one at least; a pick's location is its
     record, so one naming a region or an interval and no record is unlocated too (maintainer, 2026-10-24)."""
     kinds = ("pick", *LOCATED_KINDS)
-    for kind in [kind for kind in kinds if p.draw(st.booleans())] or [p.choose(kinds)]:
+    for kind in included(p, kinds):
         at, held = append_acceptance(p, p.model_index(), kind, location=None)
         if kind == "pick":
             named = p.choose(("nothing", "region", "interval"))
@@ -1063,26 +1075,28 @@ def sites(declaration: Json) -> list[Site]:
 
 
 def model_sites(m: int, model: Json) -> list[Site]:
+    """A model entry's objects at their places, each where it is still an object of its place (a planter may
+    have taken a member out of one already)."""
     at = pointer("models", m)
     found = [Site("model entry", at, model)]
     for member, place in (("model", "model"), ("checked_over", "checked over"), ("mixing", "mixing")):
         if isinstance(model.get(member), dict):
             found.append(Site(place, f"{at}/{member}", cast(Json, model[member])))
-    for name, held in cast(Json, model.get("target", {})).items():
+    target = model.get("target")
+    for name, held in (target if isinstance(target, dict) else {}).items():
         if isinstance(held, dict) and f"fact {name}" in NAMED:
             found.append(Site(f"fact {name}", pointer("models", m, "target", name), held))
     for j, held in enumerate(requirements_of(model)):
         here = pointer("models", m, "requirements", j)
         found.append(Site("requirement", here, held))
-        for name, condition in cast(Json, held.get("conditions", {})).items():
-            if name not in CONDITIONS:
+        conditions = held.get("conditions")
+        for name, condition in (conditions if isinstance(conditions, dict) else {}).items():
+            if name not in CONDITIONS or not isinstance(condition, dict):
                 continue
             inside = here + pointer("conditions", name)
-            found.append(Site("requirement condition", inside, cast(Json, condition)))
-            if isinstance(cast(Json, condition).get("tolerance"), dict):
-                found.append(
-                    Site("tolerance", inside + "/tolerance", cast(Json, cast(Json, condition)["tolerance"]))
-                )
+            found.append(Site("requirement condition", inside, condition))
+            if isinstance(condition.get("tolerance"), dict):
+                found.append(Site("tolerance", inside + "/tolerance", cast(Json, condition["tolerance"])))
     for k, held in enumerate(acceptances_of(model)):
         found += acceptance_sites(pointer("models", m, "acceptances", k), held)
     for k, held in enumerate(cast(list[Json], model.get("trainable", []))):
@@ -1091,12 +1105,13 @@ def model_sites(m: int, model: Json) -> list[Site]:
         here = pointer("models", m, "chains", k)
         found.append(Site("chain", here, held))
         for end in ("from", "to"):
-            found.append(Site("chain end", f"{here}/{end}", cast(Json, held[end])))
-            found.append(
-                Site(
-                    "material reference", f"{here}/{end}/record", cast(Json, cast(Json, held[end])["record"])
-                )
-            )
+            chain_end = held.get(end)
+            if isinstance(chain_end, dict):
+                found.append(Site("chain end", f"{here}/{end}", chain_end))
+                if isinstance(chain_end.get("record"), dict):
+                    found.append(
+                        Site("material reference", f"{here}/{end}/record", cast(Json, chain_end["record"]))
+                    )
     return found
 
 
@@ -1134,7 +1149,11 @@ def model_of(at: str) -> int | None:
 
 def rests_on(p: Planting, site: Site, member: str) -> bool:
     """Whether another member rests on `member` of `site`: a labelled waiver on its requirement's `field`,
-    `label` or `review`, or on its model's `requirements`; a waiver's `label` on its own `field`."""
+    `label` or `review`, or on its model's `requirements`; a waiver's `label` on its own `field`; an accepted
+    difference's `value` on its `acceptance`, which, of no kind, leaves which `value` it may hold open (an
+    open point: the check holds it to a nominal's, a number)."""
+    if site.place == "accepted_difference" and member == "acceptance":
+        return True
     m = model_of(site.pointer)
     model = p.models[m] if m is not None else {}
     if site.place == "requirement" and member in ("field", "label", "review"):
@@ -1186,21 +1205,36 @@ def removable(p: Planting, site: Site, *, texts: bool) -> list[str]:
     return [member for member in site.value if member in wanted and not rests_on(p, site, member)]
 
 
+def unplanted(p: Planting, site: Site, members: list[str]) -> list[str]:
+    """The `members` of `site` that hold no fault planted before: taking one out would take that fault too."""
+    return [member for member in members if not planted_under(p, site.pointer + pointer(member))]
+
+
 def plant_missing(p: Planting) -> None:
-    """A required member missing, which by chance from the shape table, or none of a place's exclusive
-    alternatives, refused at the object that should hold it; `target` in about one draw in six (the design's
-    mutant "a required member's absence taken (`target`)")."""
-    if p.draw(st.integers(0, 5)) == 0:
-        m = p.model_index()
-        p.kinds.append("model entry: target")
-        removed(p, Site("model entry", pointer("models", m), p.models[m]), "target")
-        return
-    candidates = [site for site in changeable(p.declaration) if removable(p, site, texts=False)]
-    site = candidates[p.index(len(candidates))]
-    members = removable(p, site, texts=False)
-    member = members[p.index(len(members))]
-    p.kinds.append(f"{site.place}: {member}")
-    removed(p, site, member)
+    """Two required members missing, each at an object of another place, which by chance from the shape
+    table, or none of a place's exclusive alternatives, each refused at the object that should hold it;
+    `target` the first in about one draw in six (the design's mutant "a required member's absence taken
+    (`target`)"). Two, at two places, so that a check taking one would still refuse the declaration, rather
+    than build its typed result of a model that lacks the member."""
+    places: set[str] = set()
+    for turn in range(2):
+        if turn == 0 and p.draw(st.integers(0, 5)) == 0:
+            m = p.model_index()
+            p.kinds.append("model entry: target")
+            removed(p, Site("model entry", pointer("models", m), p.models[m]), "target")
+            places.add("model entry")
+            continue
+        candidates = [
+            site
+            for site in changeable(p.declaration)
+            if site.place not in places and unplanted(p, site, removable(p, site, texts=False))
+        ]
+        site = candidates[p.index(len(candidates))]
+        members = unplanted(p, site, removable(p, site, texts=False))
+        member = members[p.index(len(members))]
+        p.kinds.append(f"{site.place}: {member}")
+        removed(p, site, member)
+        places.add(site.place)
 
 
 def plant_other_type(p: Planting) -> None:
@@ -1439,8 +1473,7 @@ def plant_breaks_holds(p: Planting) -> None:
     if p.draw(st.integers(0, 2)) == 0:
         plant_other_type(p)
         return
-    chosen = [name for name in CONSTRAINTS if p.draw(st.booleans())] or [p.choose(tuple(CONSTRAINTS))]
-    for name in chosen:
+    for name in included(p, tuple(CONSTRAINTS)):
         CONSTRAINTS[name](p)
 
 
@@ -1463,9 +1496,9 @@ def plant_unknown(p: Planting) -> None:
     """Members the shape table does not name at their places, one at each depth (an acceptance appended
     where the declaration holds none), each depth in about half the draws and one at least: a name of no
     place, or one another place names; at an acceptance, in two draws in three one of a kind, a member another
-    kind names, a `basis` on a kind item 4 does not give one in half those draws."""
+    kind names, a `basis` on a kind item 4 does not give one in two of three such draws."""
     depths = tuple(DEPTHS)
-    for depth in [depth for depth in depths if p.draw(st.booleans())] or [p.choose(depths)]:
+    for depth in included(p, depths):
         every = [site for site in changeable(p.declaration) if site.place in DEPTHS[depth]]
         kinds = [site for site in every if site.place in KINDS]
         if depth == "acceptance" and (not kinds or p.draw(st.integers(0, 2)) > 0):
@@ -1488,10 +1521,11 @@ def add_unknown(p: Planting, site: Site) -> None:
         for name in others
         if name not in NAMED.get(site.place, ()) and name not in site.value and name != "status"
     ]
-    if p.draw(st.booleans()):
-        name = p.choose(UNKNOWN_NAMES)
-    elif "basis" in elsewhere and p.draw(st.booleans()):
+    if site.place in KINDS and "basis" in elsewhere and p.draw(st.integers(0, 2)) > 0:
+        # A `basis` on a kind item 4 gives none, in two draws in three at such an acceptance.
         name = "basis"
+    elif p.draw(st.booleans()):
+        name = p.choose(UNKNOWN_NAMES)
     else:
         name = p.choose(elsewhere)
     if name in site.value:
@@ -1534,22 +1568,28 @@ def slip_of(name: str, kind: str) -> str:
 
 
 def plant_slip(p: Planting) -> None:
-    """A member one slip from a named one (section 10) in place of it, the kind of slip by chance: the slip is
-    a member not named at its place, refused at it, and the member it stands for is missing, where its absence
-    is a fault."""
-    candidates = [
-        (site, member) for site in changeable(p.declaration) for member in removable(p, site, texts=True)
-    ]
-    site, member = candidates[p.index(len(candidates))]
-    kind = p.choose(SLIP_KINDS)
-    slipped = slip_of(member, kind)
-    if slipped in NAMED.get(site.place, ()) or slipped in site.value:
-        slipped = member + "q"
-    p.kinds.append(f"{kind}: {member} as {slipped}")
-    value = site.value[member]
-    removed(p, site, member)
-    site.value[slipped] = value
-    p.plant("unknown_member", site.pointer + pointer(slipped))
+    """Two members, each one slip from a named one (section 10) in place of it, at objects of two places, the
+    kinds of slip by chance: a slip is a member not named at its place, refused at it, and the member it
+    stands for is missing, where its absence is a fault."""
+    places: set[str] = set()
+    for _ in range(2):
+        candidates = [
+            (site, member)
+            for site in changeable(p.declaration)
+            if site.place not in places
+            for member in unplanted(p, site, removable(p, site, texts=True))
+        ]
+        site, member = candidates[p.index(len(candidates))]
+        kind = p.choose(SLIP_KINDS)
+        slipped = slip_of(member, kind)
+        if slipped in NAMED.get(site.place, ()) or slipped in site.value:
+            slipped = member + "q"
+        p.kinds.append(f"{kind}: {member} as {slipped}")
+        value = site.value[member]
+        removed(p, site, member)
+        site.value[slipped] = value
+        p.plant("unknown_member", site.pointer + pointer(slipped))
+        places.add(site.place)
 
 
 def plant_empty_list(p: Planting) -> None:
@@ -1566,7 +1606,7 @@ def plant_empty_list(p: Planting) -> None:
         return
     lists = ("reads", "records", "accepts", "accept")
     emptied: set[int] = set()
-    for which in [which for which in lists if p.draw(st.booleans())] or [p.choose(lists)]:
+    for which in included(p, lists):
         m = p.model_index()
         model = p.models[m]
         if which == "reads":
@@ -1702,7 +1742,7 @@ def write_family(p: Planting, bad: Bad) -> str:
     """A name in `families`, which holds parameter-set fields alone: another field's name among them."""
     m = p.model_index()
     token = bad(PARAMETER_SETS)
-    p.models[m]["families"] = {token: "1.0.0"}
+    cast(Json, p.models[m]["families"])[token] = "1.0.0"
     return pointer("models", m, "families", token)
 
 
@@ -1997,8 +2037,7 @@ CONDITION_WRITERS: dict[str, Callable[[Planting, Bad], str]] = {
 def plant_token(p: Planting, way: Callable[[Planting], Bad]) -> None:
     """Tokens outside their members' lists, the members by chance among the sweep's, each in about half the
     draws and one at least, so that each member's check is met in about one draw of the way in two."""
-    chosen = [member for member in TOKEN_WRITERS if p.draw(st.booleans())] or [p.choose(tuple(TOKEN_WRITERS))]
-    for member in chosen:
+    for member in included(p, tuple(TOKEN_WRITERS)):
         p.kinds.append(member)
         p.plant("token", TOKEN_WRITERS[member](p, way(p)))
 
@@ -2030,12 +2069,18 @@ TOKENS: dict[str, Callable[[Planting], None]] = {
 
 
 def plant_twice(p: Planting) -> None:
-    """ "a name is given twice where the table allows it once", which list by chance, refused at the later
-    entry, whole: two models of one `name`, a record listed twice in one `checked_over`, a field twice in
-    `reads`, two requirements for one field, two `trainable` entries for one field at one location, and an
-    `accepts` token twice (refused at the list, a value breaking its row's Holds)."""
-    which = p.choose(("requirements", "models", "reads", "records", "trainable", "accepts"))
-    p.kinds.append(which)
+    """ "a name is given twice where the table allows it once", in several lists at once, each in about half
+    the draws and one at least, each refused at the later entry, whole: two models of one `name` (first,
+    before any other is planted), two requirements for one field, a field twice in `reads`, a record listed
+    twice in one `checked_over`, two `trainable` entries for one field at one location, and an `accepts` token
+    twice (refused at the list, a value breaking its row's Holds)."""
+    lists = ("models", "requirements", "reads", "records", "trainable", "accepts")
+    for which in included(p, lists):
+        p.kinds.append(which)
+        plant_twice_in(p, which)
+
+
+def plant_twice_in(p: Planting, which: str) -> None:
     if which == "models":
         if len(p.models) > 1:
             later = 1 + p.index(len(p.models) - 1)
@@ -2049,11 +2094,14 @@ def plant_twice(p: Planting) -> None:
         return
     m = p.model_index()
     model = p.models[m]
-    if which in ("records", "reads"):
-        listed = cast(list[JsonValue], records_of(model) if which == "records" else reads_of(model))
+    if which == "records":
+        listed = cast(list[JsonValue], records_of(model))
         listed.append(copy.deepcopy(listed[p.index(len(listed))]))
-        path = ("checked_over", "records") if which == "records" else ("reads",)
-        p.plant("twice", pointer("models", m, *path, len(listed) - 1))
+        p.plant("twice", pointer("models", m, "checked_over", "records", len(listed) - 1))
+    elif which == "reads":
+        reads = reads_of(model)
+        reads.append(p.choose(registered_reads(model)))
+        p.plant("twice", pointer("models", m, "reads", len(reads) - 1))
     elif which == "requirements":
         _, held = some_requirement(p, m)
         second = p.draw(requirement(str(held["field"]), labelled=False))
@@ -2111,14 +2159,19 @@ def plant_trainable_unread(p: Planting) -> None:
 
 def plant_trainable_unlisted(p: Planting) -> None:
     """ "a `trainable` entry a location its model is not checked over": a field it reads at a record it does
-    not list."""
+    not list, at which no entry names that field yet."""
     m = p.model_index()
     model = p.models[m]
-    record = p.draw(
-        st.sampled_from([reference for reference in REFERENCES if reference not in records_of(model)])
-    )
     listed = entries(model, "trainable")
-    listed.append({"field": p.choose(registered_reads(model)), "record": copy.deepcopy(record)})
+    taken = [(held.get("field"), held.get("record")) for held in cast(list[Json], listed)]
+    pairs = [
+        (field, reference)
+        for field in registered_reads(model)
+        for reference in REFERENCES
+        if reference not in records_of(model) and (field, reference) not in taken
+    ]
+    field, record = pairs[p.index(len(pairs))]
+    listed.append({"field": field, "record": copy.deepcopy(record)})
     p.plant("unlisted", pointer("models", m, "trainable", len(listed) - 1, "record"))
 
 
@@ -2235,11 +2288,13 @@ def plant_not_json(p: Planting) -> None:
 
 
 def plant_not_object(p: Planting) -> None:
-    """A declaration that is not an object: refused at the empty pointer, and nothing else checked."""
+    """A declaration that is not an object, as its JSON text or as a value: refused at the empty pointer, and
+    nothing else checked. A string goes as its JSON text, since the check reads a `str` given it as text."""
     options: tuple[JsonValue, ...] = ([copy.deepcopy(p.declaration)], "a declaration", 1.0, None, True)
     value: JsonValue = p.draw(st.sampled_from(options))
     p.kinds.append(type(value).__name__)
-    p.replaced = (json.dumps(value).encode() if p.draw(st.booleans()) else value,)
+    as_text = isinstance(value, str) or p.draw(st.booleans())
+    p.replaced = (json.dumps(value).encode() if as_text else value,)
     p.plant("not_object", "")
 
 
