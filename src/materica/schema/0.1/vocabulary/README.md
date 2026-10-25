@@ -4,9 +4,11 @@ The tokens of schema 0.1, as the specification gives them (layer L1). Every file
 `scripts/gen_vocabulary.py`, and CI fails when one differs from the specification; edit the specification,
 never the file. Each file states its `$id`, its path under `https://w3id.org/materica/schema/0.1/`, names
 where its tokens are in its `$comment`, and holds tokens only, and the bindings that tie a name to its row's
-tokens: a rule the specification states in prose is code with its own cases. Most tokens sit in tables; the
-others sit in a list in a table cell or a sentence, which the generator finds between two pieces of the text
-and reads in full or not at all.
+tokens: a rule the specification states in prose is code with its own cases. `coverage.json` is the one
+exception: section 4.2's table is a rule, so each row holds the rule its "Covered by" cell states, read by a
+fixed table of phrasings in which a phrasing the generator does not know stops it, and the cell as written.
+Most tokens sit in tables; the others sit in a list in a table cell or a sentence, which the generator finds
+between two pieces of the text and reads in full or not at all.
 
 | File | Where in the specification | Holds |
 |---|---|---|
@@ -19,10 +21,11 @@ and reads in full or not at all.
 | `statistics.json` | `uncertainty.md` sections 1 and 4 | the statistics block's tokens, a relative or expanded uncertainty's, and every distribution token a record or a declaration may name |
 | `provenance.json` | `provenance.md` sections 2, 3 and 6 | the origins, a review's result, the extraction methods, the locator types, a search's inputs, a condition's or fact's basis, and a condition's `plus_minus` and `set_or_measured` tokens |
 | `labels.json` | `read_side_contract.md` section 2 | the labels a result may hold beside its field's own |
+| `coverage.json` | `declarations.md` section 4.2, with `read_side_contract.md` section 4 | per row of the table of what covers which reason: the codes it covers ("a condition reason" read as each `condition_*` code but those the table never accepts), whether it covers a specimen difference, its "Covered by" cell as written, which `materica status` quotes, and the rule that cell states, read by a fixed table of the phrasings the specification uses: the kind of acceptance that covers, and whether it must name the reason's code or condition, be named by the result's `assumption`, name every member of an overlay's scope that differs, or cover only on a result that carries a value, on a field listed in `trainable` |
 
 The writer schema takes its token lists from these files' `$defs` by `$ref`, and applies the bindings by
 `allOf` (maintainer, 2026-10-15), so that it writes no list of names, forms, units or labels of its own. The
 reader schema and the typed shapes leave the bindings out: a read checks a field against its row in its own
-steps. `core/vocabulary.py` reads the first five, and every token list a file's `$defs` holds (each
-definition with an `enum`), by its name there, when it is first imported; a file of another shape, or two
+steps. `core/vocabulary.py` reads the first five and `coverage.json`, and every token list a file's `$defs`
+holds (each definition with an `enum`), by its name there, when it is first imported; a file of another shape, or two
 lists of one name, is a broken installation, and loading it raises.

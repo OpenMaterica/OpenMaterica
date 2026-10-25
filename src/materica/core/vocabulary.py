@@ -70,12 +70,35 @@ class FactSpec:
 
 
 @dataclass(frozen=True)
+class CoverageRow:
+    """A row of `declarations.md` section 4.2: the codes it covers, and whether it covers a specimen
+    difference; its "Covered by" cell, as written; and the rule that cell states, as `gen_vocabulary.py`
+    reads it: the `kind` of acceptance that covers, and the flags, `names_code` (the acceptance's `code` is
+    the reason's), `names_condition` (its `condition` is the reason's), `on_assumption` (only on a result
+    whose `assumption` names the acceptance), `names_differing_members` (an `overlay_scope` naming every
+    member that differs), `carries_value` (only on a result that carries a value) and `trainable` (only on a
+    field listed in `trainable`)."""
+
+    reasons: tuple[ReasonCode, ...]
+    specimen_difference: bool
+    covered_by: str
+    kind: str
+    names_code: bool
+    names_condition: bool
+    on_assumption: bool
+    names_differing_members: bool
+    carries_value: bool
+    trainable: bool
+
+
+@dataclass(frozen=True)
 class Vocabulary:
     reasons: dict[str, ReasonSpec]
     conditions: dict[str, ConditionSpec]
     fields: dict[str, RecordFieldSpec]
     facts: dict[str, FactSpec]
     acceptance_kinds: tuple[str, ...]
+    coverage: tuple[CoverageRow, ...]
     token_lists: dict[str, tuple[str, ...]]
     """Every token list the vocabulary's files define in their `$defs`, by its name there (`central`,
     `statistics_distribution`, `origin`, `form`): the tokens of the members the specification's tables
@@ -98,7 +121,23 @@ def load() -> Vocabulary:
         fields={name: _field(name, _object(row)) for name, row in fields.items()},
         facts={name: _fact(name, _object(row)) for name, row in facts.items()},
         acceptance_kinds=_strings(_file("acceptances.json")["kinds"]),
+        coverage=tuple(_coverage(_object(row)) for row in _list(_file("coverage.json")["coverage"])),
         token_lists=_token_lists(),
+    )
+
+
+def _coverage(row: dict[str, JsonValue]) -> CoverageRow:
+    return CoverageRow(
+        tuple(_REASON_CODES[code] for code in _strings(row["reasons"])),
+        _bool(row["specimen_difference"]),
+        _string(row["covered_by"]),
+        _string(row["kind"]),
+        _bool(row["names_code"]),
+        _bool(row["names_condition"]),
+        _bool(row["on_assumption"]),
+        _bool(row["names_differing_members"]),
+        _bool(row["carries_value"]),
+        _bool(row["trainable"]),
     )
 
 
@@ -167,10 +206,20 @@ def _string(value: JsonValue) -> str:
     return value
 
 
-def _strings(value: JsonValue) -> tuple[str, ...]:
+def _list(value: JsonValue) -> list[JsonValue]:
     if not isinstance(value, list):
         raise ValueError(f"the vocabulary holds {value!r} where a list belongs")
-    return tuple(_string(item) for item in value)
+    return value
+
+
+def _strings(value: JsonValue) -> tuple[str, ...]:
+    return tuple(_string(item) for item in _list(value))
+
+
+def _bool(value: JsonValue) -> bool:
+    if not isinstance(value, bool):
+        raise ValueError(f"the vocabulary holds {value!r} where true or false belongs")
+    return value
 
 
 VOCABULARY = load()

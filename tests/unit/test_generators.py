@@ -7,6 +7,7 @@ import re
 import shutil
 from collections.abc import Callable
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -333,6 +334,96 @@ def test_the_vocabulary_check_fails_on_a_file_no_table_gives(
     assert gen_vocabulary.main(["--check"]) == 1
 
 
+def coverage_rows(specification: Path = gen_vocabulary.SPECIFICATION) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = json.loads(gen_vocabulary.generate(specification)["coverage.json"])[
+        "coverage"
+    ]
+    return rows
+
+
+def test_each_row_of_what_covers_which_reason_is_read_as_its_rule() -> None:
+    """`declarations.md` section 4.2, row by row: the codes, the cell as written and the rule it states. "A
+    condition reason" is read as each `condition_*` code but `condition_unknown_name`, which the paragraph
+    above the table says is never accepted; the nominal's qualifier adds nothing to its row's own condition,
+    and the trainable one limits its row to a field listed in `trainable`."""
+    rows = coverage_rows()
+    assert [(row["kind"], row["reasons"]) for row in rows][:3] == [
+        ("waiver", ["condition_unstated", "condition_unchecked", "condition_uncertain"]),
+        (
+            "waiver",
+            [
+                "no_requirement",
+                "stated_without_origin",
+                "outside_check_points",
+                "fill_in_version_mismatch",
+                "entries_withheld",
+                "not_reviewed",
+            ],
+        ),
+        ("pick", ["no_pick"]),
+    ]
+    flags = {name: False for name in gen_vocabulary.COVERAGE_FLAGS}
+    assert rows[0] == {
+        "reasons": ["condition_unstated", "condition_unchecked", "condition_uncertain"],
+        "specimen_difference": False,
+        "status": "unknown",
+        "covered_by": "a `waiver` naming that condition and code",
+        "kind": "waiver",
+        **flags,
+        "names_code": True,
+        "names_condition": True,
+    }
+    nominal = next(row for row in rows if row["kind"] == "nominal")
+    assert (nominal["reasons"], nominal["on_assumption"], nominal["trainable"]) == (
+        ["want_mismatch"],
+        True,
+        False,
+    )
+    trainable = rows[-1]
+    assert trainable["kind"] == "trainable"
+    assert (trainable["trainable"], trainable["carries_value"], trainable["specimen_difference"]) == (
+        True,
+        True,
+        True,
+    )
+    assert trainable["status"] == "any"
+    assert trainable["reasons"] == [
+        "condition_unstated",
+        "condition_unchecked",
+        "condition_outside",
+        "condition_not_accepted",
+        "condition_uncertain",
+        "outside_range",
+        "range_unstated",
+        "outside_coverage",
+    ]
+    assert not any("condition_unknown_name" in cast(list[str], row["reasons"]) for row in rows)
+
+
+def test_the_vocabulary_check_fails_where_not_reviewed_is_dropped_from_what_covers_which_reason(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The S7 design's 9: the S7 specification review's surviving hand mutant, `not_reviewed` dropped from
+    section 4.2's table, passed every check while no file held the table. Now the check fails, and the file it
+    would write covers `not_reviewed` by nothing."""
+    specification = copy_tree(tmp_path, gen_vocabulary.SPECIFICATION)
+    monkeypatch.setattr(gen_vocabulary, "SPECIFICATION", specification)
+    assert gen_vocabulary.main(["--check"]) == 0
+    document = specification / "declarations.md"
+    text = document.read_text(encoding="utf-8")
+    kept = "`entries_withheld`, `not_reviewed` | unknown | a `waiver` naming that code |"
+    assert kept in text
+    document.write_text(
+        text.replace(kept, "`entries_withheld` | unknown | a `waiver` naming that code |"), encoding="utf-8"
+    )
+    assert gen_vocabulary.main(["--check"]) == 1
+    assert (
+        capsys.readouterr().err
+        == "coverage.json differs from the specification: run scripts/gen_vocabulary.py\n"
+    )
+    assert not any("not_reviewed" in cast(list[str], row["reasons"]) for row in coverage_rows(specification))
+
+
 @pytest.mark.parametrize(
     ("cell", "given"),
     [
@@ -468,6 +559,56 @@ def test_a_token_listed_twice_is_refused() -> None:
         ),
         pytest.param(
             "read_side_contract.md", "| `at_edge` | not_met | 11 |", "| `at_edge` | not_met | 14 |", id="step"
+        ),
+        pytest.param(
+            "declarations.md",
+            "| unknown | a `waiver` naming that code |",
+            "| unknown | a `waiver` that names that code |",
+            id="a_phrasing_of_what_covers_not_known",
+        ),
+        pytest.param(
+            "declarations.md",
+            "| a specimen difference | (not a status) |",
+            "| a difference of specimens | (not a status) |",
+            id="a_reason_phrase_not_known",
+        ),
+        pytest.param(
+            "declarations.md",
+            "| `no_pick` | unknown | a `pick` only |",
+            "| `no_pick`, `no_picks` | unknown | a `pick` only |",
+            id="a_code_no_reason_has",
+        ),
+        pytest.param(
+            "declarations.md",
+            "| `range_unstated`, `outside_coverage` | unknown | an `extrapolation` only |",
+            "| `range_unstated`, for a value read from an interval, or a vector read from a parameter set "
+            "with none | unknown | an `extrapolation` only |",
+            id="a_qualifier_its_rule_does_not_hold",
+        ),
+        pytest.param(
+            "declarations.md",
+            "| `range_unstated`, `outside_coverage` | unknown |",
+            "| `range_unstated`, `outside_coverage`, `outside_range` | unknown |",
+            id="a_code_of_another_status",
+        ),
+        pytest.param(
+            "declarations.md",
+            "| `condition_unstated`, `condition_unchecked`, `condition_uncertain` | unknown |",
+            "| `condition_unstated`, `condition_unchecked`, `condition_uncertain`, "
+            "`condition_unknown_name` | unknown |",
+            id="a_reason_never_accepted_listed",
+        ),
+        pytest.param(
+            "declarations.md",
+            "never accepted, `condition_unknown_name` among them",
+            "never accepted, condition_unknown_name among them",
+            id="never_accepted_not_a_code",
+        ),
+        pytest.param(
+            "declarations.md",
+            "| a specimen difference | (not a status) |",
+            "| a specimen difference | unknown |",
+            id="a_specimen_difference_given_a_status",
         ),
         pytest.param("read_side_contract.md", "from this list only: ", "from this list: ", id="labels"),
         pytest.param(
