@@ -631,9 +631,12 @@ Settled with S7a-1b's second review (2026-10-25, a default the maintainer has ye
 judges one member against another stands aside where the other is itself at fault, so that one fault is one
 member at fault (`declarations.md` section 1, the refusal paragraph). A `population_level` beside a `represents`
 that is no token is not refused by the `population_level` rule, a requirement for a field is not judged against
-a `reads` at fault, and a waiver of `condition_unknown_name` naming no `condition` is refused once, at its
-`code`, not again at the waiver for the `condition` that a refused code is not judged to need; the rest of the
-declaration is still checked for its own faults. An engine value without its `reason` or `basis` is likewise one
+a `reads` at fault (an empty `reads` is one: BC-048 wants an entry), and a waiver of `condition_unknown_name`
+naming no `condition` is refused once, at its `code`, not again at the waiver for the `condition` that a
+refused code is not judged to need; an acceptance with no kind, or one that is no kind, is refused at itself
+(at the acceptance where the `acceptance` member is missing, at the member where it is no kind) and none of its
+other members is judged, which depend on the kind; the rest of the declaration is still checked for its own
+faults. An engine value without its `reason` or `basis` is likewise one
 fault, which item 7 and the shape's required members both name: one refusal, BC-040 at the model's `engine`,
 and none at the value. Before, the paragraph did not say, and a second implementation could read each of these
-cases as a second refusal (BC-040, BC-043, BC-048).
+cases as a second refusal (BC-005, BC-040, BC-043, BC-048).

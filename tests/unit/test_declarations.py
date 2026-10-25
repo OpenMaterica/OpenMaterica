@@ -536,6 +536,64 @@ def test_a_waiver_names_its_condition_exactly_where_its_code_names_one() -> None
     assert isinstance(Declaration.from_json(waived("at_edge", "temperature")), Declaration)
 
 
+def test_an_empty_reads_is_a_reads_at_fault_and_nothing_beside_it_is_refused_as_not_read() -> None:
+    """BC-048 wants at least one entry in `reads`: that member is the fault, and a requirement, a combination
+    and a `trainable` entry naming a field are not also judged against the list (the second review's default).
+    The control: the same declaration beside a `reads` that is a list and lacks the fields."""
+    fields: list[JsonValue] = ["fluid.dynamic_viscosity", "bulk.density"]
+
+    def reading(reads: list[JsonValue]) -> Callable[[Json], object]:
+        def change(declaration: Json) -> None:
+            model(declaration).update(reads=reads, combinations=[fields])
+            model(declaration)["trainable"] = [{"field": fields[0], "record": WATER}]
+
+        return change
+
+    assert isinstance(Declaration.from_json(a_declaration(reading(fields))), Declaration)
+    assert refusals(a_declaration(reading([]))) == {("BC-048", "/models/0/reads")}
+    elsewhere = refusals(a_declaration(reading(["magnetic.remanence"])))
+    assert elsewhere == {
+        ("BC-048", "/models/0/requirements/0/field"),
+        ("BC-048", "/models/0/combinations/0/0"),
+        ("BC-048", "/models/0/combinations/0/1"),
+        ("BC-048", "/models/0/trainable/0/field"),
+    }
+
+
+# An acceptance of no kind, or of one that is no kind, is refused at itself and none of its other members is
+# judged (the second review's default): not an unknown member, a type, a token, a `reason` missing or a
+# location, whichever kind the member would belong to.
+
+FAULTY_MEMBERS: Json = {"field": "no.such_field", "index": 0.5, "value": "text", "foo": 1, "reason": ""}
+
+
+@pytest.mark.parametrize(
+    ("kind", "pointer"),
+    [
+        (None, "/models/0/acceptances/1"),
+        ("no_such_kind", "/models/0/acceptances/1/acceptance"),
+        ("Pick", "/models/0/acceptances/1/acceptance"),
+        (3.0, "/models/0/acceptances/1/acceptance"),
+        (["pick"], "/models/0/acceptances/1/acceptance"),
+    ],
+)
+def test_an_acceptance_of_no_known_kind_is_refused_at_itself_alone(kind: JsonValue, pointer: str) -> None:
+    given: Json = {} if kind is None else {"acceptance": kind}
+    declaration = a_declaration(lambda d: acceptances(d).append(given | FAULTY_MEMBERS))
+    assert refusals(declaration) == {("BC-048", pointer)}
+    no_reason = a_declaration(lambda d: acceptances(d).append(given | {"value": 1.0}))
+    assert refusals(no_reason) == {("BC-048", pointer)}
+
+
+def test_an_acceptance_of_a_known_kind_has_its_members_judged_beside_the_same_faults() -> None:
+    """The control: the faults of the cases above, under a kind, are each refused, so those could fail."""
+    pick: Json = {"acceptance": "pick"}
+    found = refusals(a_declaration(lambda d: acceptances(d).append(pick | FAULTY_MEMBERS)))
+    assert {pointer for _, pointer in found} >= {
+        f"/models/0/acceptances/1/{name}" for name in ("field", "index", "value", "foo", "reason")
+    }
+
+
 # Each constraint's boundary, a number's JSON type (`true` is none), a status object's members and a
 # population level's `within`; then the rules on names, tokens and shapes the text states. Each row: a change
 # and the refusals it gives, none where the declaration is taken.

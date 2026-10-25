@@ -28,8 +28,9 @@ pointer. A declaration that breaks no rule gives a `Declaration`.
 
 No rule is judged against a member that is itself at fault (section 1: one fault is one refusal), and the rest
 of the declaration is still checked for its own faults: a `population_level` beside a `represents` that is no
-token, a requirement against a `reads` at fault, and a waiver's missing `condition` beside a `code` refused as
-a token give no refusal of their own.
+token, a requirement against a `reads` at fault (an empty one too), and a waiver's missing `condition` beside
+a `code` refused as a token give no refusal of their own. An acceptance that names no known kind is refused at
+itself, and none of its other members is judged.
 """
 
 import dataclasses
@@ -389,13 +390,9 @@ SHAPE: dict[str, tuple[Member, ...]] = {
 }
 
 KINDS: tuple[str, ...] = VOCABULARY.acceptance_kinds
-# What an acceptance of no known kind may hold: the members some kind names, none of them required but its
-# kind, since which of them it needs depends on that.
-_ANY_KIND: dict[str, Member] = {
-    member.name: Member(member.name, "yes" if member.name == "acceptance" else "rule", member.holds)
-    for kind in KINDS
-    for member in SHAPE[kind]
-}
+# What an acceptance of no known kind holds that is judged: its kind, and nothing else. Which other members it
+# needs, and what each holds, depend on the kind, so it is refused at itself and none of them is judged.
+_ANY_KIND: dict[str, Member] = {"acceptance": Member("acceptance", "yes", _NAME)}
 _LOCATED_KINDS = tuple(kind for kind in KINDS if any(member.name == "region" for member in SHAPE[kind]))
 # The kinds whose location a rule beside the table judges (`_locations`), and those that require a `basis`.
 _NEEDS_LOCATION = tuple(
@@ -575,7 +572,7 @@ def _shape(declaration: JsonObject) -> list[Finding]:
         for name, held in visit.value.items():
             if name in members:
                 found += _holds(members[name].holds, held, _join(at, name))
-            else:
+            elif visit.place != "acceptance":  # one of no known kind is judged at its kind alone
                 found.append(Finding("BC-048", _join(at, name), _not_listed(name, members, "a member here")))
         for name, member in members.items():
             # An engine value's `reason` and `basis` are item 7's, which refuses the model at its `engine`.
@@ -675,7 +672,7 @@ def _tokens(declaration: JsonObject) -> list[Finding]:
             each(*_held(visit, "target"), facts, "a specimen fact", keys=True)
         elif place == "mixing":
             each(*_held(visit, "rules"), fields, "a registered field", keys=True)
-        elif place in ("requirement", "trainable entry", "acceptance") or place in KINDS:
+        elif place in ("requirement", "trainable entry") or place in KINDS:
             check(value.get("field"), f"{at}/field", fields, "a registered field")
         if place == "requirement":
             each(*_held(visit, "conditions"), _CONDITIONS, "a registered condition", keys=True)
@@ -799,7 +796,9 @@ def _names(declaration: JsonObject) -> list[Finding]:
         for position, reference in enumerate(records or []):
             if reference is not None:
                 found += _twice(reference, seen, f"{at}/checked_over/records/{position}", "listed twice")
-        read: set[str] | None = None if not isinstance(model.get("reads"), list) else set()
+        # A `reads` at fault, which is no list or an empty one, is not a list the fields are judged against.
+        reads = model.get("reads")
+        read: set[str] | None = set() if isinstance(reads, list) and reads else None
         for position, field in enumerate(_list(model.get("reads"))):
             if isinstance(field, str) and read is not None:
                 found += _twice(field, read, f"{at}/reads/{position}", "read twice")
@@ -869,7 +868,7 @@ def _reasons(declaration: JsonObject) -> list[Finding]:
             and {"tolerance", "accept"} & value.keys()
         ):
             found.append(Finding("BC-004", at, "a tolerance or accept list without its reason", "reason"))
-        if (place in KINDS or place == "acceptance") and "reason" not in value:
+        if place in KINDS and "reason" not in value:
             found.append(Finding("BC-005", at, "an acceptance without its reason", "reason"))
         if place in _NEEDS_BASIS and "basis" not in value:
             found.append(Finding("BC-005", at, f"an {place} without its basis", "basis"))

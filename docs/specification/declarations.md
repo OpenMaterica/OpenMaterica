@@ -155,8 +155,9 @@ Holds, that member; for what item 12 refuses, the member that needs the suite (`
 a member at fault like any other: the pointer names it, nothing inside it is checked, and the rest of the
 declaration is. A rule that judges one member against another stands aside where the other is itself at
 fault, so that one fault is one refusal: the `population_level` rule beside a `represents` that is no token, a
-requirement's `field` against a `reads` at fault, and a waiver's missing `condition` beside a `code` that is
-refused. A fault more than one rule names carries the case of the first of: items 3, 4, 7 and 8, the
+requirement's `field` against a `reads` at fault (an empty one too), and a waiver's missing `condition`
+beside a `code` that is refused; an acceptance that names no known kind is refused at itself, and none of its
+other members is judged. A fault more than one rule names carries the case of the first of: items 3, 4, 7 and 8, the
 `population_level` rule and section 4.1's location rule [BC-004] [BC-005] [BC-040] [BC-044] [BC-043] [BC-037];
 section 4.1 item 4 [BC-050]; item 12 [BC-051]; this paragraph [BC-048]. Two faults with one case and one
 pointer are one refusal. The build reports every refusal it finds, and reads nothing for a declaration it
