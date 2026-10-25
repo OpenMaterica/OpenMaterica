@@ -31,7 +31,9 @@ every family entry goes in `families/CHANGELOG.md`.
   which gives the build's own reasons, the judgement, the verdict and the report's results. Before any read it
   raises for a pick or an overlay (S7c), a non-empty `target` or `combinations` (S7a-3) and a non-empty
   `trainable` (S7a-4), and no longer for an `overlay_scope` or an accepted difference, which with no overlay
-  applied and an empty `target` cover nothing (the S7 design's 1.3). No case file changes its expected answer.
+  applied and an empty `target` cover nothing (the S7 design's 1.3). No case file changes its expected answer;
+  `BC-009.two_implied_conditions_of_one_value` is added, two implied conditions of one value, one whose token
+  the specimen does not state, both applied.
 - `materica.check_build(declaration, store, *, claims=...)`, the build check up to the declaration's own check
   (S7a-1b; `declarations.md` section 1). The declaration, JSON text or a value, is read by `record_format.md`
   section 1 item 6 and checked by hand against `SHAPE`, the table of its shape (`core/declarations.py`): every

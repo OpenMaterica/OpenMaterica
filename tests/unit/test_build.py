@@ -370,6 +370,19 @@ def test_two_implied_conditions_that_agree_each_count_applied_where_the_result_s
     assert applied_of(with_temperature(stated, applied=(0, 1)), (IMPLIED, other)) == ()
 
 
+def test_the_case_file_of_two_implied_conditions_of_one_value_maps_both() -> None:
+    """BC-009's arm: the second implied condition's token (fresh ex vivo tissue) is not the specimen's, so the
+    read names the first alone, and the result shows the value both supply: both are applied (`accepted_by`
+    [0, 1] once S7a-2b judges it)."""
+    declaration, store = case("BC-009.two_implied_conditions_of_one_value")
+    first, second = acceptances(declaration)
+    assert (first["token"], second["token"]) == ("in_vivo", "ex_vivo_fresh")
+    assert first["implies"] == second["implies"]
+    ((result, applied, _),) = readings(declaration, store)
+    assert result.read is not None
+    assert (result.read.status, result.read.applied, applied) == ("met", (0,), (0, 1))
+
+
 @pytest.mark.parametrize(
     ("given", "assumption", "applied"),
     [

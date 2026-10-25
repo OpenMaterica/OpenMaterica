@@ -55,7 +55,7 @@ so nothing that did not run can show as a pass or a skip. `test_cases.py` assert
 | `evaluate` (TE-002 to TE-012) | 35 | run, verified against the reference evaluator under each of its four configurations |
 | record checks (`check`: RC-031, RC-032, RC-220 to RC-226) and `quote_sha256` (RC-033's vectors) | 184 and 13 | not yet runnable: no executor; C2, with S5's record checks, adds them |
 | build checks (`check_build`: BC-004, BC-005, BC-037, BC-048, BC-050, BC-051), a declaration checked on its own and refused | 56 | run, passed |
-| build checks (`check_build`: BC-001, BC-002, BC-003, BC-006, BC-009, BC-010, BC-016, BC-017, BC-019, BC-020, BC-027, BC-028, BC-038, BC-049, BC-053), a declaration over records that passes its own check: the results and the verdict | 57 | not yet runnable: S7a-2, which builds the results, is not done |
+| build checks (`check_build`: BC-001, BC-002, BC-003, BC-006, BC-009, BC-010, BC-016, BC-017, BC-019, BC-020, BC-027, BC-028, BC-038, BC-049, BC-053), a declaration over records that passes its own check: the results and the verdict | 58 | not yet runnable: S7a-2, which builds the results, is not done |
 
 Each read is counted by the step whose code runs it (`case_steps.json`), not by what it reads:
 `PR-044.alternatives_beside_value` holds alternatives and is S2a-4's, and `PR-007.target_is_overlay` ends at
@@ -84,9 +84,9 @@ refuses a requirement's `label`, and S2a-2's step 0 runs PR-330's other requirem
 member one slip from `review` (`PR-330.near_typo_requirement_review`, S7a-2a), which the read has refused
 since then too, as it refuses a slip of every member section 1 names there.
 
-Of the 1637 case files, 1277 agree with plain read and the hash suite, 1219 with plain read alone, and 1277
-with the fits and reference data suite too; 1390 with the build checks, plain read and the hash suite, and
-1332 with the build checks and plain read alone, the 113 of the build-check suite among each; the 35 of the
+Of the 1638 case files, 1277 agree with plain read and the hash suite, 1219 with plain read alone, and 1277
+with the fits and reference data suite too; 1391 with the build checks, plain read and the hash suite, and
+1333 with the build checks and plain read alone, the 114 of the build-check suite among each; the 35 of the
 table evaluation suite agree with the reference evaluator's configuration alone, since this implementation
 claims no evaluator, and the 197 of the record-check suite agree with none, since it claims no record checks.
 
