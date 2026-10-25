@@ -1,0 +1,109 @@
+{
+  "consumer": {
+    "name": "conformance_consumer",
+    "version": "1.0.0"
+  },
+  "operating_conditions": {
+    "temperature": {
+      "value": 310.15,
+      "unit": "K"
+    },
+    "shear_rate": {
+      "range": [
+        50.0,
+        500.0
+      ],
+      "unit": "1/s"
+    }
+  },
+  "models": [
+    {
+      "model": {
+        "name": "drag",
+        "version": "1.0.0"
+      },
+      "model_configuration_hash": "sha256:46df0c2b3082576d2848959f99adb425293d93f6ebcc0b73552c124b3c2106d3",
+      "checked_over": {
+        "records": [
+          {
+            "id": "conformance/water_fixture",
+            "version": "1.0.0",
+            "content_hash": "sha256:0118b93439ecc96bce7331e080d408556897ac9ebb4f0d3017b7deee4ba5bc27"
+          }
+        ]
+      },
+      "target": {},
+      "reads": [
+        "fluid.dynamic_viscosity"
+      ],
+      "consumer_parameters": [
+        "drag.dynamic_viscosity"
+      ],
+      "requirements": [
+        {
+          "field": "fluid.dynamic_viscosity",
+          "want": "value",
+          "label": "materica.fluid.newtonian.v1",
+          "conditions": {
+            "temperature": {
+              "tolerance": {
+                "value": 1.0,
+                "unit": "K"
+              },
+              "reason": "the viscosity falls about 2 % per kelvin near 37 °C",
+              "consequence": "1 K moves the drag by about 2 %"
+            },
+            "shear_rate": {
+              "tolerance": {
+                "value": 0.0,
+                "unit": "1/s"
+              },
+              "reason": "the model assumes a Newtonian fluid over the operating shear rates"
+            }
+          }
+        }
+      ],
+      "families": {},
+      "combinations": [],
+      "acceptances": [
+        {
+          "acceptance": "implied_condition",
+          "record": {
+            "id": "conformance/water_fixture",
+            "version": "1.0.0",
+            "content_hash": "sha256:0118b93439ecc96bce7331e080d408556897ac9ebb4f0d3017b7deee4ba5bc27"
+          },
+          "field": "fluid.dynamic_viscosity",
+          "fact": "tissue_state",
+          "token": "in_vivo",
+          "implies": {
+            "temperature": {
+              "value": 310.15,
+              "unit": "K"
+            }
+          },
+          "reason": "a value measured in vivo was measured at body temperature"
+        },
+        {
+          "acceptance": "implied_condition",
+          "record": {
+            "id": "conformance/water_fixture",
+            "version": "1.0.0",
+            "content_hash": "sha256:0118b93439ecc96bce7331e080d408556897ac9ebb4f0d3017b7deee4ba5bc27"
+          },
+          "field": "fluid.dynamic_viscosity",
+          "fact": "tissue_state",
+          "token": "ex_vivo_fresh",
+          "implies": {
+            "temperature": {
+              "value": 310.15,
+              "unit": "K"
+            }
+          },
+          "reason": "a value measured on fresh ex vivo tissue was measured at body temperature too"
+        }
+      ],
+      "chains": []
+    }
+  ]
+}

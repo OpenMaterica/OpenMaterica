@@ -83,11 +83,11 @@ def test_a_result_the_result_schema_refuses_is_found() -> None:
 
 def test_every_case_file_is_counted() -> None:
     runs = runner.run_all(CASE_FILES, configurations=CONFIGURATIONS, executors=EXECUTORS)
-    assert len(runs) == 1637
+    assert len(runs) == 1638
     assert Counter(case_run.outcome for case_run in runs) == {
         Outcome.PASSED: 1238,
         Outcome.VERIFIED: 35,
-        Outcome.NOT_YET_RUNNABLE: 364,
+        Outcome.NOT_YET_RUNNABLE: 365,
     }
     by_operation = Counter((case_run.outcome, case_run.case_file.operation) for case_run in runs)
     assert by_operation == {
@@ -98,7 +98,7 @@ def test_every_case_file_is_counted() -> None:
         (Outcome.VERIFIED, "evaluate"): 35,
         (Outcome.NOT_YET_RUNNABLE, "read"): 110,
         (Outcome.NOT_YET_RUNNABLE, "check"): 184,
-        (Outcome.NOT_YET_RUNNABLE, "check_build"): 57,
+        (Outcome.NOT_YET_RUNNABLE, "check_build"): 58,
         (Outcome.NOT_YET_RUNNABLE, "quote_sha256"): 13,
     }
 
@@ -111,8 +111,8 @@ def test_each_configuration_runs_every_case_file_that_holds_for_it() -> None:
         CONFIGURATIONS[0]: 1277,
         CONFIGURATIONS[1]: 1219,
         CONFIGURATIONS[2]: 1277,
-        CONFIGURATIONS[3]: 1390,
-        CONFIGURATIONS[4]: 1332,
+        CONFIGURATIONS[3]: 1391,
+        CONFIGURATIONS[4]: 1333,
         runner.REFERENCE_EVALUATOR: 35,
     }
 

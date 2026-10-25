@@ -44,6 +44,7 @@
     "BC-009.nominal_applied.json": "S7a-2",
     "BC-009.one_waiver_index.json": "S7a-2",
     "BC-009.two_acceptances_indexes.json": "S7a-2",
+    "BC-009.two_implied_conditions_of_one_value.json": "S7a-2",
     "BC-010.all_accepted.json": "S7a-2",
     "BC-010.each_model_judged_by_its_own_acceptances.json": "S7a-2",
     "BC-010.one_accepted_one_not_in_one_model.json": "S7a-2",
