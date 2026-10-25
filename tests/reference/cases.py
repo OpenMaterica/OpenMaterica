@@ -51,6 +51,9 @@ NOT_A_READ: Final = ("table_evaluation", "record_checks", "build_checks")
 # configuration claims (README.md:269-270 "A case whose answer depends on a suite the build claims (the scene
 # suite, say) says so in `claims`"): the scene suite, USD read and the sampling suite at the declaration
 # (`declarations.md` section 1 item 12), the hash and the fits and reference data suite at the reads past it.
+# The family evaluation suite changes what a read of a parameter set gives, and the sweep does not claim it:
+# no build-check file reads a parameter set, so no answer is hidden today. The file that does adds the suite
+# here, and the sweep then reads it under both claims.
 BUILD_SUITES: Final = ("hash", "fits_and_reference_data", "scene_documents", "usd_read", "sampling")
 BUILD_CONFIGURATIONS: Final = tuple(
     frozenset({"plain_read", "build_checks", *chosen})

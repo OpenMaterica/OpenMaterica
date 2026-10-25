@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 """The build's results model held on what no build-check case file pins (`results_direct.py`), and its table
 of section 4.2, its own data, held to the specification's text: `main` has no `coverage.json` yet (the S7
-design's generated table, which S7a-2's code brings), so the table is parsed from `declarations.md` here, each
+design's generated table, which S7a-2b brings), so the table is parsed from `declarations.md` here, each
 row's "Covered by" read by a fixed table of the phrasings section 4.2 uses, so that a phrasing it does not
-know fails. The seeded faults of the model run against the direct checks too (`test_seeded_faults.py`)."""
+know fails; and held to `coverage.json` once it exists. The seeded faults of the model run against the
+direct checks too (`test_seeded_faults.py`)."""
 
 import json
 import re
@@ -17,11 +18,12 @@ from tests.reference import build_results_model, results_direct
 from tests.reference.build_results_model import COVERAGE, UNDECIDED, Report
 from tests.reference.exceptions import RESULTS_NOT_DECIDED
 from tests.reference.read_model import REASONS
-from tests.reference.strict_json import JsonObject
+from tests.reference.strict_json import JsonObject, JsonValue, parse
 
 REPOSITORY: Final = Path(__file__).resolve().parents[2]
 DECLARATIONS: Final = REPOSITORY / "docs" / "specification" / "declarations.md"
 COVERAGE_JSON: Final = REPOSITORY / "src" / "materica" / "schema" / "0.1" / "vocabulary" / "coverage.json"
+ACCEPTANCE_MODULE: Final = REPOSITORY / "src" / "materica" / "core" / "acceptance.py"
 
 # Section 4.2's "Covered by" phrasings, each read as the kind, whether the code and the condition are named,
 # and whether the row holds only on a result whose `assumption` names the acceptance.
@@ -37,7 +39,8 @@ PHRASINGS: Final = {
     "its `trainable` entry (section 7), on a result that carries a value": ("trainable", False, False, False),
 }
 # The maintainer's ruling of 2026-10-24, whose words #96 lands: `condition_unknown_name` leaves the first row.
-# Once that text is on `main` the departure is empty.
+# `main`'s text lists the code in the first row until then. Once the text stops listing it,
+# `coverage_problems` fails and says to delete this constant.
 RULED_OUT_OF_THE_FIRST_ROW: Final = ("condition_unknown_name",)
 
 
@@ -77,34 +80,90 @@ def model_row(row: build_results_model.Row) -> tuple[object, ...]:
     )
 
 
-def coverage_problems(text: str) -> list[str]:
-    """Each difference between the model's table and section 4.2's, the ruling's departure aside."""
+def coverage_problems(
+    text: str,
+    departures: tuple[str, ...] = RULED_OUT_OF_THE_FIRST_ROW,
+    table: tuple[build_results_model.Row, ...] = COVERAGE,
+) -> list[str]:
+    """Each difference between the model's table and section 4.2's, the first row's `departures` aside, each
+    of which the text must still list there: a departure the text no longer lists is itself a problem."""
     rows = table_rows(text)
     try:
         parsed = [
-            text_row(*row, ruled_out=RULED_OUT_OF_THE_FIRST_ROW if index == 0 else ())
-            for index, row in enumerate(rows)
+            text_row(*row, ruled_out=departures if index == 0 else ()) for index, row in enumerate(rows)
         ]
     except ValueError as error:
         return [str(error)]
     problems = [
+        f"the text's first row no longer lists `{code}`: delete it from RULED_OUT_OF_THE_FIRST_ROW"
+        for code in departures
+        if not rows or f"`{code}`" not in rows[0][0]
+    ]
+    problems += [
         f"row {index}: the text's {text!r}, the model's {model!r}"
-        for index, (text, model) in enumerate(zip(parsed, map(model_row, COVERAGE), strict=False))
+        for index, (text, model) in enumerate(zip(parsed, map(model_row, table), strict=False))
         if text != model
     ]
-    if len(parsed) != len(COVERAGE):
-        problems.append(f"{len(parsed)} rows in the text, {len(COVERAGE)} in the model")
+    if len(parsed) != len(table):
+        problems.append(f"{len(parsed)} rows in the text, {len(table)} in the model")
     problems += [
         f"row {index}: the qualifier {row.qualifier!r} is not the text's"
-        for index, row in enumerate(COVERAGE)
+        for index, row in enumerate(table)
         if row.qualifier and index < len(rows) and row.qualifier not in rows[index][0]
     ]
     return problems
 
 
-def test_coverage_json_is_not_on_main_so_the_text_is_the_check() -> None:
-    """When S7a-2's code lands `coverage.json`, the model's table is to be held to it too: this fails then."""
-    assert not COVERAGE_JSON.exists()
+def strings_of(value: JsonValue) -> set[str]:
+    """Every string a JSON document holds, as a key or a value."""
+    if isinstance(value, str):
+        return {value}
+    if isinstance(value, dict):
+        return {
+            *value,
+            *(s for held in value.values() for s in strings_of(held)),
+        }
+    if isinstance(value, list):
+        return {s for held in value for s in strings_of(held)}
+    return set()
+
+
+def coverage_json_problems(coverage_json: Path, acceptance: Path) -> list[str]:
+    """What is wrong with `coverage.json` beside the model's table. Where the file is absent, `main`'s state,
+    the text is the check, and the build's acceptance module may not exist: that module reads the file, so
+    it fails, not skips, without it. Where the file exists, it names every reason the model's table lists.
+    The file's shape is S7a-2b's: its generator and its row-by-row comparison with the model's table
+    replace the names check."""
+    if not coverage_json.exists():
+        return [f"{acceptance.name} exists, and {coverage_json.name} does not"] if acceptance.exists() else []
+    held = strings_of(parse(coverage_json.read_bytes()))
+    return [
+        f"{coverage_json.name} names no `{code}`, which the model's table lists"
+        for code in sorted({code for row in COVERAGE for code in row.reasons})
+        if code not in held
+    ]
+
+
+def test_coverage_json_is_held_to_the_model_s_table_where_it_exists() -> None:
+    """Not a skip: with no `coverage.json` on the tree the text is the check, and the build's acceptance
+    module may not be there; with the file, its reasons are the model's."""
+    assert coverage_json_problems(COVERAGE_JSON, ACCEPTANCE_MODULE) == []
+
+
+def test_coverage_json_controls(tmp_path: Path) -> None:
+    """Controls: an acceptance module without the file fails, the file that misses a reason fails, and the
+    file that names them all, nested as a generator may write them, passes."""
+    module, table = tmp_path / "acceptance.py", tmp_path / "coverage.json"
+    assert coverage_json_problems(table, module) == []
+    module.write_text("", encoding="utf-8")
+    assert coverage_json_problems(table, module) == ["acceptance.py exists, and coverage.json does not"]
+    codes = sorted({code for row in COVERAGE for code in row.reasons})
+    table.write_text(json.dumps({"rows": [{"reasons": codes[1:]}]}), encoding="utf-8")
+    assert coverage_json_problems(table, module) == [
+        f"coverage.json names no `{codes[0]}`, which the model's table lists"
+    ]
+    table.write_text(json.dumps({"rows": [{"reasons": codes}]}), encoding="utf-8")
+    assert coverage_json_problems(table, module) == []
 
 
 def test_the_model_s_table_is_section_4_2_s() -> None:
@@ -151,6 +210,38 @@ def test_a_table_that_drifts_from_the_model_s_fails(old: str, new: str, problem:
     found = coverage_problems(text.replace(old, new))
     assert found
     assert any(problem in one for one in found), found
+
+
+def test_the_allowance_is_needed_while_the_text_lists_the_code() -> None:
+    """Control: without the allowance, today's text differs from the model's first row (which the ruling takes
+    `condition_unknown_name` out of), so that a regression putting the code back in the model's row is found
+    too: the allowance filters the text's row, never the model's."""
+    text = DECLARATIONS.read_text(encoding="utf-8")
+    found = coverage_problems(text, departures=())
+    assert any(problem.startswith("row 0:") for problem in found), found
+
+
+def test_the_allowance_fails_once_the_text_stops_listing_the_code() -> None:
+    """Control: with #96's words on `main`, the first row no longer lists `condition_unknown_name`, and the
+    check fails with the allowance still there, saying to delete it; without it, the table agrees."""
+    text = DECLARATIONS.read_text(encoding="utf-8")
+    listed = "`condition_unstated`, `condition_unknown_name`, `condition_unchecked`"
+    assert text.count(listed) == 1
+    ruled = text.replace(listed, "`condition_unstated`, `condition_unchecked`")
+    found = coverage_problems(ruled)
+    assert len(found) == 1, found
+    assert "delete it from RULED_OUT_OF_THE_FIRST_ROW" in found[0], found
+    assert coverage_problems(ruled, departures=()) == []
+
+
+def test_a_model_row_that_lists_the_ruled_out_code_is_found_whatever_the_text_says() -> None:
+    """Control: the model's first row listing `condition_unknown_name` again is a regression the allowance
+    must not hide, today's text listing the code or not."""
+    text = DECLARATIONS.read_text(encoding="utf-8")
+    first = COVERAGE[0]
+    listing = replace(first, reasons=(first.reasons[0], "condition_unknown_name", *first.reasons[1:]))
+    found = coverage_problems(text, table=(listing, *COVERAGE[1:]))
+    assert any(problem.startswith("row 0:") for problem in found), found
 
 
 def test_each_row_s_status_is_its_reasons_status() -> None:

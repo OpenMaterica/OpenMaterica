@@ -297,7 +297,8 @@ every family entry goes in `families/CHANGELOG.md`.
   own check. `tests/reference/test_cases.py` compares a build's results as the specification's README says: the
   models agree with every one of the 108 build-check files, S7a-2's 57 included, under every configuration of
   build claims each allows, and none is listed. Its table of section 4.2 is held to the table parsed from the
-  text, since `main` has no `coverage.json` yet; 40 direct checks hold what no file pins; 79 seeded faults, 75
+  text, since `main` has no `coverage.json` yet, and to `coverage.json` once the file exists (a build whose
+  acceptance module exists without it fails); 40 direct checks hold what no file pins; 79 seeded faults, 75
   killed (45 by the files, 30 by the direct checks) and 4 listed as survivors; its citations and layering are
   held as the other models' are. Four open points, each listed once: one the maintainer's ruling, two the
   model's readings of the text, and one that gives no verdict where it cannot decide.

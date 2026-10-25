@@ -702,15 +702,20 @@ overlay alone reaches (S7c); the alternative a result rests on, where the result
 alternatives store different labels; and a read the read model gives no verdict on. A pick, an overlay or a member a claimed suite checks gives no verdict at the
 declaration already (`build_model.py`).
 
-**Section 4.2's table.** `main` has no `coverage.json` yet (the S7 design's generated table, which S7a-2's
-code brings), so `test_build_results_model.py` parses the table from `declarations.md` and holds the model's
+**Section 4.2's table.** `main` has no `coverage.json` yet (the S7 design's generated table, which S7a-2b
+brings), so `test_build_results_model.py` parses the table from `declarations.md` and holds the model's
 rows to it, each row's "Covered by" read by a fixed table of the phrasings it uses, so that a new phrasing
 fails; its controls rewrite a phrasing, drop `not_reviewed` from its row (the S7-spec review's surviving hand
 mutant), change a status, drop a row's condition, add a row and cut a qualifier, and each is found. When
-`coverage.json` lands, a test that holds it absent fails, so that the model's table is held to it too. One
+`coverage.json` exists, a test holds it to the model's table: the file names every reason the table lists (the
+least that can be said before the generated file's shape is known; S7a-2b's generator and row-by-row
+comparison replace it), and a build whose acceptance module exists without the file fails, never skips. One
 departure is allowed: `condition_unknown_name` leaves the first row, by the maintainer's ruling of 2026-10-24,
 whose words #96 lands; it is unobservable, since no waiver that passes the declaration's own check names the
-unregistered condition such a reason carries.
+unregistered condition such a reason carries. The allowance filters the text's first row only while the text
+still lists the code there: once #96's words are on `main` the check fails, saying to delete
+`RULED_OUT_OF_THE_FIRST_ROW`, and a control shows that without the allowance today's text differs from the
+model's row, so that the code put back in the model's row is never hidden by it.
 
 Where the text leaves a point open, the model takes the maintainer's ruling where there is one, else the
 reading it states, and gives `NoVerdict` where it cannot decide, each point listed once in its `OPEN_POINTS` and
