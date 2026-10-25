@@ -15,6 +15,34 @@ every family entry goes in `families/CHANGELOG.md`.
 ## [Unreleased]
 
 ### Added
+- The build's own reasons, its verdict and its report (S7a-2b; `declarations.md` sections 2 and 4.2).
+  `check_build` gives the report of a declaration that passes its own check. The build's own reasons join the
+  read's (section 2 item 8): `no_requirement` for a field read with no requirement; `label_mismatch` where the
+  requirement names a label and the label stored on the value the result rests on differs or is absent, and
+  none where the result rests on no stored value; `not_reviewed` where the requirement holds `review` and the
+  result's provenance holds no completed review, and none where it holds no provenance. A result's status is
+  the worst of them all. `core/acceptance.py` judges each result by the build's terms: an acceptance covers a
+  reason where it names the result's field, is located at its record (equal in `id`, `version` and
+  `content_hash`) and is of the kind a row of section 4.2 listing the reason names, under that row's own
+  condition, whatever the reason's `alternative`; `accepted_by` holds every acceptance that covered a reason
+  and every one the read applied, `not_accepted` each reason nothing covers, and `unused` lists, per model,
+  each of its acceptances none of its results used. `BuildResult` holds the joined reasons, the status and the
+  verdict, with `value`, `end_value` under an extrapolation and `initial_value`, which S7a-4's trainable fields
+  fill (the S7 design's 4.2); `BuildReport` holds the records a read resolved, the results and the acceptances unused, with
+  `refused`, `result()` and `status_lines()`, the lines `materica status` will print, each reason nothing
+  covers beside the "Covered by" cells of section 4.2 that list it. `ReadResult` records whether its read
+  resolved the record, outside its JSON and equality (`resolved`). Section 4.2's table is generated into
+  `schema/0.1/vocabulary/coverage.json`, each "Covered by" cell read by a fixed table of the phrasings it uses,
+  a phrasing the generator does not know stopping it; with the table in a file, `not_reviewed` dropped from it
+  fails the vocabulary check, where it passed every check before (the S7 design's 9). The report omits
+  `watches`, which S7a-4 emits, rather than holding an empty list, and `BuildReport.watches` raises until then.
+  Where a waiver naming a label would cover a reason, the build raises `NotImplementedError`: whether that label
+  is trusted is S7a-2's label trust, after 0.1.0.dev4. The conformance runner compares a build's results and
+  unused acceptances and runs S7a-2's 58 build-check files, which pass, also under a build claiming the fits and
+  reference data suite (a third build configuration); 1296 of 1638 case files pass, 35 are verified against the
+  reference evaluator and 307 are not yet runnable. 34 broken builds each fail an S7a-2 file by the difference
+  named beside them, and `tests/spec_sync/test_build_reasons.py` holds each code of the procedure `build` to
+  where it is constructed. No case file changes its expected answer.
 - The build's reads over records (S7a-2a; `declarations.md` section 2). `check_build` reads a declaration that
   passes its own check: for each model, each record its `checked_over` lists, in the order listed, and each
   field in its `reads`, in that order, one result (`BuildResult`: the model, the record, the field and the
@@ -27,9 +55,8 @@ every family entry goes in `families/CHANGELOG.md`.
   supplies; a nominal or an extrapolation, the `assumption`), whether or not the read named it.
   The label and its basis stored on the value a result rests on are read from the record as stored, for the
   build's own reasons; `ReadResult` records which value that is outside its JSON and equality (`resting_on`),
-  as it records `applied`. Past the reads, `check_build` still raises `NotImplementedError`, naming S7a-2b,
-  which gives the build's own reasons, the judgement, the verdict and the report's results. Before any read it
-  raises for a pick or an overlay (S7c), a non-empty `target` or `combinations` (S7a-3) and a non-empty
+  as it records `applied`. Past the reads, S7a-2b gives the build's own reasons, the judgement, the verdict
+  and the report's results (above). Before any read it raises for a pick or an overlay (S7c), a non-empty `target` or `combinations` (S7a-3) and a non-empty
   `trainable` (S7a-4), and no longer for an `overlay_scope` or an accepted difference, which with no overlay
   applied and an empty `target` cover nothing (the S7 design's 1.3). No case file changes its expected answer;
   `BC-009.two_implied_conditions_of_one_value` is added, two implied conditions of one value, one whose token
@@ -92,6 +119,9 @@ every family entry goes in `families/CHANGELOG.md`.
   a step without them, or reading a find otherwise than the checks do, fails.
 
 ### Schema
+- The vocabulary gains `coverage.json` (S7a-2b), generated by `scripts/gen_vocabulary.py` from `declarations.md`
+  section 4.2's table of what covers which reason: per row, its codes, its status, its "Covered by" cell and the
+  rule that cell states. No specification sentence changes; the build reads the file (Added, above).
 - Six clauses of `declarations.md` (the maintainer's rulings of 2026-10-24 on S7a-1a's open points and on
   S7a-1b's review, as recommended; `docs/specification/changes.md`): `condition_unknown_name` is never
   accepted, its remedy the reader's upgrade, and a waiver whose `code` is `condition_unknown_name` is refused

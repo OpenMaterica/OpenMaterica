@@ -32,6 +32,12 @@ standard library; and nothing imports `materica_authoring`.
   (CONTRIBUTING, "Changing the schema").
 - `__init__.py` holds the public API built so far: `check_build`, `content_hash`, `load_records` and `read`.
   `check_build` checks a consumer's declaration on its own (`declarations.md` section 1) and reports its
-  refusals. A declaration that passes is read over its records (section 2), and `check_build` then raises
-  `NotImplementedError` until S7a-2b judges the results and gives the report; before any read it raises for
-  what a later piece reads (a pick or an overlay, a non-empty `target`, `combinations` or `trainable`).
+  refusals. A declaration that passes is read over its records and judged (section 2): its `BuildReport`
+  holds the records a read resolved, one `BuildResult` per model, record listed and field read (the read,
+  the build's own reasons joined to it, the worst status, `accepted`, `accepted_by` and `not_accepted`, and
+  `value`, or under an extrapolation `end_value`), the acceptances unused, `refused` and `status_lines()`,
+  the lines `materica status` will print. `check_build` raises `NotImplementedError` where a later piece
+  would change its answer: before any read, for a pick or an overlay (S7c), a non-empty `target` or
+  `combinations` (S7a-3) or a non-empty `trainable` (S7a-4); and where a waiver naming a label would cover a
+  reason, which S7a-2's label trust judges after 0.1.0.dev4. `BuildReport.watches` raises until S7a-4, and
+  the JSON report leaves `watches` out rather than give it empty.
