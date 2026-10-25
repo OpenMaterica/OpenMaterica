@@ -203,6 +203,14 @@ DATA_RULES = (
         ),
     ),
     DataRule(
+        "the generated coverage table and the acceptance module that reads it",
+        r"src/materica/schema/0\.1/vocabulary/coverage\.json|src/materica/core/acceptance\.py",
+        "the results model's test holds its table of section 4.2 to `coverage.json` once the file exists, "
+        "and fails where the acceptance module exists without it; `tests/reference` is no group of tests, "
+        "so the test is named here",
+        tests=("tests/reference/test_build_results_model.py",),
+    ),
+    DataRule(
         "a build-check input, which the results model's direct checks read",
         r"src/materica/data/conformance/build_checks/inputs/.+",
         "the results model's direct checks read the build-check declarations and fixtures by path, and the "
