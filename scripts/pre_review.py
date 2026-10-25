@@ -382,8 +382,13 @@ TREE_READERS = (
     ),
     TreeReader(
         r"src/materica/core/.+\.py",
-        "each core module is imported, its `claims` parameter and its steps are checked",
-        ("tests/unit/test_read.py", "tests/spec_sync/test_reason_steps.py"),
+        "each core module is imported, its `claims` parameter and its steps are checked, and where the build "
+        "constructs its own reasons",
+        (
+            "tests/unit/test_read.py",
+            "tests/spec_sync/test_reason_steps.py",
+            "tests/spec_sync/test_build_reasons.py",
+        ),
     ),
     TreeReader(
         r"tests/spec_sync/test_name_overlap_safeguards\.py",
@@ -421,6 +426,7 @@ LOCATES_NO_RULED_DATA = {
     "tests/fuzz/read_field_bytes.py": "an Atheris target: CI's fuzz job runs it, this script cannot",
     "tests/fuzz/read_acceptance_bytes.py": "an Atheris target: CI's fuzz job runs it, this script cannot",
     "tests/spec_sync/name_overlaps.py": "read by `tests/spec_sync`, which the schema rule runs whole",
+    "tests/spec_sync/reason_sites.py": "read by `tests/spec_sync`, which the schema rule runs whole",
 }
 
 # The groups of tests under `tests/`, and the directory a conftest or package file of each applies to. A path

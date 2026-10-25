@@ -4,6 +4,7 @@
 import math
 from dataclasses import replace
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -659,7 +660,17 @@ def test_a_table_evaluation_case_that_passes_is_verified_never_passed() -> None:
 BUILD_MEMBERS = ("refusals", "results", "watches", "unused")
 
 
-def build_case(refusals: list[JsonValue], rules: tuple[str, ...] = (), **expected: JsonValue) -> CaseFile:
+def build_case(
+    refusals: list[JsonValue],
+    rules: tuple[str, ...] = (),
+    result_members: tuple[str, ...] = (),
+    **expected: JsonValue,
+) -> CaseFile:
+    compare: JsonObject = {"members": list(BUILD_MEMBERS), "exact": True}
+    if rules:
+        compare["rules_compared"] = list(rules)
+    if result_members:
+        compare["result_members"] = list(result_members)
     document: JsonObject = {
         "case": "BC-048",
         "variant": "arm",
@@ -668,7 +679,7 @@ def build_case(refusals: list[JsonValue], rules: tuple[str, ...] = (), **expecte
         "inputs": {"records": [], "declaration": "a.json"},
         "request": {"operation": "check_build"},
         "expected": {"refusals": refusals, **expected},
-        "compare": {"members": list(BUILD_MEMBERS), **({"rules_compared": list(rules)} if rules else {})},
+        "compare": compare,
     }
     return CaseFile.from_document(Path("BC-048.arm.json"), document)
 
@@ -727,6 +738,124 @@ def test_a_list_compared_and_not_expected_must_be_absent_or_empty(member: str) -
     ]
 
 
-def test_a_build_case_that_expects_results_is_not_compared_before_s7a_2() -> None:
-    with pytest.raises(CaseFileError, match="arrives with S7a-2"):
-        differences(build_case([], unused=[{"model": "drag", "acceptance": 0}]), REPORT)
+def test_a_build_case_that_expects_watches_is_not_compared_before_s7a_4() -> None:
+    watch: JsonValue = {"model": "drag", "field": "fluid.dynamic_viscosity", "condition": "temperature"}
+    with pytest.raises(CaseFileError, match="arrives with S7a-4"):
+        differences(build_case([], watches=[watch]), REPORT)
+
+
+# A build's results: "compared as a set keyed by `model`, the location and `field` ...; each result's members
+# compared as a read result's are (above), `accepted_by` as a set of indexes, and `not_accepted` as a
+# multiset of reasons, as `reasons` are, and of specimen differences by `section` and `fact`"; and `unused`,
+# "as a set of `{"model", "acceptance"}`".
+
+WATER_PIN: JsonObject = {"id": "conformance/water_fixture", "version": "1.0.0", "content_hash": "sha256:0"}
+PLASMA_PIN: JsonObject = {"id": "conformance/plasma_fixture", "version": "1.0.0", "content_hash": "sha256:1"}
+VERDICT = ("status", "reasons", "value", "accepted", "accepted_by", "not_accepted")
+
+
+def a_result(record: JsonObject = WATER_PIN, model: str = "drag", **members: JsonValue) -> JsonObject:
+    return {
+        "model": model,
+        "record": record,
+        "field": "fluid.dynamic_viscosity",
+        "status": "unknown",
+        "reasons": [UNSTATED],
+        "accepted": True,
+        "accepted_by": [0.0],
+        "not_accepted": [],
+        **members,
+    }
+
+
+def results_case(*results: JsonObject, members: tuple[str, ...] = VERDICT) -> CaseFile:
+    return build_case([], result_members=members, results=list(results))
+
+
+def with_results(*results: JsonValue, unused: list[JsonValue] | None = None) -> JsonObject:
+    return {**REPORT, "refusals": [], "results": list(results), "unused": unused or []}
+
+
+def test_a_builds_results_are_a_set_keyed_by_model_location_and_field() -> None:
+    expected = results_case(a_result(), a_result(PLASMA_PIN))
+    assert differences(expected, with_results(a_result(PLASMA_PIN), a_result())) == []
+    for found in (
+        with_results(a_result()),
+        with_results(a_result(), a_result(PLASMA_PIN), a_result(PLASMA_PIN, model="lift")),
+        with_results(a_result(), a_result(PLASMA_PIN), a_result()),
+        with_results(a_result(), a_result({**PLASMA_PIN, "content_hash": "sha256:2"})),
+        with_results(a_result(), {**a_result(PLASMA_PIN), "field": "bulk.density"}),
+        with_results(a_result(), "not a result"),
+    ):
+        (difference,) = differences(expected, found)
+        assert difference.startswith("results: "), difference
+
+
+def test_an_expected_result_given_twice_is_a_defect_in_the_case() -> None:
+    with pytest.raises(CaseFileError, match="twice"):
+        differences(results_case(a_result(), a_result()), with_results(a_result()))
+
+
+@pytest.mark.parametrize(
+    ("changed", "member"),
+    [
+        ({"status": "not_met"}, "status"),
+        ({"reasons": [UNSTATED, UNSTATED]}, "reasons"),
+        ({"reasons": [{**UNSTATED, "alternative": 1.0}]}, "reasons"),
+        ({"accepted": False}, "accepted"),
+        ({"accepted_by": [1.0]}, "accepted_by"),
+        ({"accepted_by": [0.0, 1.0]}, "accepted_by"),
+        ({"accepted_by": [-0.0]}, "accepted_by"),
+        ({"accepted_by": [True]}, "accepted_by"),
+        ({"not_accepted": [UNSTATED]}, "not_accepted"),
+        ({"not_accepted": [{"section": "fluid", "fact": "species"}]}, "not_accepted"),
+        ({"value": 0.000692}, "value"),
+    ],
+)
+def test_a_result_member_compared_that_differs_fails(changed: JsonObject, member: str) -> None:
+    (difference,) = differences(results_case(a_result()), with_results({**a_result(), **changed}))
+    assert difference.startswith(f"results: {runner.result_key(a_result())}: {member}: "), difference
+
+
+def test_accepted_by_is_a_set_and_not_accepted_a_multiset() -> None:
+    expected = a_result(accepted=False, accepted_by=[0.0, 2.0], not_accepted=[UNSTATED, UNSTATED, MALFORMED])
+    found = a_result(
+        accepted=False, accepted_by=[2.0, 0.0, 0.0], not_accepted=[MALFORMED, UNSTATED, UNSTATED]
+    )
+    assert differences(results_case(expected), with_results(found)) == []
+    fewer: JsonObject = {**found, "not_accepted": [MALFORMED, UNSTATED]}
+    assert differences(results_case(expected), with_results(fewer)) != []
+    difference: JsonObject = {"section": "fluid", "fact": "species", "record": {"status": "unstated"}}
+    with_difference = a_result(accepted=False, not_accepted=[difference])
+    other_record: JsonObject = {**difference, "record": {"status": "not_applicable"}}
+    assert (
+        differences(
+            results_case(with_difference), with_results(a_result(accepted=False, not_accepted=[other_record]))
+        )
+        == []
+    )
+
+
+def test_only_the_result_members_named_are_compared_and_one_named_not_expected_must_be_absent() -> None:
+    found = a_result(labels=["materica.fluid.newtonian.v1"], provenance={"origin": "derived"})
+    assert differences(results_case(a_result()), with_results(found)) == []
+    (difference,) = differences(
+        results_case(a_result(), members=(*VERDICT, "provenance")), with_results(found)
+    )
+    assert difference.endswith("provenance: must be absent, got {'origin': 'derived'}")
+    assert differences(results_case(a_result(), members=(*VERDICT, "labels")), with_results(found)) != []
+
+
+def test_unused_acceptances_are_a_set_of_model_and_index() -> None:
+    expected = build_case(
+        [], unused=[{"model": "drag", "acceptance": 1.0}, {"model": "lift", "acceptance": 0.0}]
+    )
+    report = with_results(unused=[{"model": "lift", "acceptance": 0.0}, {"model": "drag", "acceptance": 1.0}])
+    assert differences(expected, report) == []
+    for unused in (
+        [{"model": "drag", "acceptance": 1.0}],
+        [{"model": "drag", "acceptance": 1.0}, {"model": "drag", "acceptance": 0.0}],
+        [{"model": "drag", "acceptance": 1.0}, {"model": "lift", "acceptance": 0.0}, {"model": "lift"}],
+    ):
+        (difference,) = differences(expected, with_results(unused=cast(list[JsonValue], unused)))
+        assert difference.startswith("unused: "), difference

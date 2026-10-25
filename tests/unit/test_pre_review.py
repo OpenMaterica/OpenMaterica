@@ -380,6 +380,7 @@ READERS_OF_THE_CORE = (
     "tests/unit/test_source_files.py",
     "tests/unit/test_read.py",
     "tests/spec_sync/test_reason_steps.py",
+    "tests/spec_sync/test_build_reasons.py",
     "tests/unit/test_pre_review.py",
 )
 
@@ -394,6 +395,7 @@ def test_a_new_core_module_selects_the_tests_that_list_every_core_module() -> No
     assert selects(beside, "tests/unit/test_source_files.py")
     assert not selects(beside, "tests/unit/test_read.py")
     assert not selects(beside, "tests/spec_sync/test_reason_steps.py")
+    assert not selects(beside, "tests/spec_sync/test_build_reasons.py")
 
 
 @pytest.mark.usefixtures("no_fallback")
@@ -1585,6 +1587,7 @@ def test_the_declared_readers_hold_against_a_trace_of_the_files_the_tests_open(
             "tests/unit/test_source_files.py",
             "tests/unit/test_ci_workflows.py",
             "tests/spec_sync/test_reason_steps.py",
+            "tests/spec_sync/test_build_reasons.py",
             "tests/unit/test_pre_review.py",
         } <= absent_without
         # test_read lists the core when it is first imported, which test_conditions may do first and be named

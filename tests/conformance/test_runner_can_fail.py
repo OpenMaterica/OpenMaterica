@@ -10,14 +10,16 @@ import hashlib
 import math
 import re
 import unicodedata
-from collections.abc import Callable, Collection, Iterable
+from collections.abc import Callable, Collection, Iterable, Sequence
 from dataclasses import replace
-from typing import NamedTuple
+from typing import Any, NamedTuple, cast
 
 import pytest
 
 from materica import shapes
 from materica.core import (
+    acceptance,
+    build,
     canonical,
     declarations,
     envelope,
@@ -29,15 +31,16 @@ from materica.core import (
     resolve,
     value_shapes,
 )
+from materica.core.declarations import Acceptance
 from materica.core.fields import RecordField
 from materica.core.identifiers import MaterialRef
 from materica.core.jsonio import JsonValue
 from materica.core.reasons import Reason
 from materica.core.record import Record, RecordStore
-from materica.core.report import BuildRefusal
+from materica.core.report import BuildRefusal, BuildResult, UnusedAcceptance
 from materica.core.resolve import Refused, ResolvedRecord
 from materica.core.slips import one_slip
-from materica.core.vocabulary import VOCABULARY, ConditionSpec, RecordFieldSpec
+from materica.core.vocabulary import VOCABULARY, ConditionSpec, CoverageRow, RecordFieldSpec
 from materica.shapes import Suite
 from tests.conformance import runner
 from tests.conformance.runner import (
@@ -996,6 +999,580 @@ BUILD_FAULTS: list[tuple[Fault, str]] = [
         "BC-051.population_level_beside_another_represents.json",
     ),
 ]
+# Builds with one fault past the declaration's own check (S7a-2): the verdict (`core/acceptance.py`), the
+# build's own reasons, the results and the acceptances unused (`core/build.py`), each with one function
+# replaced or wrapped. Each fails an S7a-2 file by the difference named beside it (`S7A2_FAULTS`).
+
+Covers = Callable[[Acceptance, Reason, "read.ReadResult | None", MaterialRef, str], bool]
+
+
+def _covering(monkeypatch: pytest.MonkeyPatch, changed: Callable[[Covers], Covers]) -> Executor:
+    """The build with `_covers` replaced by what `changed` makes of it."""
+    original: Covers = vars(acceptance)["_covers"]
+    monkeypatch.setattr(acceptance, "_covers", changed(original))
+    return runner.check_build_executor()
+
+
+def _rows_changed(
+    monkeypatch: pytest.MonkeyPatch, change: Callable[[CoverageRow], CoverageRow | None]
+) -> Executor:
+    """The build reading section 4.2's table with each row changed, or dropped where `change` gives None."""
+    rows = tuple(row for found in acceptance.COVERAGE if (row := change(found)) is not None)
+    monkeypatch.setattr(acceptance, "COVERAGE", rows)
+    return runner.check_build_executor()
+
+
+def waiver_covers_not_met(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """A waiver naming a `not_met` reason's code and condition covers it, where no row lets it."""
+
+    def changed(original: Covers) -> Covers:
+        def covers(
+            given: Acceptance, reason: Reason, result: object, record: MaterialRef, field: str
+        ) -> bool:
+            named = (
+                given.members.get("code") == reason.code
+                and given.members.get("condition") == reason.condition
+            )
+            if given.kind == "waiver" and named and VOCABULARY.reasons[reason.code].status == "not_met":
+                return given.field == field and acceptance.located_at(given, record)
+            return original(given, reason, cast("read.ReadResult | None", result), record, field)
+
+        return covers
+
+    return _covering(monkeypatch, changed)
+
+
+def not_reviewed_dropped(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """The S7 design's 9: `not_reviewed` dropped from section 4.2's table, as the S7 specification review's
+    surviving hand mutant dropped it from the text."""
+
+    def change(row: CoverageRow) -> CoverageRow:
+        return replace(row, reasons=tuple(code for code in row.reasons if code != "not_reviewed"))
+
+    return _rows_changed(monkeypatch, change)
+
+
+def waiver_covers_label_mismatch_and_no_pick(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """`label_mismatch` and `no_pick` read among the codes a waiver naming that code covers."""
+
+    def change(row: CoverageRow) -> CoverageRow:
+        if row.kind == "waiver" and "not_reviewed" in row.reasons:
+            return replace(row, reasons=(*row.reasons, "label_mismatch", "no_pick"))
+        return row
+
+    return _rows_changed(monkeypatch, change)
+
+
+def _under_changed(monkeypatch: pytest.MonkeyPatch, flag: str, kind: str | None = None) -> Executor:
+    """The build reading each row of `kind` (each row, where None) with `flag` off."""
+
+    def change(row: CoverageRow) -> CoverageRow:
+        return replace(row, **cast(Any, {flag: False})) if kind is None or row.kind == kind else row
+
+    return _rows_changed(monkeypatch, change)
+
+
+def waiver_ignores_its_condition(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    return _under_changed(monkeypatch, "names_condition", "waiver")
+
+
+def waiver_ignores_its_code(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    return _under_changed(monkeypatch, "names_code", "waiver")
+
+
+def nominal_covers_without_its_assumption(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    return _under_changed(monkeypatch, "on_assumption", "nominal")
+
+
+def extrapolation_covers_without_its_assumption(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    return _under_changed(monkeypatch, "on_assumption", "extrapolation")
+
+
+def extrapolation_covers_at_an_edge(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    def change(row: CoverageRow) -> CoverageRow:
+        if row.kind == "extrapolation" and not row.on_assumption:
+            return replace(row, reasons=(*row.reasons, "at_edge"))
+        return row
+
+    return _rows_changed(monkeypatch, change)
+
+
+def waiver_covers_no_reason_of_an_alternative(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """A waiver covers a reason only where it carries no `alternative`."""
+
+    def changed(original: Covers) -> Covers:
+        def covers(
+            given: Acceptance, reason: Reason, result: object, record: MaterialRef, field: str
+        ) -> bool:
+            if given.kind == "waiver" and reason.alternative is not None:
+                return False
+            return original(given, reason, cast("read.ReadResult | None", result), record, field)
+
+        return covers
+
+    return _covering(monkeypatch, changed)
+
+
+def waiver_ignores_its_field(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    def changed(original: Covers) -> Covers:
+        def covers(
+            given: Acceptance, reason: Reason, result: object, record: MaterialRef, field: str
+        ) -> bool:
+            return original(
+                given, reason, cast("read.ReadResult | None", result), record, given.field or field
+            )
+
+        return covers
+
+    return _covering(monkeypatch, changed)
+
+
+def _located(monkeypatch: pytest.MonkeyPatch, located: Callable[[Acceptance, MaterialRef], bool]) -> Executor:
+    """The build locating each acceptance it judges by `located`: the read is given what it was."""
+    monkeypatch.setattr(acceptance, "located_at", located)
+    return runner.check_build_executor()
+
+
+def acceptance_at_another_record_taken(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    return _located(monkeypatch, lambda given, record: True)
+
+
+def located_by_id_alone(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """An acceptance located at a record of its `id`, whatever its `version` and `content_hash`."""
+    return _located(
+        monkeypatch, lambda given, record: given.location is not None and given.location.id == record.id
+    )
+
+
+Judge = Callable[..., acceptance.Judgement]
+
+
+def _judged(monkeypatch: pytest.MonkeyPatch, change: Callable[[Judge], Judge]) -> Executor:
+    original: Judge = vars(build)["judge"]
+    monkeypatch.setattr(build, "judge", change(original))
+    return runner.check_build_executor()
+
+
+def accepted_by_without_the_applied(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    def change(original: Judge) -> Judge:
+        def judged(*given: object, applied: object = ()) -> acceptance.Judgement:
+            return original(*given[:5], ())
+
+        return judged
+
+    return _judged(monkeypatch, change)
+
+
+def accepted_by_with_what_covered_nothing(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """Every acceptance naming the field at the record cited, whether or not it covered a reason."""
+
+    def change(original: Judge) -> Judge:
+        def judged(
+            reasons: Sequence[Reason],
+            result: object,
+            record: MaterialRef,
+            field: str,
+            acceptances: Sequence[Acceptance],
+            applied: Sequence[int],
+        ) -> acceptance.Judgement:
+            found = original(reasons, result, record, field, acceptances, applied)
+            near = {given.index for given in acceptances if given.field == field and given.location == record}
+            return replace(found, accepted_by=tuple(sorted({*found.accepted_by, *near})))
+
+        return judged
+
+    return _judged(monkeypatch, change)
+
+
+def not_accepted_holds_covered_reasons(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    def change(original: Judge) -> Judge:
+        def judged(reasons: Sequence[Reason], *rest: object) -> acceptance.Judgement:
+            return replace(original(reasons, *rest), not_accepted=tuple(reasons))
+
+        return judged
+
+    return _judged(monkeypatch, change)
+
+
+def judged_by_every_models_acceptances(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """A model's reasons judged by every model's acceptances, each at its own index."""
+    every: list[Acceptance] = []
+    original_results = vars(build)["_results"]
+
+    def results(declaration: declarations.Declaration, *rest: object) -> object:
+        every[:] = [given for model in declaration.models for given in model.acceptances]
+        return original_results(declaration, *rest)
+
+    monkeypatch.setattr(build, "_results", results)
+
+    def change(original: Judge) -> Judge:
+        def judged(*given: object) -> acceptance.Judgement:
+            reasons, result, record, field, _, applied = given
+            return original(reasons, result, record, field, every, applied)
+
+        return judged
+
+    return _judged(monkeypatch, change)
+
+
+Applied = Callable[["read.ReadResult", Sequence[Acceptance]], tuple[int, ...]]
+
+
+def _applied_with(monkeypatch: pytest.MonkeyPatch, kind: str) -> Executor:
+    """Every acceptance of `kind` given to a read counted applied, whatever the read and its result show."""
+    original: Applied = vars(build)["_applied"]
+
+    def applied(result: read.ReadResult, given: Sequence[Acceptance]) -> tuple[int, ...]:
+        return tuple(
+            sorted({*original(result, given), *(found.index for found in given if found.kind == kind)})
+        )
+
+    monkeypatch.setattr(build, "_applied", applied)
+    return runner.check_build_executor()
+
+
+def unfilled_implied_condition_applied(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    return _applied_with(monkeypatch, "implied_condition")
+
+
+def extrapolation_at_an_edge_applied(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    return _applied_with(monkeypatch, "extrapolation")
+
+
+Unused = Callable[[declarations.Declaration, Sequence[BuildResult]], tuple[UnusedAcceptance, ...]]
+
+
+def _unused_as(monkeypatch: pytest.MonkeyPatch, unused: Unused) -> Executor:
+    monkeypatch.setattr(build, "_unused", unused)
+    return runner.check_build_executor()
+
+
+def unused_lists_the_applied(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """An acceptance used only by a read applying it listed unused: used read from what covered alone."""
+    covers: Covers = vars(acceptance)["_covers"]
+
+    def unused(
+        declaration: declarations.Declaration, results: Sequence[BuildResult]
+    ) -> tuple[UnusedAcceptance, ...]:
+        found: list[UnusedAcceptance] = []
+        for model in declaration.models:
+            used = {
+                given.index
+                for result in results
+                if result.model == model.name
+                for reason in result.reasons
+                for given in model.acceptances
+                if covers(given, reason, result.read, result.record, result.field)
+            }
+            found += [
+                UnusedAcceptance(model.name, given.index)
+                for given in model.acceptances
+                if given.index not in used
+            ]
+        return tuple(found)
+
+    return _unused_as(monkeypatch, unused)
+
+
+def unused_named_after_the_first_model(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """Each unused acceptance named after the first model."""
+    original: Unused = vars(build)["_unused"]
+
+    def unused(
+        declaration: declarations.Declaration, results: Sequence[BuildResult]
+    ) -> tuple[UnusedAcceptance, ...]:
+        first = declaration.models[0].name
+        return tuple(replace(found, model=first) for found in original(declaration, results))
+
+    return _unused_as(monkeypatch, unused)
+
+
+def unused_shared_by_every_model(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """One set of used acceptances for every model."""
+
+    def unused(
+        declaration: declarations.Declaration, results: Sequence[BuildResult]
+    ) -> tuple[UnusedAcceptance, ...]:
+        used = {index for result in results for index in result.accepted_by}
+        return tuple(
+            UnusedAcceptance(model.name, given.index)
+            for model in declaration.models
+            for given in model.acceptances
+            if given.index not in used
+        )
+
+    return _unused_as(monkeypatch, unused)
+
+
+def status_lowered_when_accepted(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """A declaration changing a status: `met` given to an accepted result (`declarations.md` section 2 item
+    1)."""
+
+    def lowered(*members: Any, **more: Any) -> BuildResult:
+        result = BuildResult(*members, **more)
+        return replace(result, status="met") if result.accepted else result
+
+    monkeypatch.setattr(build, "BuildResult", lowered)
+    return runner.check_build_executor()
+
+
+def results_deduplicated_by_field(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    original = vars(build)["_results"]
+
+    def results(*given: object) -> list[build.Reading]:
+        kept: dict[str, build.Reading] = {}
+        for reading in original(*given):
+            kept.setdefault(reading[0].field, reading)
+        return list(kept.values())
+
+    monkeypatch.setattr(build, "_results", results)
+    return runner.check_build_executor()
+
+
+def every_record_in_the_store_read(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """Results for every record in the store, listed or not."""
+    original = vars(build)["_results"]
+
+    def results(declaration: declarations.Declaration, store: RecordStore, claims: object) -> object:
+        every = tuple(
+            MaterialRef(found.id, found.version, str(found.value["content_hash"]))
+            for found in store.list_records()
+        )
+        models = tuple(replace(model, records=every) for model in declaration.models)
+        return original(replace(declaration, models=models), store, claims)
+
+    monkeypatch.setattr(build, "_results", results)
+    return runner.check_build_executor()
+
+
+def field_with_no_requirement_read(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """A field with no requirement read for a value, with no condition required (section 1 item 1)."""
+    original = vars(build)["_requirement"]
+
+    def requirement(model: declarations.ModelEntry, field: str) -> declarations.Requirement:
+        found = original(model, field)
+        return declarations.Requirement(field, "value", {}, None, False) if found is None else found
+
+    monkeypatch.setattr(build, "_requirement", requirement)
+    return runner.check_build_executor()
+
+
+Reasons = Callable[..., tuple[Reason, ...]]
+
+
+def _reasons_changed(monkeypatch: pytest.MonkeyPatch, change: Callable[[Reasons], Reasons]) -> Executor:
+    original: Reasons = vars(build)["_build_reasons"]
+    monkeypatch.setattr(build, "_build_reasons", change(original))
+    return runner.check_build_executor()
+
+
+def review_not_required(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    def change(original: Reasons) -> Reasons:
+        return lambda *given: tuple(found for found in original(*given) if found.code != "not_reviewed")
+
+    return _reasons_changed(monkeypatch, change)
+
+
+def not_checked_with_a_reason_taken_as_reviewed(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    def change(original: Reasons) -> Reasons:
+        def reasons(
+            requirement: object, result: read.ReadResult | None, stored: object
+        ) -> tuple[Reason, ...]:
+            found = original(requirement, result, stored)
+            review = {} if result is None or result.provenance is None else result.provenance.review
+            if "reason" in review:
+                return tuple(reason for reason in found if reason.code != "not_reviewed")
+            return found
+
+        return reasons
+
+    return _reasons_changed(monkeypatch, change)
+
+
+def not_reviewed_given_without_provenance(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """`not_reviewed` given to a result that holds no provenance."""
+
+    def change(original: Reasons) -> Reasons:
+        def reasons(
+            requirement: declarations.Requirement | None, result: read.ReadResult | None, stored: object
+        ) -> tuple[Reason, ...]:
+            found = original(requirement, result, stored)
+            if (
+                requirement is not None
+                and requirement.reviewed
+                and result is not None
+                and result.provenance is None
+            ):
+                return (*found, Reason("not_reviewed"))
+            return found
+
+        return reasons
+
+    return _reasons_changed(monkeypatch, change)
+
+
+def label_mismatch_on_no_stored_value(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    def change(original: Reasons) -> Reasons:
+        def reasons(
+            requirement: declarations.Requirement | None, result: object, stored: JsonObject | None
+        ) -> tuple[Reason, ...]:
+            return original(requirement, result, {} if stored is None and requirement is not None else stored)
+
+        return reasons
+
+    return _reasons_changed(monkeypatch, change)
+
+
+def label_from_the_result_only(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    """The label checked against the result's labels, which a read that ends before step 12 leaves out."""
+
+    def stored(
+        store: RecordStore, record: MaterialRef, field: str, result: read.ReadResult, claims: object
+    ) -> JsonObject | None:
+        held = [label for label in result.labels if label.startswith("materica.")]
+        return None if result.resting_on is None else ({"label": held[0]} if held else {})
+
+    monkeypatch.setattr(build, "_stored", stored)
+    return runner.check_build_executor()
+
+
+def not_reviewed_read_as_not_met(monkeypatch: pytest.MonkeyPatch) -> Executor:
+    spec = VOCABULARY.reasons["not_reviewed"]
+    monkeypatch.setitem(VOCABULARY.reasons, "not_reviewed", replace(spec, status="not_met"))
+    return runner.check_build_executor()
+
+
+class BuildCaught(NamedTuple):
+    """A broken build, an S7a-2 file it fails, and a difference that run must hold, which names what the
+    fault changes."""
+
+    fault: Fault
+    catcher: str
+    by: str
+
+
+S7A2_FAULTS: list[BuildCaught] = [
+    BuildCaught(waiver_covers_not_met, "BC-038.waiver_of_condition_outside.json", "accepted: expected False"),
+    BuildCaught(not_reviewed_dropped, "BC-049.not_reviewed_waived.json", "accepted: expected True"),
+    BuildCaught(
+        waiver_covers_label_mismatch_and_no_pick,
+        "BC-038.waiver_of_label_mismatch.json",
+        "accepted: expected False",
+    ),
+    BuildCaught(
+        waiver_covers_label_mismatch_and_no_pick, "BC-038.waiver_of_no_pick.json", "accepted: expected False"
+    ),
+    BuildCaught(
+        waiver_ignores_its_condition, "BC-016.waiver_for_another_condition.json", "accepted: expected False"
+    ),
+    BuildCaught(waiver_ignores_its_code, "BC-016.waiver_for_another_code.json", "accepted: expected False"),
+    BuildCaught(
+        nominal_covers_without_its_assumption,
+        "BC-020.want_mismatch_at_step_0_nominal_unused.json",
+        "accepted: expected False",
+    ),
+    BuildCaught(
+        nominal_covers_without_its_assumption,
+        "BC-020.want_mismatch_its_assumption_does_not_name.json",
+        "accepted: expected False",
+    ),
+    BuildCaught(
+        extrapolation_covers_without_its_assumption,
+        "BC-019.want_bounds_refused_though_an_extrapolation_names_it.json",
+        "accepted: expected False",
+    ),
+    BuildCaught(
+        extrapolation_covers_at_an_edge,
+        "BC-019.at_an_edge_extrapolation_unused.json",
+        "accepted: expected False",
+    ),
+    BuildCaught(
+        waiver_covers_no_reason_of_an_alternative,
+        "BC-016.waiver_covers_each_alternatives_reason.json",
+        "accepted_by: missing",
+    ),
+    BuildCaught(waiver_ignores_its_field, "BC-016.waiver_for_another_field.json", "accepted: expected False"),
+    BuildCaught(
+        acceptance_at_another_record_taken,
+        "BC-016.waiver_at_one_of_two_records.json",
+        "accepted: expected False",
+    ),
+    BuildCaught(
+        acceptance_at_another_record_taken, "BC-053.waiver_at_another_record.json", "unused: missing"
+    ),
+    BuildCaught(
+        located_by_id_alone, "BC-016.waiver_at_another_copy_of_the_record.json", "accepted: expected False"
+    ),
+    BuildCaught(
+        accepted_by_without_the_applied, "BC-009.implied_condition_applied.json", "accepted_by: missing"
+    ),
+    BuildCaught(
+        accepted_by_with_what_covered_nothing,
+        "BC-009.one_waiver_index.json",
+        "accepted_by: missing [], unexpected",
+    ),
+    BuildCaught(
+        not_accepted_holds_covered_reasons, "BC-006.waived_unknown_stays_unknown.json", "not_accepted:"
+    ),
+    BuildCaught(
+        judged_by_every_models_acceptances,
+        "BC-010.each_model_judged_by_its_own_acceptances.json",
+        "accepted: expected False",
+    ),
+    BuildCaught(
+        unfilled_implied_condition_applied,
+        "BC-053.implied_condition_given_not_applied.json",
+        "unused: missing",
+    ),
+    BuildCaught(
+        extrapolation_at_an_edge_applied, "BC-019.at_an_edge_extrapolation_unused.json", "unused: missing"
+    ),
+    BuildCaught(
+        unused_lists_the_applied, "BC-009.implied_condition_applied.json", "unused: missing [], unexpected"
+    ),
+    BuildCaught(unused_named_after_the_first_model, "BC-053.unused_per_model.json", "unused: missing"),
+    BuildCaught(unused_shared_by_every_model, "BC-053.unused_per_model.json", "unused: missing"),
+    BuildCaught(
+        status_lowered_when_accepted, "BC-006.waived_unknown_stays_unknown.json", "status: expected 'unknown'"
+    ),
+    BuildCaught(results_deduplicated_by_field, "BC-028.two_models_over_one_record.json", "results: missing"),
+    BuildCaught(
+        every_record_in_the_store_read,
+        "BC-002.one_of_two_records_listed.json",
+        "results: missing [], unexpected",
+    ),
+    BuildCaught(
+        field_with_no_requirement_read, "BC-003.field_read_with_no_requirement.json", "reasons: missing"
+    ),
+    BuildCaught(review_not_required, "BC-049.not_checked_gives_not_reviewed.json", "reasons: missing"),
+    BuildCaught(
+        not_checked_with_a_reason_taken_as_reviewed,
+        "BC-049.not_checked_gives_not_reviewed.json",
+        "reasons: missing",
+    ),
+    BuildCaught(
+        not_reviewed_given_without_provenance,
+        "BC-049.absent_record_gives_no_not_reviewed.json",
+        "reasons: missing [], unexpected",
+    ),
+    BuildCaught(
+        not_reviewed_read_as_not_met,
+        "BC-049.not_checked_gives_not_reviewed.json",
+        "status: expected 'unknown'",
+    ),
+    BuildCaught(
+        label_from_the_result_only,
+        "BC-038.waiver_of_condition_outside.json",
+        "reasons: missing [], unexpected",
+    ),
+    BuildCaught(
+        label_mismatch_on_no_stored_value,
+        "BC-002.listed_record_absent_from_the_store.json",
+        "reasons: missing [], unexpected",
+    ),
+]
+
+
 FAULTS: list[tuple[Fault, str]] = [
     (keeps_card, "HS-001.top_level_removed.json"),
     (removes_review_outside_provenance, "HS-001.outside_kept.json"),
@@ -1517,6 +2094,23 @@ def test_s4ds_broken_readers_fail_s4ds_case_files_alone(
 )
 def test_each_broken_build_is_caught_by_an_s7a_1_file(fault: Fault, catcher: str) -> None:
     assert runner.steps(CASE_FILES[catcher]) == ("S7a-1",)
+
+
+@pytest.mark.parametrize(
+    "caught",
+    S7A2_FAULTS,
+    ids=[f"{caught.fault.__name__}-{caught.catcher.removesuffix('.json')}" for caught in S7A2_FAULTS],
+)
+def test_each_broken_build_fails_its_s7a_2_file_by_its_own_difference(
+    caught: BuildCaught, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    case_file = CASE_FILES[caught.catcher]
+    assert runner.steps(case_file) == ("S7a-2",)
+    executors = {**EXECUTORS, "check_build": caught.fault(monkeypatch)}
+    run = runner.run(case_file, configurations=CONFIGURATIONS, executors=executors)
+    assert run.outcome is Outcome.FAILED
+    assert not [difference for difference in run.differences if RAISED.match(difference)], run.differences
+    assert any(caught.by in difference for difference in run.differences), run.differences
 
 
 @pytest.mark.parametrize("operation", sorted(EXECUTORS))

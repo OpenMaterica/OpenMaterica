@@ -14,7 +14,8 @@
     "S3c",
     "S4a",
     "S4d",
-    "S7a-1"
+    "S7a-1",
+    "S7a-2"
   ],
   "case_files": {
     "BC-001.condition_outside_at_another_temperature.json": "S7a-2",

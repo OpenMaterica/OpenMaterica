@@ -284,36 +284,53 @@ def compare(case_file: CaseFile, result: Mapping[str, JsonValue]) -> list[str]:
         return _evaluation_runs_differ(case_file, result)
     if case_file.operation == "check_build":
         return _build_differs(case_file, result)
+    return _members_differ(case_file, case_file.members, case_file.expected, result)
+
+
+def _members_differ(
+    case_file: CaseFile,
+    members: Iterable[str],
+    expected: Mapping[str, JsonValue],
+    result: Mapping[str, JsonValue],
+) -> list[str]:
+    """How a result differs from the expected one in `members`, a read result's or a build result's: each
+    member compared as the README says, and one the case names and does not expect absent from the result."""
     differences: list[str] = []
-    for member in case_file.members:
+    for member in members:
         if member == "labels":
-            difference = _labels_differ(case_file, case_file.expected.get("labels"), result.get("labels"))
-        elif member not in case_file.expected:
+            difference = _labels_differ(case_file, expected.get("labels"), result.get("labels"))
+        elif member not in expected:
             difference = f"must be absent, got {result[member]!r}" if member in result else None
         elif member not in result:
             difference = "missing"
         elif member == "reasons":
-            difference = _reasons_differ(case_file, case_file.expected[member], result[member])
+            difference = _reasons_differ(case_file, expected[member], result[member])
         elif member == "value" and case_file.operation == "list_records":
-            difference = _sets_differ(case_file.expected[member], result[member])
+            difference = _sets_differ(expected[member], result[member])
         elif member == "conditions":
-            difference = _conditions_differ(case_file, case_file.expected[member], result[member])
+            difference = _conditions_differ(case_file, expected[member], result[member])
         elif member == "alternative_values":
-            difference = _alternative_values_differ(case_file, case_file.expected[member], result[member])
+            difference = _alternative_values_differ(case_file, expected[member], result[member])
+        elif member == "accepted_by" and case_file.operation == "check_build":
+            difference = _indexes_differ(case_file, expected[member], result[member])
+        elif member == "not_accepted" and case_file.operation == "check_build":
+            difference = _not_accepted_differ(case_file, expected[member], result[member])
         else:
-            difference = _values_differ(case_file, case_file.expected[member], result[member])
+            difference = _values_differ(case_file, expected[member], result[member])
         if difference is not None:
             differences.append(f"{member}: {difference}")
     return differences
 
 
 def _build_differs(case_file: CaseFile, report: Mapping[str, JsonValue]) -> list[str]:
-    """How a build's report differs from a build-check case's expected answer (README, "Case files"):
-    `refusals` as a set of their `item` and `pointer`, `detail` never, and only those of the rules
-    `compare.rules_compared` names where it names any; and a member `compare` names and `expected` omits or
-    gives empty must be absent or empty, as a refused declaration's `results`, `watches` and `unused` are (the
-    S7 design's 5.1). Raises `CaseFileError` for a case that expects results, watches or unused acceptances,
-    whose comparison arrives with S7a-2, the piece that gives them."""
+    """How a build's report differs from a build-check case's expected answer (README, "Case files"; the S7
+    design's 5.1): `refusals` as a set of their `item` and `pointer`, `detail` never, and only those of the
+    rules `compare.rules_compared` names where it names any; a member `compare` names and `expected` omits or
+    gives empty must be absent or empty, as a refused declaration's `results`, `watches` and `unused` are;
+    `results` as a set keyed by `model`, the location and `field` (`fields` for a combination), each
+    comparing the members `compare.result_members` names; and `unused` as a set of `{"model",
+    "acceptance"}`. Raises `CaseFileError` for a case that expects watches, whose comparison arrives with
+    S7a-4, the piece that gives them."""
     differences: list[str] = []
     for member in case_file.members:
         expected, got = case_file.expected.get(member, []), report.get(member, [])
@@ -323,11 +340,123 @@ def _build_differs(case_file: CaseFile, report: Mapping[str, JsonValue]) -> list
                 differences.append(
                     f"refusals: missing {sorted(wanted - found)}, unexpected {sorted(found - wanted)}"
                 )
-        elif expected != []:
-            raise CaseFileError(f"{case_file.path.name}: comparing a build's {member} arrives with S7a-2")
-        elif got != []:
-            differences.append(f"{member}: must be absent or empty, got {got!r}")
+        elif expected == []:
+            if got != []:
+                differences.append(f"{member}: must be absent or empty, got {got!r}")
+        elif member == "results":
+            differences += _results_differ(case_file, expected, got)
+        elif member == "unused":
+            if (difference := _unused_differ(case_file, expected, got)) is not None:
+                differences.append(f"unused: {difference}")
+        else:
+            raise CaseFileError(f"{case_file.path.name}: comparing a build's {member} arrives with S7a-4")
     return differences
+
+
+# The members that key a build's result: its model, its location and its field, or a combination's fields.
+RESULT_KEY = ("model", "record", "region", "interval", "field", "fields")
+
+
+def _results_differ(case_file: CaseFile, expected: JsonValue, results: JsonValue) -> list[str]:
+    """A build's results as a set keyed by `RESULT_KEY`, compared both ways, each result's members those
+    `compare.result_members` names, compared as a read result's are, `accepted_by` as a set of indexes and
+    `not_accepted` as a multiset of reasons and specimen differences."""
+    wanted: dict[str, JsonObject] = {}
+    for result in _list(expected, "expected results"):
+        key = result_key(_object(result, "an expected result"))
+        if key in wanted:
+            raise CaseFileError(f"{case_file.path.name} expects the result {key} twice")
+        wanted[key] = _object(result, "an expected result")
+    if not isinstance(results, list):
+        return [f"results: not a list: {results!r}"]
+    found: dict[str, JsonObject] = {}
+    for result in results:
+        if not isinstance(result, dict):
+            return [f"results: a result that is not an object: {result!r}"]
+        key = result_key(result)
+        if key in found:
+            return [f"results: {key} twice"]
+        found[key] = result
+    missing, unexpected = sorted(wanted.keys() - found.keys()), sorted(found.keys() - wanted.keys())
+    if missing or unexpected:
+        return [f"results: missing {missing}, unexpected {unexpected}"]
+    members = [member for member in case_file.result_members if member not in RESULT_KEY]
+    return [
+        f"results: {key}: {difference}"
+        for key in sorted(wanted)
+        for difference in _members_differ(case_file, members, wanted[key], found[key])
+    ]
+
+
+def result_key(result: JsonObject) -> str:
+    return json.dumps({member: result[member] for member in RESULT_KEY if member in result}, sort_keys=True)
+
+
+def _indexes_differ(case_file: CaseFile, expected: JsonValue, actual: JsonValue) -> str | None:
+    """Indexes compared as a set, each index exactly (`_alternative_key`)."""
+    wanted = {_alternative_key(case_file, index, "an index") for index in _list(expected, "expected indexes")}
+    if not isinstance(actual, list):
+        return f"not a list: {actual!r}"
+    try:
+        found = {_alternative_key(case_file, index, "an index") for index in actual}
+    except CaseFileError as error:
+        return str(error)
+    return (
+        None if found == wanted else f"missing {sorted(wanted - found)}, unexpected {sorted(found - wanted)}"
+    )
+
+
+def _not_accepted_differ(case_file: CaseFile, expected: JsonValue, actual: JsonValue) -> str | None:
+    """A multiset of reasons, by code, condition and alternative, and of specimen differences, by section and
+    fact (README, "Case files")."""
+    wanted = Counter(
+        _not_accepted_key(case_file, entry) for entry in _list(expected, "expected not_accepted")
+    )
+    if not isinstance(actual, list):
+        return f"not a list: {actual!r}"
+    try:
+        found = Counter(_not_accepted_key(case_file, entry) for entry in actual)
+    except CaseFileError as error:
+        return str(error)
+    if found == wanted:
+        return None
+    missing = sorted((wanted - found).elements(), key=repr)
+    unexpected = sorted((found - wanted).elements(), key=repr)
+    return f"missing {missing}, unexpected {unexpected}"
+
+
+def _not_accepted_key(case_file: CaseFile, entry: JsonValue) -> tuple[str | None, ...]:
+    """A reason's identity, or a specimen difference's: its section and fact."""
+    entry = _object(entry, "an entry of not_accepted")
+    if "code" in entry:
+        return ("reason", *_reason_key(case_file, entry))
+    return (
+        "specimen difference",
+        _string(entry.get("section"), "a specimen difference's section"),
+        _string(entry.get("fact"), "a specimen difference's fact"),
+    )
+
+
+def _unused_differ(case_file: CaseFile, expected: JsonValue, actual: JsonValue) -> str | None:
+    """A set of `{"model", "acceptance"}`, each index exactly (`_alternative_key`)."""
+
+    def key(entry: JsonValue) -> tuple[str, str]:
+        entry = _object(entry, "an unused acceptance")
+        return (
+            _string(entry.get("model"), "an unused acceptance's model"),
+            _alternative_key(case_file, entry.get("acceptance"), "an unused acceptance's index"),
+        )
+
+    wanted = {key(entry) for entry in _list(expected, "expected unused")}
+    if not isinstance(actual, list):
+        return f"not a list: {actual!r}"
+    try:
+        found = {key(entry) for entry in actual}
+    except CaseFileError as error:
+        return str(error)
+    return (
+        None if found == wanted else f"missing {sorted(wanted - found)}, unexpected {sorted(found - wanted)}"
+    )
 
 
 def _refusal_set(case_file: CaseFile, refusals: JsonValue) -> set[tuple[str, str]]:
@@ -389,16 +518,16 @@ def _reason_key(case_file: CaseFile, reason: JsonValue) -> tuple[str, str | None
     )
 
 
-def _alternative_key(case_file: CaseFile, index: JsonValue) -> str:
+def _alternative_key(case_file: CaseFile, index: JsonValue, what: str = "a reason's alternative") -> str:
     """An index is a number, compared exactly: bit for bit under `exact`, so `-0` is not `0`, and by value
     under a relative tolerance, which never applies to an index. A bool is never one."""
     if not isinstance(index, float):
-        raise CaseFileError(f"a reason's alternative is not a number: {index!r}")
+        raise CaseFileError(f"{what} is not a number: {index!r}")
     if case_file.exact:
         return repr(index)
     if case_file.relative_tolerance is None:
         raise CaseFileError(
-            f"{case_file.path.name} compares a reason's alternative with neither relative_tolerance nor exact"
+            f"{case_file.path.name} compares {what} with neither relative_tolerance nor exact"
         )
     return repr(index + 0.0)
 
@@ -835,8 +964,11 @@ def _pair(value: JsonValue, what: str) -> tuple[float, float]:
 # field holding a fit record, which the suite reads: so claiming it gives no answer a step not built could
 # change.
 # Then a build's: the build checks with plain read and HS, as a build claims by default
-# (`materica.core.declarations.CLAIMS`), and with plain read alone. A build claims neither the scene suite,
-# USD read nor the sampling suite yet, so a build-check case that states those claims false runs under both.
+# (`materica.core.declarations.CLAIMS`); with plain read alone; and with the fits and reference data suite
+# too, as the read's third, so that a build-check case stating that claim false runs under the other two
+# alone (`BC-020.want_mismatch_at_step_0_nominal_unused`, whose `want` is that suite's). A build claims
+# neither the scene suite, USD read nor the sampling suite yet, so a build-check case that states those
+# claims false runs under all three.
 # Last, the reference evaluator's: the table evaluation suite alone, which `materica` does not claim, at each
 # precision and side (`EVALUATOR_CLAIMS`).
 REFERENCE_EVALUATOR: frozenset[Suite] = frozenset({"table_evaluation"})
@@ -846,6 +978,7 @@ CONFIGURATIONS: tuple[frozenset[Suite], ...] = (
     frozenset({"plain_read", "hash", "fits_and_reference_data"}),
     frozenset({"plain_read", "hash", "build_checks"}),
     frozenset({"plain_read", "build_checks"}),
+    frozenset({"plain_read", "hash", "fits_and_reference_data", "build_checks"}),
     REFERENCE_EVALUATOR,
 )
 EXECUTORS: dict[str, Executor] = {
