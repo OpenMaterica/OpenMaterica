@@ -17,17 +17,21 @@ every family entry goes in `families/CHANGELOG.md`.
 ### Added
 - `materica.check_build(declaration, store, *, claims=...)`, the build check up to the declaration's own check
   (S7a-1b; `declarations.md` section 1). The declaration, JSON text or a value, is read by `record_format.md`
-  section 1 item 6 and checked by hand against `SHAPE`, the table of its shape (`core/declarations.py`), held
-  to the specification's table and to `declaration.json` by a spec-sync test: every fault found, one refusal
-  per fault by the precedence rule, each its case and a JSON pointer (BC-004, BC-005, BC-037, BC-040, BC-043,
-  BC-044, BC-048, BC-050, BC-051). A refused declaration gives a `BuildReport` of its refusals alone
-  (`core/report.py`); one that passes raises `NotImplementedError`, naming each acceptance and the piece that
-  reads it, until S7a-2 builds the reads and the verdict. Claims no implementation makes raise `ValueError`;
-  a declaration holding a member that a claimed scene suite, USD read or sampling suite checks raises
-  `NotImplementedError` (maintainer, 2026-10-24: the build fails closed there). The conformance
-  runner gains the `check_build` executor, the build comparison (refusals as a set, under `rules_compared`
-  where named) and the build's two configurations of claims, and runs S7a-1's 54 build-check files, which
-  pass; its broken builds, seven the S7 design names and one per clause of 2026-10-24, each fail one.
+  section 1 item 6 and checked by hand against `SHAPE`, the table of its shape (`core/declarations.py`): every
+  fault found, one refusal per fault by the precedence rule, each its case and a JSON pointer (BC-004, BC-005,
+  BC-037, BC-040, BC-043, BC-044, BC-048, BC-050, BC-051). A spec-sync test holds `SHAPE` to the
+  specification's table, its places, members and Required cells, the JSON type each Holds cell gives, the
+  constraints the cells and item 8 state and the clauses' phrases, and to `declaration.json`'s members,
+  required lists and tokens; not to the own members' types, the facts' shapes or the rules on names, which the
+  unit examples and the build-check files hold. A refused declaration gives a `BuildReport` of its refusals
+  alone (`core/report.py`); one that passes raises `NotImplementedError`, naming each acceptance and the piece
+  that reads it, until S7a-2 builds the reads and the verdict. Claims no implementation makes raise
+  `ValueError`; a declaration holding a member that a claimed scene suite, USD read or sampling suite checks
+  raises `NotImplementedError` (maintainer, 2026-10-24: the build fails closed there). The conformance runner
+  gains the `check_build` executor, the build comparison (refusals as a set, under `rules_compared` where
+  named) and the build's two configurations of claims, and runs S7a-1's 56 build-check files, which pass; its
+  broken builds, seven the S7 design names and one for each of the three clauses of 2026-10-24 the
+  declaration's check can show, each fail one.
 - `.github/workflows/claims.yml`, the claims check on every pull request (approved by the maintainer on
   2026-10-24): on each push and each edit of the description, `check_claims.py` holds the description and the
   commit messages to git, and a head, base, commit or count that git does not show fails the job; the figures
@@ -68,17 +72,22 @@ every family entry goes in `families/CHANGELOG.md`.
   a step without them, or reading a find otherwise than the checks do, fails.
 
 ### Schema
-- Five clauses of `declarations.md` (the maintainer's rulings of 2026-10-24 on S7a-1a's open points, as
-  recommended; `docs/specification/changes.md`): `condition_unknown_name` is never accepted, its remedy the
-  reader's upgrade (section 4.2); `basis` is a member of an extrapolation, a nominal and a distribution alone,
-  and `declaration.json` names it on no other kind; a `population_level` beside a `represents` that is not
-  `population` is refused, by the `population_level` rule (BC-043), and `declaration.json` refuses it; a
-  watch holds `unit` with an `interval` only (section 8 item 1); and the report of a declaration refused on
-  its own holds the declaration as given where its text is JSON, and its `consumer` where the declaration
-  declares one (section 2), which `build_report.json` now requires. Three build-check arms, one for each
-  clause the declaration's check can show: `BC-048.waiver_of_an_unknown_condition_name`,
-  `BC-048.basis_on_a_waiver` and `BC-051.population_level_beside_another_represents`. No other case file
-  changes.
+- Six clauses of `declarations.md` (the maintainer's rulings of 2026-10-24 on S7a-1a's open points and on
+  S7a-1b's review, as recommended; `docs/specification/changes.md`): `condition_unknown_name` is never
+  accepted, its remedy the reader's upgrade, and a waiver whose `code` is `condition_unknown_name` is refused
+  at its `code` (section 4.2), which `declaration.json` refuses; `basis` is a member of an extrapolation, a
+  nominal and a distribution alone, and `declaration.json` names it on no other kind; a `population_level`
+  beside a `represents` that is not `population`, or beside none, is refused by the `population_level` rule
+  (BC-043), and `declaration.json` refuses it; a watch holds `unit` with an `interval` only (section 8 item
+  1), and `build_report.json` refuses one beside `accept`; the report of a declaration refused on its own
+  holds the declaration as given where its text is JSON, and its `consumer` where the declaration declares one
+  (section 2), which `build_report.json` now requires, but beside a single refusal at the empty pointer, which
+  it cannot tell from a text that is not JSON; and a model item 7 refuses gives one refusal, at its `engine`
+  (section 1, the refusal paragraph). Five build-check arms: `BC-048.waiver_of_an_unknown_condition_name` (a
+  registered condition, refused at the `code`), `BC-048.basis_on_a_waiver`,
+  `BC-051.population_level_beside_another_represents`, `BC-051.population_level_without_represents`, and
+  `BC-048.want_of_another_json_type` (a member of another JSON type, refused at itself alone). No other case
+  file changes.
 - Three sentences of `declarations.md` (the maintainer's ruling of 2026-10-23, as recommended after
   S7-cases-2's review; `docs/specification/changes.md`): a code names a condition, for a waiver's `condition`,
   where its reasons always carry one, the six `condition_*` codes, `outside_range`, `at_edge` and
