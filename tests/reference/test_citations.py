@@ -40,6 +40,8 @@ TEST_SOURCES = [
     for path in (
         "reference/mutants.py",
         "reference/cases.py",
+        "reference/results_direct.py",
+        "reference/test_build_results_model.py",
         "property/test_model_mutants.py",
         "property/test_model_properties.py",
     )

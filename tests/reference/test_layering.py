@@ -21,6 +21,7 @@ MODEL = (
     "tests.reference.build_model",
     "tests.reference.direct",
     "tests.reference.build_results_model",
+    "tests.reference.results_direct",
 )
 
 
