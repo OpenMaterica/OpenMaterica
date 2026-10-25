@@ -448,6 +448,10 @@ class ReadResult:
     (`declarations.md` section 2 item 8), which a build checks a requirement's `label` against: `()` for the
     field step 7 found, `(k,)` for its alternative `k`, the one left at step 7; None where it rests on none
     (its record or field not found, a refusal before step 7 finds the field, or no single alternative)."""
+    resolved: bool = dataclasses.field(default=False, compare=False, kw_only=True)
+    """Outside `to_json`, and so outside equality, as `applied` is: whether the read resolved its target
+    record, passing steps 0 to 5, which a build lists among the records a read resolved (`declarations.md`
+    section 2)."""
     value: JsonValue = dataclasses.field(default=None, kw_only=True)
     alternative_values: tuple[FieldRead, ...] | None = dataclasses.field(default=None, kw_only=True)
     unit: JsonValue = dataclasses.field(default=None, kw_only=True)
@@ -525,7 +529,7 @@ def read(request: RequestInput, store: RecordStore, *, claims: Collection[Suite]
     resolved = resolve_record(checked.target, store, claims)
     if isinstance(resolved, Refused):
         return _refused(resolved.reasons, resolved.labels)
-    return _read_field(checked, resolved, claims)
+    return dataclasses.replace(_read_field(checked, resolved, claims), resolved=True)
 
 
 def _read_field(request: ReadRequest, resolved: ResolvedRecord, claims: Collection[Suite]) -> ReadResult:
