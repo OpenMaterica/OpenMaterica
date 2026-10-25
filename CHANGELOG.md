@@ -30,7 +30,8 @@ every family entry goes in `families/CHANGELOG.md`.
   at its way and its assertion, their kill points recorded; an audit control for each drawing part. A sixth
   Atheris target, `tests/fuzz/build_bytes.py`: raw bytes in place of one member of a build-check case's
   declaration, failing where `check_build` raises anything but its `NotImplementedError`, where a refusal's
-  pointer names no member, or where a refusal's case is none of the refusal paragraph's; its seeded fault
+  pointer names no member, or where a refusal's case is none of the refusal paragraph's (`tests/fuzz/build_oracle.py`,
+  each relation shown failing by `tests/unit/test_fuzz_build_oracle.py`); its seeded fault
   (`MATERICA_FUZZ_SEEDED_FAULT=declarations`) lands with it, and its control, which only the build's reference
   model can see, with the model.
 - The build's own reasons, its verdict and its report (S7a-2b; `declarations.md` sections 2 and 4.2).
