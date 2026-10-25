@@ -19,15 +19,18 @@ every family entry goes in `families/CHANGELOG.md`.
   shard, `build` (`tests/conftest.py`'s `SHARDS`, `ci.yml`'s matrix, at the default timeouts until CI measures
   it). `tests/property/test_declaration_properties.py` holds `Declaration.from_json` to an oracle written from
   `declarations.md` section 1 (each planted fault's rules by its name, the refusal paragraph's order for a
-  member two rules name, one refusal per case and pointer), over the declarations
+  member two rules name, one refusal per case and pointer, none for a fault a rule judges against a member
+  itself at fault or inside an acceptance of no known kind), over the declarations
   `tests/property/declaration_strategies.py` draws from the text alone, never from `SHAPE`, with faults planted
-  by name at their pointers: HP41 in seven parts, each drawing its way first among at most five but
-  `every_fault`, and HP42, the scene, engine and sampling members item 12 refuses after items 7 and 8 and the
+  by name at their pointers: HP41 in seven parts, each in strata of at most two ways, each stratum a test
+  drawing its way first among its own, but `every_fault`, and HP42, in three strata, the scene, engine and
+  sampling members item 12 refuses after items 7 and 8 and the
   `population_level` rule, beside HP41's faults and held to the same declaration's refusals without the member,
   and failing closed where a build claims the member's suite. Every part checks first that the declaration drawn
-  is taken and that the check never raises. 70 mutants (`test_declaration_mutants.py`), the design's 35 and 35
-  more that the build's reference model's listed survivors and S7a-1b's review name, each killed at both sizes
-  at its way and its assertion, their kill points recorded; an audit control for each drawing part. A sixth
+  is taken and that the check never raises. 73 mutants (`test_declaration_mutants.py`), the design's 35 and 38
+  more that the build's reference model's listed survivors, S7a-1b's review and the refusal paragraph's last
+  round name, each killed at both sizes at its way and its assertion, over the stratum that draws it, their
+  kill points recorded; an audit control for each drawing part. A sixth
   Atheris target, `tests/fuzz/build_bytes.py`: raw bytes in place of one member of a build-check case's
   declaration, failing where `check_build` raises anything but its `NotImplementedError`, where a refusal's
   pointer names no member, or where a refusal's case is none of the refusal paragraph's (`tests/fuzz/build_oracle.py`,
