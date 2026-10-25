@@ -9,7 +9,9 @@ apart, so it is never counted as a kill. The check reads a fault's case files up
 on a later one is not seen there; the faults that once raised are held on the files where they did.
 
 The build model's faults (`BUILD_MUTANTS`) are held to the build-check case files the same way, against
-`BUILD_EXCEPTIONS`, and failing those to the direct checks (`direct.py`)."""
+`BUILD_EXCEPTIONS`, and failing those to the direct checks (`direct.py`); the results model's faults
+(`results_mutants.RESULTS_MUTANTS`) to the build-check case files, and failing those to its own direct checks
+(`results_direct.py`)."""
 
 import re
 from collections.abc import Mapping
@@ -18,7 +20,7 @@ from typing import NoReturn
 
 import pytest
 
-from tests.reference import build_model, direct
+from tests.reference import build_model, build_results_model, direct, results_direct
 from tests.reference.cases import (
     build_case_files,
     build_outcome,
@@ -29,6 +31,7 @@ from tests.reference.cases import (
     read_case_files,
 )
 from tests.reference.mutants import BUILD_MUTANTS, MUTANTS, Mutant
+from tests.reference.results_mutants import RESULTS_MUTANTS
 
 
 def check(name: str, mutant: Mutant) -> None:
@@ -197,13 +200,14 @@ def test_a_build_fault_that_makes_the_model_raise_fails_its_check(kind: type[Exc
 
 README = Path(__file__).with_name("README.md")
 README_ROW = re.compile(r"^\| `(build_\w+)` \|.*\| (killed|survives) \|\s*$", re.MULTILINE)
+RESULTS_README_ROW = re.compile(r"^\| `(results_\w+)` \|.*\| (killed|survives) \|\s*$", re.MULTILINE)
 
 
-def readme_problems(text: str, mutants: Mapping[str, Mutant]) -> list[str]:
+def readme_problems(text: str, mutants: Mapping[str, Mutant], row: re.Pattern[str] = README_ROW) -> list[str]:
     """Each build fault the README's table does not list, lists without a fault, or lists with the wrong
     outcome: it says only whether the cases (or the direct checks) kill a fault, and the table here is the
     one source of why a survivor survives."""
-    rows = dict(README_ROW.findall(text))
+    rows = dict(row.findall(text))
     return [
         *(f"{name}: no row" for name in mutants if name not in rows),
         *(f"{name}: a row, and no fault" for name in rows if name not in mutants),
@@ -230,3 +234,67 @@ def test_a_readme_table_that_drifts_from_the_faults_fails() -> None:
     ]
     flipped = text.replace(row[0], row[0].replace("| killed |", "| survives |"))
     assert readme_problems(flipped, BUILD_MUTANTS) == [f"{killed}: the row says survives, the table killed"]
+
+
+def results_check(name: str, mutant: Mutant) -> None:
+    """The build-check cases, or failing those the results model's direct checks, kill the results model's
+    fault, or it is listed as a survivor."""
+    with mutant.applied():
+        found = first_build_disagreement() or next(iter(results_direct.problems()), None)
+    if mutant.survives is None:
+        assert found is not None, f"{name} ({mutant.fault}) gives every build-check file its listed outcome"
+    else:
+        assert found is None, f"{name} is listed as a survivor ({mutant.survives}), but {found}"
+
+
+@pytest.mark.parametrize("name", sorted(RESULTS_MUTANTS))
+def test_the_build_cases_kill_the_results_fault_or_it_is_listed_as_a_survivor(name: str) -> None:
+    results_check(name, RESULTS_MUTANTS[name])
+
+
+def test_the_results_table_holds_its_faults_apart_and_says_why_each_survivor_survives() -> None:
+    assert len(RESULTS_MUTANTS) >= 50
+    assert RESULTS_MUTANTS.keys().isdisjoint(MUTANTS.keys() | BUILD_MUTANTS.keys())
+    assert all(mutant.module is build_results_model for mutant in RESULTS_MUTANTS.values())
+    assert all(mutant.survives is None or mutant.survives.strip() for mutant in RESULTS_MUTANTS.values())
+    assert all(mutant.fault.strip() and mutant.rule.strip() for mutant in RESULTS_MUTANTS.values())
+
+
+def test_a_results_fault_leaves_the_model_as_it_was_once_its_search_is_done() -> None:
+    (case_file,) = [
+        found for found in build_case_files() if found.path.name == "BC-016.waiver_for_another_code.json"
+    ]
+    with RESULTS_MUTANTS["results_waiver_code_ignored"].applied():
+        assert build_outcome(case_file).kind == "differs"
+    assert build_outcome(case_file).kind == "agrees"
+
+
+def broken_results_model(kind: type[Exception]) -> Mutant:
+    """A fault that breaks the results model rather than a rule of the text: its judgement, which every result
+    reaches, replaced by a function raising `kind`."""
+
+    def raising(*args: object, **kwargs: object) -> NoReturn:
+        raise kind("the results model broken, not a rule of the text")
+
+    return Mutant(
+        "the results model raises at every judgement", "none", {"judge": raising}, module=build_results_model
+    )
+
+
+@pytest.mark.parametrize("kind", [TypeError, KeyError, AssertionError])
+def test_a_results_fault_that_makes_the_model_raise_fails_its_check(kind: type[Exception]) -> None:
+    """Control: a search that counted the raise as a kill would pass on it."""
+    with pytest.raises(kind, match="the results model broken") as raised:
+        results_check("broken_results_model", broken_results_model(kind))
+    notes = getattr(raised.value, "__notes__", [])
+    assert any(note.startswith("the build model raised reading BC-") for note in notes), notes
+
+
+def test_the_readme_lists_each_results_fault_and_whether_it_survives() -> None:
+    text = README.read_text(encoding="utf-8")
+    assert readme_problems(text, RESULTS_MUTANTS, RESULTS_README_ROW) == []
+    killed = next(name for name, mutant in RESULTS_MUTANTS.items() if mutant.survives is None)
+    row = next(match for match in RESULTS_README_ROW.finditer(text) if match[1] == killed)
+    assert readme_problems(text.replace(row[0], ""), RESULTS_MUTANTS, RESULTS_README_ROW) == [
+        f"{killed}: no row"
+    ]

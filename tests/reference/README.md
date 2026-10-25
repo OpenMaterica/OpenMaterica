@@ -3,23 +3,26 @@
 A test-only model of a read of one field of one record (`docs/specification/read_side_contract.md` sections 1
 to 3), written from the specification's text alone, for the conformance cases, HP12 and the fuzz targets (the
 S2 design's SQ49), as S3 keeps a test-only reference evaluator; and beside it the build's model of a
-declaration checked on its own (`declarations.md` section 1, S7a-1), written from the text by an agent that
-did not read the build's code ("The build's model", below). Neither ships, and neither imports anything from
-`materica`, at any depth.
+declaration checked on its own (`declarations.md` section 1, S7a-1) and of what the build gives past it, the
+reads, the results, the verdict and the report (sections 2 and 4.2, S7a-2), each written from the text by an
+agent that did not read the build's code ("The build's model" and "The build's results model", below). None
+ships, and none imports anything from `materica`, at any depth.
 
 | File | What it holds |
 |---|---|
 | `strict_json.py` | strict JSON (`record_format.md` section 1 item 6), RFC 8785 and the content hash (section 9), from the standard library |
 | `read_model.py` | the model: the text's tables, steps 0 to 13, the result, `list_records` and `content_hash`; its open points in `OPEN_POINTS` |
-| `build_model.py` | the build's model of the declaration's own check: its shape table, written from the text, its refusals by case and pointer under the precedence rule, and `NoVerdict` past it; its open points in its own `OPEN_POINTS` |
-| `cases.py` | every case file of a read run through the model, and every build-check file through the build's model, under every configuration of claims it allows, and compared |
-| `exceptions.py` | the case files each model does not agree with, by kind, each kind with its reason: today, reads outside the read model's scope and build-check files past the declaration, on which each gives no verdict |
-| `test_cases.py` | the read model agrees with every case file of a read, and the build's model with every build-check file, or the case file is listed under its kind |
+| `build_model.py` | the build's model of the declaration's own check: its shape table, written from the text, its refusals by case and pointer under the precedence rule, and, past it, the declaration handed to the results model; its open points in its own `OPEN_POINTS` |
+| `build_results_model.py` | the build's model past the declaration: the request each read is given, the read through the read model, the build's own reasons, what the read applied, the judgement by section 4.2's table held as its own data, `unused`, the verdict and the report, and `NoVerdict` for what it does not decide; its open points in its own `OPEN_POINTS` |
+| `cases.py` | every case file of a read run through the model, and every build-check file through the build's models, under every configuration of claims it allows, and compared, a build's results as the specification's README compares them |
+| `exceptions.py` | the case files each model does not agree with, by kind, each kind with its reason: today, reads outside the read model's scope, on which it gives no verdict, and no build-check file; and what the results model does not decide, by kind, each with its reason |
+| `test_cases.py` | the read model agrees with every case file of a read, and the build's models with every build-check file, or the case file is listed under its kind |
 | `direct.py`, `test_build_model.py` | the build model held on what no build-check file pins: declarations written there, each with the answer the text and the maintainer's rulings give (one fault is one member at fault, a pick is located by its record, a claimed suite gives no verdict, the order of the cases) |
+| `results_direct.py`, `test_build_results_model.py` | the results model held on what no build-check file pins: build-check declarations with one thing changed, each read over the suite's fixtures with the answer the text gives; and its table of section 4.2 against the table parsed from `declarations.md`, since `main` has no `coverage.json` yet |
 | `test_tables.py` | each model's tables against the generated vocabulary, and the build model's shape table and token lists against the declaration's JSON Schema, so that a drift of either fails |
 | `test_citations.py` | each quote the models, and the table evaluator beside them, cite is at the line it cites; each open point is listed once and named where it is applied |
 | `test_layering.py` | the models and the table evaluator reach no `materica` module, by the imports they write or in a fresh interpreter |
-| `mutants.py`, `test_seeded_faults.py` | seeded faults of each model, each killed by a case file (or, for the build's, a direct check) or listed as a survivor with its reason; not named `test_*mutants*`, since they are no Hypothesis search and run on every Python (`tests/conftest.py`, `PROPERTY_CONTROLS`) |
+| `mutants.py`, `results_mutants.py`, `test_seeded_faults.py` | seeded faults of each model, each killed by a case file (or, for the build's models, a direct check) or listed as a survivor with its reason; not named `test_*mutants*`, since they are no Hypothesis search and run on every Python (`tests/conftest.py`, `PROPERTY_CONTROLS`) |
 
 ## What it decides
 
@@ -444,8 +447,9 @@ located by its `record`, a `region` or an `interval` being named beside it: one 
 is refused as unlocated (BC-037), whatever the build claims (maintainer, 2026-10-24; the pick row,
 `declarations.md:357`, and `declaration.json`, which requires it).
 
-**What it does not.** A declaration that passes its own check gives `NoVerdict`: what the build gives after
-reading is S7a-2's to S7a-4's, a pick or an overlay S7c's. So does a declaration holding a member a suite the
+**What it does not.** A declaration that passes its own check it takes no further: its no verdict there,
+`PAST_THE_DECLARATION`, hands the declaration to the results model ("The build's results model", below), and
+a pick or an overlay gives no verdict (S7c's). So does a declaration holding a member a suite the
 build claims checks further (the scene suite, USD read, the sampling suite), whatever else it holds: the
 refusals the model places beside such a member are not reported (the fail-closed choice, maintainer,
 2026-10-24, at the cost that a certain refusal under a claimed suite goes uncompared: one of a
@@ -497,13 +501,15 @@ the sampling suite the build fails closed, where clause 3 would otherwise refuse
 
 **Agreement with the cases.** `test_cases.py` runs every build-check file, 113 (56 of S7a-1's and 57 of
 S7a-2's), under each of the 32 build configurations (build checks and plain read, beside any of the hash, the
-fits and reference data suite, the scene suite, USD read and the sampling suite) that its claims allow: 3,400
-runs. The model agrees with every one of S7a-1's 56 files (1,592 runs), none listed, and gives no verdict on
-S7a-2's 57 (1,808 runs), each listed under `past_the_declaration`: S7a-2's model decides those, not this one.
-It disagrees with none (measured 2026-10-25 on this branch, at `main`'s `f92371f0`). No file separates the
-configurations: each of the 113 gives one answer under all those its claims allow (measured 2026-10-25), so the
-3,400 runs repeat 113 answers. The sweep is design
-for HP41's declarations, which hold a member a suite checks; it is no evidence on these files. What a claimed
+fits and reference data suite, the scene suite, USD read and the sampling suite) that its claims allow: XXRUNS
+runs. The model agrees with every one of S7a-1's 56 files (1,592 runs), none listed; S7a-2's 58, which pass
+their own check, it hands to the results model, which agrees with each (XXRUNS2 runs, "The build's results
+model", below). They disagree with none (measured 2026-10-25 on this branch, at `main`'s `60642b3c`). Until
+then this model gave no verdict on S7a-2's files, each listed under `past_the_declaration`. No file separates the
+configurations but by a label no file compares: each of the 114 gives one answer under all those its claims
+allow, but for `hash_not_checked`, which the results of XXHNC of S7a-2's files hold where the hash is not claimed
+(measured 2026-10-25), so the XXRUNS runs repeat 114 answers. The sweep is design for HP41's declarations,
+which hold a member a suite checks; it is no evidence on these files. What a claimed
 suite gives, no verdict whatever else the declaration holds, is held by the direct checks (`direct.py`), not
 by a file.
 
@@ -655,12 +661,172 @@ listing does not. The table says only whether a fault is killed or survives; a t
 
 The cases cannot show one refusal given twice: refusals are compared as a set, and the model's are a set.
 
+## The build's results model
+
+`build_results_model.py` models what a build gives a declaration that passes its own check (S7a-2): the reads,
+the results, the verdict and the report of `declarations.md` sections 2 and 4.2, with the build's terms
+(given, applied, located at, covers, used). It was written from the specification's text, with the build-check
+case files read as data, before S7a-2's code existed and by an agent that never read the build's code; the two
+meet at the case files and at HP43 to HP46's properties (S7a-2p). It takes the declaration's own check from
+`build_model.py`, whose no verdict `PAST_THE_DECLARATION` hands the declaration on, and reads through the read
+model (`read_model.read`), never through the implementation's read.
+
+**What it decides.** Per model, per record its `checked_over` lists and per field it reads, in that order:
+- the request the build gives the read (item 7, with the maintainer's clause of 2026-10-23): the target, the
+  declared operating conditions whole, the requirement's `want` and `conditions` alone, and the acceptances of
+  the kinds a read takes, overlays aside, that name the field and are located at the record;
+- the read, and no read for a field with no requirement, whose result holds `status`, `reasons` and the
+  build's members alone (`no_requirement`);
+- the build's own reasons (item 8): `label_mismatch` against the label stored on the value the result rests
+  on, the field or the alternative read, whether or not the read reached step 12, and none where it rests on
+  no stored value; `not_reviewed` where the requirement holds `review` and the result's `provenance` holds no
+  completed review, and none where it holds no `provenance`;
+- the status, the worst of the read's reasons and the build's, every other member as the read returned it,
+  `value` included;
+- the acceptances the read applied (the build's terms): an implied condition that applies to the field and
+  whose value a condition entry shows with basis `implied`, a nominal or an extrapolation the result's
+  `assumption` names;
+- the judgement by section 4.2's table, held as the model's own data (`COVERAGE`): `accepted`, `accepted_by`
+  (the acceptances that covered a reason and those the read applied, by index in the model's `acceptances`)
+  and `not_accepted`; `specimen_differences`, empty, a target of `{}` naming no fact;
+- `unused`, per model; the verdict (`Report.refused`: a result not accepted); and the report's `consumer`,
+  `records` (each record a read resolved), `declaration`, `refusals` (none), `results` and `unused`.
+
+**What it does not.** `NoVerdict`, never a pass, for each kind its `UNDECIDED` names, each given its reason in
+`exceptions.RESULTS_NOT_DECIDED`: a waiver naming a label that would cover a reason by every other test, whose
+coverage rests on label trust, which comes after 0.1.0.dev4 (maintainer, 2026-10-21: dev4 is S7a-1 and S7a-2
+without label trust); a target naming a fact, or `combinations` (S7a-3); a `trainable` entry (S7a-4); the
+report's watches, which it leaves out as a build that does not emit them does, so that a case comparing them
+gets no verdict where every member the model decides agrees (S7a-4); a row of section 4.2 that a pick or an
+overlay alone reaches (S7c); the alternative a result rests on, where the result names none and the
+alternatives store different labels or specimens; and a read the read model gives no verdict on. A pick, an overlay or a member a claimed suite checks gives no verdict at the
+declaration already (`build_model.py`).
+
+**Section 4.2's table.** `main` has no `coverage.json` yet (the S7 design's generated table, which S7a-2's
+code brings), so `test_build_results_model.py` parses the table from `declarations.md` and holds the model's
+rows to it, each row's "Covered by" read by a fixed table of the phrasings it uses, so that a new phrasing
+fails; its controls rewrite a phrasing, drop `not_reviewed` from its row (the S7-spec review's surviving hand
+mutant), change a status, drop a row's condition, add a row and cut a qualifier, and each is found. When
+`coverage.json` lands, a test that holds it absent fails, so that the model's table is held to it too. One
+departure is allowed: `condition_unknown_name` leaves the first row, by the maintainer's ruling of 2026-10-24,
+whose words #96 lands; it is unobservable, since no waiver that passes the declaration's own check names the
+unregistered condition such a reason carries.
+
+Where the text leaves a point open, the model takes the maintainer's ruling where there is one, else the
+fail-closed choice, each listed once in its `OPEN_POINTS` and named where it is applied:
+
+| Open point | The model's choice |
+|---|---|
+| `two_implied_that_agree` | an implied condition given was applied where it applies to the field read (its specimen states its fact and token) and an entry shows its value with basis `implied`: two that agree and both apply are both cited (the S7 design's choice); one whose fact and token the specimen does not state, though its value equal the entry's, is not, and is unused |
+| `label_of_no_stored_value` | a result resting on no stored value is checked against no label; a refusal at step 0 is told by a read of the same request over no records, which gives `absent` exactly where step 0 passes, and one at steps 1 to 6 by a reason only those steps give, or `absent` |
+| `alternative_a_result_rests_on` | a result over alternatives rests on one exactly where it holds `conditions`; the alternative its reasons name, or, where none names one, any where every alternative stores the same label and specimen, else no verdict |
+| `condition_unknown_name_never_covered` | covered by nothing (the maintainer's ruling of 2026-10-24; `main`'s first row lists it until #96's words land) |
+
+**Agreement with the cases.** With the declaration's own check, the build's models agree with every one of the
+108 build-check files under each of the build configurations its claims allow (3,272 runs), none listed:
+S7a-1's 51 (1,464 runs) and S7a-2's 57 (1,808 runs), and disagree with none (measured 2026-10-25 on this
+branch). `BUILD_EXCEPTIONS` is empty; until this piece it listed S7a-2's 57 under `past_the_declaration`. The
+comparison is the specification's README's for a build-check case (`cases.py`): results as a set keyed by
+model, location and field, both ways, each result's members as a read result's are, `accepted_by` as a set,
+`not_accepted` as a multiset, and `unused` as a set; its controls (`test_cases.py`) find a result missing,
+given twice or of another model, and an `accepted`, `accepted_by`, `not_accepted`, `value`, `reasons` or
+`unused` that differs.
+
+**The direct checks.** `results_direct.py` holds 23 declarations, most a build-check file's with one thing
+changed, read over the suite's fixtures, each with the answer the text gives, for what no file pins: R05
+(`not_reviewed` beside a read's `not_met` that carries a value), a nominal at another record or for another
+field neither given nor applied, two implied conditions that agree and one whose token the specimen does not
+state, no `label_mismatch` past step 0's `want_mismatch` or `request_incomplete`, the one alternative left
+checked against its own label, no `not_reviewed` under `no_pick`, the verdict over two models in either order,
+acceptances and models permuted, the report's `records`, a waiver resting on a label (no verdict where it
+would cover, decided where it would not), an extrapolation at another record, and the later pieces' no
+verdicts.
+
+**The mutant table.** `RESULTS_MUTANTS` (`results_mutants.py`) gives the results model 63 faults, one or more
+per rule, among them each of the S7 design's HP43 to HP46 lists (6.5's table) the model holds, under R01 to
+R07 the faults of the case writer's build. The label-trust faults of those lists (`_trusted`, `_label_rests`)
+wait for label trust. Each runs against every build-check file and, failing those, the direct checks; a fault
+that makes the model raise fails its check (its control: the judgement replaced by a function raising). 59 are
+killed, 45 by a case file and 14 by a direct check alone (R05 among them, which no case file catches), and 4
+survive, each with why beside it in `results_mutants.py`: for HP43 to HP46 to kill, or, for three, faults no
+declaration that passes its own check can show. Measured over every build-check file, 2026-10-25: none makes
+the model raise, and 12 die to one case file alone. The table says only whether a fault is killed or survives;
+a test holds it to `results_mutants.py`.
+
+| Mutant | Fault | Outcome |
+|---|---|---|
+| `results_acceptance_at_another_record_given` | an acceptance a read takes given to the read of another record | killed |
+| `results_acceptance_of_another_field_given` | an acceptance a read takes given to the read of another field | killed |
+| `results_waivers_given` | an acceptance of a kind a read does not take (a waiver) given to the read | killed |
+| `results_requirement_label_given` | the requirement given whole, its `label` and `review` with it (so `request_incomplete`) | killed |
+| `results_unnamed_operating_condition_dropped` | an operating condition the requirement does not name left out of the request (a table's axis) | killed |
+| `results_want_defaulted` | the request's `want` defaulted to `value` | killed |
+| `results_label_read_from_the_result` | the label stored read from the result's labels, which a refusal before step 12 hides | killed |
+| `results_label_checked_on_no_stored_value` | a result that rests on no stored value (its record or field not found, or no single alternative) checked against a value holding no label | killed |
+| `results_label_checked_past_step_0` | a read refused at step 0 checked against the field's label | killed |
+| `results_label_of_the_field_holding_alternatives` | the label checked against the field holding the alternatives, not the alternative read | killed |
+| `results_label_of_the_section` | the label read from the section holding the field, not the field's | killed |
+| `results_any_stored_label_matches` | a stored label that differs taken as the one required | killed |
+| `results_absent_label_matches` | a label absent from the value the result rests on taken as the one required | killed |
+| `results_not_checked_with_a_reason_reviewed` | a review `not_checked` with a `reason` taken as completed | killed |
+| `results_not_reviewed_without_provenance` | `not_reviewed` given to a result that holds no `provenance` (R04) | killed |
+| `results_not_reviewed_unrequired` | `not_reviewed` given where the requirement holds no `review` | killed |
+| `results_not_reviewed_as_not_met` | `not_reviewed` making the status `not_met` | killed |
+| `results_build_reasons_leave_the_status` | the build's own reasons leaving the read's status | killed |
+| `results_not_reviewed_lowers_not_met` | `not_reviewed` making the status `unknown` over a read's `not_met` (R05) | killed |
+| `results_best_status` | the status the best of the reasons | killed |
+| `results_value_dropped_by_the_build` | the read's `value` dropped where the build's `label_mismatch` makes the result `not_met` | killed |
+| `results_unrequired_field_read` | a field in `reads` with no requirement read as if wanted as a value | killed |
+| `results_given_counted_applied` | every acceptance given counted applied (an implied condition that filled nothing, an extrapolation at an `at_edge` read) | killed |
+| `results_implied_filled_whatever_the_specimen` | an implied condition counted applied by the value an entry shows, though the specimen does not state its fact and token | killed |
+| `results_implied_filled_whatever_the_basis` | an implied condition counted applied where an entry holds its value with a basis other than `implied` | killed |
+| `results_first_implied_only` | of two implied conditions that agree, the first alone counted applied | killed |
+| `results_applied_indexed_among_the_given` | an applied acceptance indexed among those given, not in the model's `acceptances` | killed |
+| `results_assumption_named_by_kind` | an `assumption` taken to name every acceptance of its kind | survives |
+| `results_applied_uncited` | `accepted_by` without the acceptances the read applied | killed |
+| `results_waiver_covers_not_met` | a waiver covering a reason no row of section 4.2 lists for it (`condition_outside`, `form_invalid`) | killed |
+| `results_waiver_condition_ignored` | a waiver covering a condition reason whatever condition it names | killed |
+| `results_waiver_code_ignored` | a waiver covering a reason of its row whatever code it names | killed |
+| `results_waiver_field_ignored` | an acceptance covering a reason of a result whatever field it names | killed |
+| `results_location_ignored` | an acceptance covering a reason of a result whatever record it names | killed |
+| `results_located_by_id_alone` | an acceptance located at a record by its `id` alone (R06) | killed |
+| `results_region_located_at_a_record` | an acceptance naming a region or an interval beside the record located at that record | survives |
+| `results_alternative_reasons_uncovered` | a waiver covering no reason that carries an `alternative` (R07) | killed |
+| `results_nominal_covers_without_assumption` | a nominal covering `want_mismatch` where the result's `assumption` does not name it, step 0's among them | killed |
+| `results_extrapolation_covers_without_assumption` | an extrapolation covering `outside_range` where the result's `assumption` does not name it | killed |
+| `results_extrapolation_covers_at_edge` | an extrapolation covering `at_edge` | killed |
+| `results_waiver_covers_label_mismatch` | a waiver naming `label_mismatch` covering it | killed |
+| `results_waiver_covers_no_pick` | a waiver naming `no_pick` covering it | killed |
+| `results_condition_unknown_name_waivable` | a waiver naming `condition_unknown_name` and its condition covering it | survives |
+| `results_label_resting_waiver_trusted` | a waiver naming a label covering as one naming none, whatever the label's trust | killed |
+| `results_label_resting_waiver_undecided_anywhere` | a waiver naming a label given no verdict though it covers nothing by the other tests | killed |
+| `results_another_model_s_acceptances` | a model's reason covered by another model's acceptance (R02) | killed |
+| `results_covered_reasons_not_accepted` | `not_accepted` holding a covered reason | killed |
+| `results_acceptance_covering_nothing_cited` | `accepted_by` holding an acceptance of the result's field at its location that covered nothing | killed |
+| `results_build_reasons_unjudged` | the build's own reasons left out of the judgement, so a `label_mismatch` refuses nothing | killed |
+| `results_status_raised_when_accepted` | an accepted result's status made `met` | killed |
+| `results_specimen_differences_left_out` | a result without `specimen_differences` | killed |
+| `results_unused_lists_the_applied` | an acceptance the read applied, and that covered nothing, listed in `unused` | killed |
+| `results_unused_named_after_the_first_model` | each acceptance unused named after the first model (R01) | killed |
+| `results_unused_shared_by_the_models` | one set of used acceptances shared by every model (R03) | killed |
+| `results_used_listed_unused` | every acceptance listed in `unused`, used or not | killed |
+| `results_every_record_of_the_store_read` | every record in the store read, listed or not | killed |
+| `results_one_result_a_field` | the results de-duplicated by field alone | killed |
+| `results_refused_by_the_first_model` | the verdict read from the first model's results alone | killed |
+| `results_never_refused` | no refusal while a result is not accepted | killed |
+| `results_unresolved_record_listed` | a record listed in `records` though its read resolved none | killed |
+| `results_unread_record_listed` | a record listed in `records` though nothing was read for it (a field with no requirement) | killed |
+| `results_later_pieces_decided` | a target naming a fact, combinations or a `trainable` entry decided as if absent | killed |
+| `results_found_before_the_field_by_absent_alone` | a read refused at steps 1 to 6 for a reason other than `absent` taken to have found the field | survives |
+
 ## Running
 
 ```sh
 uv run pytest tests/reference -n 6
 ```
 
-The whole directory runs in about a minute on eight workers (57 s, 2026-10-22; 61 s with the build's model,
-2026-10-24; 64 s with its direct checks and 100 faults, 69 s with 104, 2026-10-24; 66 s with 114, 2026-10-25), the mutant searches most of it: a survivor's search reads every case file under every
-configuration it allows, about 6 s alone.
+The whole directory runs in about a minute and a half on eight workers (57 s, 2026-10-22; 61 s with the
+build's model, 2026-10-24; 64 s with its direct checks and 100 faults, 69 s with 104, 2026-10-24; 66 s with 114,
+2026-10-25; XXTIME with the results model, its direct checks and 63 faults, with S7a-2's files read past the
+declaration, on a machine shared with other sessions, 2026-10-25), the mutant searches most of it: a survivor's
+search reads every case file under every configuration it allows, about 6 s alone.

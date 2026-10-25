@@ -41,6 +41,7 @@ TEST_SOURCES = [
         "reference/mutants.py",
         "reference/cases.py",
         "reference/results_direct.py",
+        "reference/results_mutants.py",
         "reference/test_build_results_model.py",
         "property/test_model_mutants.py",
         "property/test_model_properties.py",
@@ -58,6 +59,7 @@ NO_LINE_IN_THE_TEXT: Final[Mapping[str, str]] = {
     ),
 }
 SEEDED_FAULTS_SOURCE = REPOSITORY / "tests" / "reference" / "mutants.py"
+RESULTS_FAULTS_SOURCE = REPOSITORY / "tests" / "reference" / "results_mutants.py"
 MUTANT_KILLS_SOURCE = REPOSITORY / "tests" / "property" / "test_model_mutants.py"
 # The open points of the three models, the read's, the build's declaration check and its results, which share
 # no name.
@@ -236,8 +238,9 @@ def test_every_test_module_that_cites_the_text_is_listed() -> None:
     ("source", "call", "least", "no_line"),
     [
         (SEEDED_FAULTS_SOURCE, "Mutant", 121, NO_LINE_IN_THE_TEXT),
+        (RESULTS_FAULTS_SOURCE, "mutant", 50, {}),
     ],
-    ids=["mutants"],
+    ids=["mutants", "results_mutants"],
 )
 def test_every_seeded_fault_cites_the_text_or_names_the_open_point_it_rests_on(
     source: Path, call: str, least: int, no_line: Mapping[str, str]
