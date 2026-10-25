@@ -504,6 +504,38 @@ check's reader (the last bullet).
   range then; and a measurement of the 28 ways of the strata of two flags one of them about 28 times as often
   as one way. The strata's ratios measured since are 3.6 to 9.6, and no way has been flagged in two
   measurements (CI's runs 40263770176 and 40275058309).
+- **The build's results and verdict (S7a-2):** (22) the S7 design's HP43 to HP46 (`test_build_properties.py`, in
+  the `build` shard), against an oracle written in the test from `declarations.md` sections 1, 2 and 4.2: section
+  4.2's table as the test's own rows, the build's terms ("given", "applied", "located at", "covers", "trusted",
+  "used"), section 2 item 7's request, item 8's own reasons and the value a result rests on. `build_strategies.py`
+  draws records built from the build-check cases' values (a viscosity, a density as a constant, a grade's limits,
+  a table and an edged table), each value's label, review, conditions, tissue state and alternatives as a draw
+  asks, pinned, in a store or not, and declarations over them the text takes: one to three models over listed
+  records reading one or two fields, each with a requirement or none, beside waivers, implied conditions,
+  nominals and extrapolations at a record listed or elsewhere (another record, another version or hash of one,
+  another field). HP43 holds `judge` to section 4.2 and the build's terms, in three parts drawn directly
+  (`waivers`: one matching a reason, or differing in its code, its condition, its location, a region or an
+  interval among them, or its field; `assumptions`: a nominal or an extrapolation that the result's `assumption`
+  names or not, and a reason other than the one it covers; `never`: a `not_met` no row lists, `no_pick` and
+  `label_mismatch` beside a waiver naming them, a code no row lists, `at_edge` beside an extrapolation), and one
+  over whole builds (`indexes`), where each result's verdict is judged by its own model's acceptances, "applied"
+  read from the result (an implied condition whose value fills an entry, bit for bit; a nominal or an
+  extrapolation the `assumption` names), and each model's unused acceptances. HP44 holds each result's read to
+  the read of the request built from the declaration by item 7, member for member, the results to one per
+  model, listed record and field read, the build's reasons to adding only, the status to the worst of them all,
+  and `records` to those a read's step 1 found (`requests`: an operating value or range, an implied condition,
+  a nominal or an extrapolation at the record, elsewhere or both; `coverage`: a record listed or not, a field
+  with a requirement or none, two models over one record, a listed record absent from the store); on these
+  draws HP1's, HP2's and HP11's checks hold each read. HP45 holds the build's own reasons to the record as
+  stored (`label`: the stored label equal, another, absent, equal or absent under a refusal before step 12,
+  no stored value; `review`: reviewed, not checked, an unknown result, a slip, no `review` required) and a waiver
+  naming a label (`label_waiver`): the build raises where label trust could change the verdict, and elsewhere
+  such a waiver covers only where the label stored on the value the result rests on is its label and trusted.
+  HP45's `label_trust` part waits for label trust, after 0.1.0.dev4 (maintainer, 2026-10-21). HP46: `refused`
+  exactly where a refusal or a result not accepted is, and permuting models, listed records and acceptances
+  (indexes re-mapped) changes no verdict. Each drawing part is a test parametrized by strata of at most two of
+  its ways, each drawing its way first among its own, alike, as S7a-1's HP41 and HP42 were split once CI
+  measured their counts' variance; `indexes` and HP46 draw none.
 - **The anomaly check's reader:** the YAML reader of `scripts/check_anomalies.py` and its specifier syntax
   against PyYAML's `safe_load` and `packaging` (`test_anomaly_reader_properties.py`, in the `agreement` shard).
   A document the reader reads is read as PyYAML reads it; one PyYAML refuses is refused; one inside the subset
@@ -575,9 +607,10 @@ model's, isolation and byte form's, and monotonicity groups with their mutant se
 workers at `ci`, 2026-10-17; `SHARDS` in `tests/conftest.py`), and `--shard alternatives`, S4a's step 7 over
 alternatives with its mutant searches (122 s on eight local workers at `ci`, 342 s of test time, 2026-10-19;
 `relations`, with HP12's draws of S4a's outcomes, took 163 s and 1,036 s after it, under the same lock), and
-`--shard build`, S7a's build check, the declaration's HP41 and HP42 with their mutant searches (the S7 design's
-6.1; its time on CI is measured at its own base, and it splits in two shards, `declarations` and `build`, if it
-passes a third of its 20-minute `ci` timeout).
+`--shard build`, S7a's build check, the declaration's HP41 and HP42 and the build's results and verdict (HP43 to
+HP46), with their mutant searches (the S7 design's 6.1; HP43 to HP46 took 53 s on eight local workers at `ci`,
+255 s of test time, 2026-10-25, and 4 s for their 112 searches; its time on CI is measured at its own base, and
+it splits in two shards, `declarations` and `build`, if it passes a third of its 20-minute `ci` timeout).
 S2b-1's intervals and compositions added 13%
 to `conditions` and 7% to `relations`, each timed side by side with the tests before them (475 s against 420,
 588 against 549, at loads of 15 to 25), and HP3's third part 51 s of one worker to records (172 s). S2b-2's
@@ -697,7 +730,7 @@ hold yet passes `--check`, so that a stacked branch's older commits stand, and f
 run.
 
 <!-- kill points summary (scripts/gen_kill_counts.py) -->
-`kill_points.json` records 1,498 searches, 749 mutants each at both sizes; the latest kill is at the 487th example (`upper_none_as_infinity`, original size).
+`kill_points.json` records 1,610 searches, 805 mutants each at both sizes; the latest kill is at the 487th example (`upper_none_as_infinity`, original size).
 <!-- end of kill points summary -->
 
 Three searches were planned because their kill sat in a long tail. With the pin, a search's kill is fixed by
@@ -2098,6 +2131,92 @@ three).
 | `within_of_another_status_refused_at_the_object` | a `within` of a status other than `none` refused at the object, not at its `status` | `_tokens` | HP42 | `sampling` | 57, 7 |
 | `label_of_another_type_judged_by_item_4` | a waiver's `label` of another JSON type judged by item 4, BC-050 in front of the shape table's BC-048 | `_labels` | HP41, precedence | `two_rules` | 1, 1 |
 | `combination_sections_judged_beside_an_unregistered_entry` | a combination judged for its sections beside an entry that names no registered field | `_names` | HP41, tokens | `slip_of_token`, `misspelt_name` | 1, 1 |
+
+### The build's results and verdict (S7a-2)
+
+`test_build_mutants.py`, each injected at a name the build looks up when it runs (in `core/acceptance.py`
+`judge`, `_covers`, `_under`, `located_at` and `COVERAGE`; in `core/build.py` `_results`, `_request`, `_given`,
+`_applied`, `_shown`, `_fills`, `_IMPLIED_MEMBERS`, `_stored`, `_build_reasons`, `_unused`, `_requirement`, and
+the names it imports, `judge`, `located_at`, `read` and `BuildResult`; the vocabulary's reason table; and
+`BuildReport.refused`), and each dying at a way it names and at the assertion it names: the S7 design's mutants
+of HP43 to HP46 but label trust's five (its section 6.5, with the five the review of S7-cases-2 added, R01 to
+R03, R05 and R07; 36 rows, `test_build_mutant_table.py` holds each to the row that stands for it), and 20 more:
+the faults the reviews of S7a-2a, S7a-2b and S7a-2m showed no test of theirs catching (the acceptances given
+cut to the first, the build's claims dropped from the read and from the stored label, an implied condition
+applied only where it fills every condition, an implied range or token not recognised, an implied value
+compared by equality so that -0 is 0, the first alternative read under `want_mismatch`, an acceptance for
+another field of the section given, the location's version or id ignored, a record refused at steps 2 to 5
+resting on its field, an extrapolation counted applied under a nominal's assumption, label trust's raise where
+the result is decided), and the parts' other ways (a waiver's code ignored, `no_pick` waived, a code no row
+lists waived, `label_mismatch` left out beside a `not_met`, `not_reviewed` never given, a labelled waiver
+covering untrusted). Every one is searched over the draws of the one stratum of its part that holds the ways
+it names: none needs a planned search. Of the reviews' survivors, these are not here: the acceptances given
+in reverse order (`_applied` reads what the result shows, and a read's answer never depends on the order of
+the acceptances given it, `read_side_contract.md` section 1); a stored value that is no object read as
+`{"label": null}` (the same `label_mismatch` as no label: only its words differ); and the unused acceptances
+of one model reversed (the text gives `unused` per model and no order within one). The faults of label trust
+(`_trusted`: an inferred basis trusted, a stated one not, the basis read from the read result; `_label_rests`:
+review or label presence not checked) wait for label trust, after 0.1.0.dev4 (maintainer, 2026-10-21).
+
+<!-- kill points of every search of test_build_mutants.py::test_the_build_mutant_is_killed (scripts/gen_kill_counts.py) -->
+| Mutant | Fault | At | Killed by | Dies at | Examples |
+|---|---|---|---|---|---|
+| `waiver_covers_not_met` | a waiver naming a `not_met` reason covers it | `_covers` | HP43, never | `unlisted_not_met` | 1, 1 |
+| `waiver_ignores_its_condition` | a waiver covers a reason of its code whatever condition it names | `_under` | HP43, waivers | `condition_differs` | 1, 1 |
+| `waiver_ignores_its_code` | a waiver covers a reason its row lists whatever code it names | `_under` | HP43, waivers | `code_differs` | 2, 2 |
+| `nominal_covers_without_its_assumption` | a nominal covers `want_mismatch` on a result whose `assumption` does not name it | `_under` | HP43, assumptions | `nominal_not_named` | 2, 2 |
+| `extrapolation_covers_without_its_assumption` | an extrapolation covers `outside_range` on a result whose `assumption` does not name it | `_under` | HP43, assumptions | `extrapolation_not_named` | 2, 2 |
+| `extrapolation_covers_at_an_edge` | `at_edge` covered by an extrapolation, as `range_unstated` is | `COVERAGE` | HP43, never | `at_edge` | 1, 1 |
+| `waiver_covers_no_pick` | `no_pick` covered by a waiver naming it | `_covers` | HP43, never | `no_pick` | 2, 2 |
+| `waiver_covers_label_mismatch` | `label_mismatch` covered by a waiver naming it | `_covers` | HP43, never | `label_mismatch` | 1, 1 |
+| `waiver_covers_a_code_no_row_lists` | a waiver covers a code no row of section 4.2 lists, where it names it | `_covers` | HP43, never | `unlisted_not_met`, `no_pick` | 1, 1 |
+| `waiver_covers_no_reason_of_an_alternative` | an acceptance covers no reason that carries an `alternative` (R07) | `_covers` | HP43, waivers | `matching`, `code_differs` | 9, 11 |
+| `waiver_ignores_its_field` | an acceptance covers a reason of a result of another field | `_covers` | HP43, waivers | `field_differs` | 1, 1 |
+| `located_by_id_alone` | an acceptance located at every record of its record's `id` (R06) | `located_at` | HP43, waivers | `location_differs` | 9, 39 |
+| `located_ignoring_the_version` | an acceptance located at its record's `id` and `content_hash`, whatever the `version` | `located_at` | HP43, waivers | `location_differs` | 9, 68 |
+| `located_ignoring_the_id` | an acceptance located at its record's `version` and `content_hash`, whatever the `id` | `located_at` | HP43, waivers | `location_differs` | 2, 2 |
+| `region_taken_at_a_record` | an acceptance naming a region or an interval beside a record located at that record | `located_at` | HP43, waivers | `location_differs` | 7, 7 |
+| `accepted_by_without_the_applied` | `accepted_by` holds what covered a reason, not what the read applied | `judge` | HP43, assumptions | `other_reason` | 1, 1 |
+| `accepted_by_with_what_covered_nothing` | `accepted_by` holds every acceptance of the result's field located at its record | `judge` | HP43, waivers | `matching`, `code_differs` | 2, 2 |
+| `not_accepted_holds_covered_reasons` | `not_accepted` holds every reason, covered or not | `judge` | HP43, waivers | `matching`, `code_differs` | 1, 1 |
+| `judged_by_every_models_acceptances` | a model's results judged by every model's acceptances (R02) | `_results` | HP43, indexes | `indexes` | 14, 14 |
+| `unfilled_implied_condition_applied` | an implied condition given to a read counted applied, whether or not it filled a condition | `_applied` | HP43, indexes | `indexes` | 38, 38 |
+| `extrapolation_at_an_edge_applied` | an extrapolation given to a read counted applied, at an edge among others | `_applied` | HP43, indexes | `indexes` | 24, 24 |
+| `implied_applied_where_every_condition_filled` | an implied condition applied only where it fills every condition it implies | `_shown` | HP43, indexes | `indexes` | 92, 92 |
+| `implied_range_not_recognised` | an implied range not recognised in the condition it fills | `_IMPLIED_MEMBERS` | HP43, indexes | `indexes` | 11, 11 |
+| `implied_token_not_recognised` | an implied token not recognised in the condition it fills | `_IMPLIED_MEMBERS` | HP43, indexes | `indexes` | 42, 42 |
+| `implied_value_compared_by_equality` | an implied value compared with the condition it fills by equality, so that -0 is 0 | `_fills` | HP43, indexes | `indexes` | 38, 38 |
+| `extrapolation_applied_under_any_assumption` | an extrapolation counted applied on a result with any `assumption`, a nominal's among them | `_shown` | HP43, indexes | `indexes` | 110, 122 |
+| `unused_lists_the_applied` | an acceptance a read applied, and that covered no reason, listed unused | `_unused` | HP43, indexes | `indexes` | 11, 11 |
+| `unused_named_after_the_first_model` | each unused acceptance named after the first model (R01) | `_unused` | HP43, indexes | `indexes` | 5, 5 |
+| `unused_shared_by_every_model` | one set of used acceptances shared by every model (R03) | `_unused` | HP43, indexes | `indexes` | 11, 11 |
+| `acceptance_at_another_record_given` | an acceptance given to a read wherever it is located | `_given` | HP44, requests | `nominal` | 36, 36 |
+| `acceptance_of_another_field_of_the_section_given` | an acceptance for another field of the read's section given to it, and so counted applied where the result's `assumption` names one alike | `_given` | HP43, indexes | `indexes` | 80, 80 |
+| `requirement_label_and_review_given` | the requirement's `label` and `review` given in the read's request (`request_incomplete`) | `_request` | HP44, requests | `operating_value`, `operating_range` | 1, 1 |
+| `unnamed_operating_condition_dropped` | an operating condition the requirement does not name dropped from the request | `_request` | HP44, requests | `operating_value`, `operating_range` | 5, 5 |
+| `want_defaulted` | the request's `want` defaulted to `value` | `_request` | HP44, requests | `operating_value`, `operating_range` | 18, 18 |
+| `only_the_first_acceptance_given` | the first acceptance given alone, of several | `_request` | HP44, requests | `implied` | 7, 7 |
+| `claims_dropped_from_the_read` | the build's own read made under the default claims, not the build's | `read` | HP44, requests | `operating_value`, `operating_range` | 7, 7 |
+| `every_record_in_the_store_read` | results for every record in the store, listed or not | `_results` | HP44, coverage | `unlisted_record` | 1, 1 |
+| `field_with_no_requirement_read` | a field with no requirement read for a value | `_requirement` | HP44, coverage | `unlisted_record`, `no_requirement` | 1, 1 |
+| `status_lowered_when_accepted` | the status of an accepted result made `met` | `BuildResult` | HP44, requests | `operating_value`, `operating_range` | 35, 35 |
+| `not_reviewed_status_unknown` | `not_reviewed` making the status `unknown` over a read's `not_met` (R05) | `BuildResult` | HP44, requests | `nominal` | 2, 2 |
+| `label_from_the_result_only` | the label read from the result's labels, which a refusal before step 12 leaves out | `_stored` | HP45, label | `early_refusal` | 2, 2 |
+| `label_of_the_section` | the section's `label` in place of the value's | `_stored` | HP45, label | `equal`, `differs` | 1, 1 |
+| `stored_under_the_default_claims` | the stored label read under the default claims, not the build's | `_stored` | HP45, label | `equal`, `differs` | 4, 4 |
+| `rests_on_the_first_alternative_under_want_mismatch` | a result over two alternatives that stay, under `want_mismatch`, resting on the first | `read` | HP45, label | `no_stored_value` | 69, 69 |
+| `refusal_at_steps_2_to_5_rests_on_the_field` | a record refused at steps 2 to 5 resting on its field | `read` | HP45, label | `no_stored_value` | 3, 3 |
+| `label_mismatch_on_no_stored_value` | `label_mismatch` on a result that rests on no stored value | `_build_reasons` | HP45, label | `no_stored_value` | 1, 1 |
+| `label_mismatch_left_out_beside_a_not_met` | `label_mismatch` given only beside no `not_met` of the read's | `_build_reasons` | HP45, label | `differs` | 2, 2 |
+| `review_not_required` | `not_reviewed` never given | `_build_reasons` | HP45, review | `not_checked` | 2, 2 |
+| `not_checked_with_a_reason_taken_as_reviewed` | a review `not_checked` with a `reason` taken as completed | `_build_reasons` | HP45, review | `not_checked` | 2, 2 |
+| `not_reviewed_read_as_not_met` | `not_reviewed` read as `not_met` | `VOCABULARY.reasons` | HP45, review | `not_checked` | 2, 2 |
+| `not_reviewed_given_without_provenance` | `not_reviewed` given to a result that holds no `provenance` (R04) | `_build_reasons` | HP45, review | `reviewed`, `not_checked` | 5, 5 |
+| `labelled_waiver_covers_untrusted` | a waiver naming a label covers as one naming none, its label never judged | `judge` | HP45, label_waiver | `reviewed_and_labelled`, `unreviewed` | 1, 1 |
+| `label_trust_raised_where_decided` | label trust's raise where a waiver naming a label fits a reason of a result refused whatever | `judge` | HP45, label_waiver | `unlabelled`, `another_label` | 1, 1 |
+| `refused_read_from_the_first_model_only` | `refused` read from the first model's results only | `BuildReport.refused` | HP46 | `permutation` | 89, 70 |
+| `acceptances_matched_by_position` | an acceptance a read applied mapped by its position among those given, not its index | `_applied` | HP46 | `permutation` | 11, 11 |
+| `results_deduplicated_by_field` | one result per field, of the first model and record that read it | `_results` | HP46 | `permutation` | 3, 3 |
 
 ## Audits
 
