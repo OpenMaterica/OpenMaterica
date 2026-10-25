@@ -396,19 +396,30 @@ every family entry goes in `families/CHANGELOG.md`.
   2026-10-23 and 2026-10-24): a dispatch names selections of the baseline, or `all`, each alone or as
   `NAME:whole`, without its `!` patterns, so that the cuts they leave out run too. The request job splits each
   selection's cuts into slices by the baseline's new `timing` (the cuts the selection makes and its longest
-  cut, from its last full run), each slice's cuts planned to fill half of its job's 120 minutes at two at once;
-  each job records the selection and runs its slice, starting no cut it could not finish before its interrupt;
-  the report merges the slices into the selection's report, refusing a slice missing, doubled or recording
-  other cuts, and holds it to the baseline, a disagreement a flag. `measure.py fetch RUN --out DIR` downloads
+  cut, from the first dispatch on CI), each slice's cuts planned to fill half of its job's 120 minutes at two
+  at once; each job records the selection and runs its slice, starting no cut it could not finish before its interrupt and reporting how many cuts its share
+  held; the report merges the slices into the selection's report, refusing a slice missing, doubled or
+  recording other cuts, naming a selection that held no cut ("0 in scope: nothing checked"), and holds it to
+  the baseline, a disagreement a flag. `measure.py fetch RUN --out DIR` downloads
   the records and `input_coverage.py check NAME --records DIR` checks them. `scripts/input_coverage.py` gains
   what the jobs use: `--whole`, `--scope` and `--slice K/N` (a report that is a share of a selection's cuts,
-  run and judged alone), `--records`, and a `--budget` counted from the command's start. On a pull request
-  that changes a test a selection runs, the workflow runs every cut of that selection, and on one that changes
-  a module the selection's tests import, the cuts of the sites whose names hold that module, each held to the
-  baseline, a disagreement failing the run; a pull request that changes neither makes no job but the request,
-  and one that changes the workflow, its script or the input coverage's runner or plugin runs the self-test,
-  now with the cuts of one site of S3c's beside the other kinds. Whether that run gates a merge is the
-  maintainer's. The draw-time ownership the maintainer ruled on 2026-10-24 follows as a piece of its own,
+  run and judged alone), `--records`, and a `--budget` counted from the command's start.
+  On a pull request that changes a test a selection runs (or `tests/conftest.py` or `tests/property/conftest.py`,
+  the Hypothesis profiles), or its entry of the baseline, the workflow runs every cut of that selection, and on
+  one that changes a module the selection's tests import, the cuts of the sites whose names hold that module,
+  in slices planned from the cuts that scope holds (counted from the selection's recording by the request
+  job, none where it holds none), each held to the baseline, a disagreement failing the run's report job; a
+  pull request that changes none of these makes no job but the request, and one that changes the workflow, its
+  script or the input coverage's runner or plugin runs the self-test, now with the cuts of one site of S3c's
+  beside the other kinds, which must be two. What the `!` patterns leave out is now counted by the place a
+  draw is written: the owner of a strategy built once in a cached function is the first caller on a worker, so
+  the sites it made, and with them the counts, varied with how the tests were split among the recording's
+  workers (S3c's 151, 160 and 165 sites at 2, 4 and 8 workers), where the places and what is drawn at them do
+  not. The pull-request run is advisory (maintainer, 2026-10-25): it
+  blocks no merge, until it has run cleanly on a few feature pull requests. `measure.yml` leaves the
+  concurrency queue at GitHub's default, since `queue: max` beside a pull request's cancelling run is a
+  workflow validation error (a pending dispatch of the same inputs on the same ref is replaced by a newer one).
+  The draw-time ownership the maintainer ruled on 2026-10-24 follows as a piece of its own,
   before the whole-repository run.
 
 ## [0.1.0.dev3] - 2026-10-22

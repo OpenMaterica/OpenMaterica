@@ -173,8 +173,9 @@ kind, `floors`, `drift`, `regions`, `fuzz` or `cuts`; the selection, paths or no
 controls by name, or for cuts `all` or selections of the input coverage's baseline, each as `NAME:whole` to
 run the cuts its `!` patterns leave out too; the count, streams or runs (the rule's: 20, 40, 18 and 10; none for
 cuts); the streams a job (none for cuts); the base, for regions; and the Python. A selection's cuts are split
-into slices by its baseline's `timing` (its cuts and its longest cut measured), each slice's cuts planned to
-fill half its job's 120 minutes at two at once, the rest left to the selection's recording and a slower runner.
+into slices by its baseline's `timing` (its cuts and its longest cut measured on CI), each slice's cuts planned
+to fill half its job's 120 minutes at two at once, the rest left to the selection's recording and a slower
+runner.
 
 It also runs on a pull request that changes `measure.yml`, `scripts/measure.py`, `scripts/input_coverage.py` or
 a file under `tests/`. There the request reads the pull request's base and head from the event and the files
@@ -184,15 +185,18 @@ answer it must give: stream 0 the recorded kill, a tree against itself every sha
 record, the fastest fuzz control finding its fault and finding nothing with none seeded, and the cuts of one
 site of S3c's each with the baseline's result (GitHub dispatches a workflow only from the default branch's copy
 of it, so a draft would otherwise never run its own). Where it changes a test a selection of the input coverage
-runs, every cut of that selection; where it changes a module that the selection's tests import, the cuts of the
-sites whose names hold that module (maintainer, 2026-10-24); each held to the baseline at the pull request's
-merge commit, a cut that disagrees failing the report. A pull request that changes none of these makes no job
-but the request (14 to 17 s in the workflow's three runs of 2026-10-24), and the run ends there. A newer push
-cancels a pull request's running measurement.
+runs (or `tests/conftest.py` or `tests/property/conftest.py`, the Hypothesis profiles, or its entry of the
+baseline, against the base's), every cut of that selection; where it changes a module that the selection's tests
+import, the cuts of the sites whose names hold that module (maintainer, 2026-10-24), in slices planned from the
+cuts that scope holds, which the request job counts from the selection's recording (none where it holds none: a
+notice names the module); each held to the baseline at the pull request's merge commit, a cut that disagrees
+failing the report. The run is advisory (maintainer, 2026-10-25): no branch protection requires it, until it has
+run cleanly on a few feature pull requests. A pull request that changes none of these makes no job but the
+request. A newer push cancels a pull request's running measurement.
 
 | Job | Runs | When |
 |---|---|---|
-| `request` | checks the inputs (`scripts/measure.py request`, on the runner's Python), or on a pull request its base and head, and writes them, checked, as its outputs; collects the selection at `ci` and makes the matrix, one job a test function and chunk of streams (for regions a job of each side, and one of every mutant search at the head), a fuzz control's run or a slice of a selection's cuts, and resolves the base to its commit (`measure.py matrix`), so that a selection holding nothing to measure, a base that is no commit or more jobs than a matrix holds fails before any job starts; on a pull request, the self-test and the cuts of what it changes, or no job; then checks the jobs' cap, `MEASURE_MAX_PARALLEL` (below) | every dispatch, and a pull request that changes the workflow, its scripts or the tests |
+| `request` | checks the inputs (`scripts/measure.py request`, on the runner's Python), or on a pull request its base and head, and writes them, checked, as its outputs; collects the selection at `ci` and makes the matrix, one job a test function and chunk of streams (for regions a job of each side, and one of every mutant search at the head), a fuzz control's run or a slice of a selection's cuts, and resolves the base to its commit (`measure.py matrix`), so that a selection holding nothing to measure, a base that is no commit or more jobs than a matrix holds fails before any job starts; on a pull request, the self-test and the cuts of what it changes (a scope's cuts counted from the recording), or no job; then checks the jobs' cap, `MEASURE_MAX_PARALLEL` (below) | every dispatch, and a pull request that changes the workflow, its scripts or the tests |
 | `measure` | each job of the matrix: the job checked again, then run (`measure.py job`): a base exported with `git archive` into an environment of its own; pytest with the script as its plugin, a process per vCPU, each a share of the streams, the property's checks run and its audit's judgement left to the report; every mutant search at the head as `gen_kill_counts.py --measure` runs them; one run of a fuzz control as `ci.yml`'s control step runs it, on Python 3.14 with Atheris; or a slice of a selection's cuts, `scripts/input_coverage.py run` recording the selection then running the slice two cuts at once, no cut started once the rest of its time would not hold one and a half of its longest cut. Interrupted three minutes before its timeout (120 minutes, 30 for a fuzz run), counted from the job's start, by one SIGINT the script passes on to its processes, so that the record keeps what finished; its record kept 90 days as the artifact `record-<job>-<attempt>`; fails where its record holds a problem (for a cut job: the selection failing with no cut, a cut of its slice not run in its time) | after `request`, where it made a job, at most `MEASURE_MAX_PARALLEL` at once (`max-parallel`), 10 where it is unset (below), none cancelled by another's failure (`fail-fast: false`) |
 | `report` | counts the records first (`measure.py summary`), one for each job of the matrix, naming a missing one as that, then merges them into one table a kind with its flags, on the run's page and kept 90 days as the artifact `measure-table-<attempt>` (`table.md`); fails where a record is missing or doubled, a record holds a problem, a job did not succeed, a self-test job gave another answer than its own, a selection's slices do not make one report (one missing or doubled, or one recording other cuts), a pull request's or the self-test's cuts disagree with the baseline, or the run is on an attempt but its first. A flag (a floor above 1e-6 at the variance measured and the least share, a kill near or past the guard, a share below 0.8 of the base's, a dispatched cut that disagrees with the baseline) is a finding the table reports, not a failure | after the jobs, whatever their result, once the request was checked and made a job |
 

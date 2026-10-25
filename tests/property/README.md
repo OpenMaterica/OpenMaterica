@@ -2031,16 +2031,20 @@ report keeps, and a `not held` says that no test needed the value in that run.
 On CI the cuts run as `measure.yml`'s cut kind (maintainer, 2026-10-23 and 2026-10-24; `tests/README.md`,
 "Measurements on CI"). A dispatch names selections of the baseline, or `all`, each as `NAME:whole` to run the
 cuts its `!` patterns leave out too, and the request job splits each selection's cuts into slices of about
-equal time by the baseline's `timing`: the cuts the selection makes and its longest cut measured (on two
-workers a cut, four cuts at once, run locally), so that a slice's cuts fill at most half of its
+planned time by the baseline's `timing`: the cuts the selection makes and its longest cut measured (on two
+workers a cut, two cuts at once, in the first dispatch on CI), so that a slice's cuts fill at most half of its
 job's 120 minutes at two at once, the rest left to the selection's recording and a slower runner. Each job
 records the selection and runs its slice (`--slice K/N`); the report merges the slices into the selection's
 report, each slice there once and every slice recording the same cuts, and holds it to the baseline, a
 disagreement a flag. `measure.py fetch RUN --out DIR` downloads the records, and `input_coverage.py check NAME
---records DIR` holds them to the baseline here. On a pull request that changes a test a selection runs, every
-cut of that selection runs; on one that changes a module the selection's tests import, the cuts of the sites
-whose names hold that module (`--scope`); each is held to the baseline, and a disagreement fails the run. A
-change to the plugin or the runner runs the self-test, the cuts of one site of S3c's. A scoped run does not see
+--records DIR` holds them to the baseline here. On a pull request that changes a test a selection runs (or the
+Hypothesis profiles, `tests/conftest.py` and `tests/property/conftest.py`, or the selection's entry of the
+baseline), every cut of that selection runs; on one that changes a module the selection's tests import, the
+cuts of the sites whose names hold that module (`--scope`), in slices planned from the cuts that scope holds,
+none where it holds none (a notice names the module); each is held to the baseline, and a disagreement fails
+the run's report, which blocks no merge (the run is advisory, maintainer, 2026-10-25). A job reports the cuts
+its share held and the table prints them per selection ("0 in scope: nothing checked"). A change to the
+plugin or the runner runs the self-test, the two cuts of one site of S3c's. A scoped run does not see
 what a change does to the cuts of sites that do not name the module changed (a derandomized run draws
 differently after a draw that changed), which the whole-repository run, made now and then, does (maintainer,
 2026-10-24).
@@ -2061,7 +2065,8 @@ tests and cannot be listed), and every draw it cannot cut, with a person's note.
 held, or an uncut draw, that the baseline does not list, and on an entry whose cut is now held or no longer
 made: an entry cannot outlive its gap, and nothing turns the check off. What the `!` patterns leave out of what
 an earlier pattern took is recorded too, under `left_out`: its sites with a cut, its cuts and its uncut draws,
-counted, and why it is left out; `list` and `check` print the counts, and `check` fails when they differ, so
+counted by the place a draw is written (an owner of a cached strategy is the first caller on a worker, so the
+owners vary with how the tests are split among workers, the places do not; a second call of a place that its owner already draws from is not counted again), and why it is left out; `list` and `check` print the counts, and `check` fails when they differ, so
 that a new draw of a selection's own through a module it leaves out is not dropped unseen. Each test module
 that imports a module whose sites a selection holds is named by the selection (whole or in part) or excused
 with a reason under `excused` (`tests/unit/test_input_coverage.py` fails on one that is neither); a test that
