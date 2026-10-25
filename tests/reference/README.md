@@ -499,16 +499,16 @@ the maintainer: an engine value without `reason` or `basis` is one refusal, BC-0
 the sampling suite the build fails closed, where clause 3 would otherwise refuse; a sampled requirement with no
 `sampling` block under that claim gives no verdict, not BC-044.
 
-**Agreement with the cases.** `test_cases.py` runs every build-check file, 113 (56 of S7a-1's and 57 of
+**Agreement with the cases.** `test_cases.py` runs every build-check file, 114 (56 of S7a-1's and 58 of
 S7a-2's), under each of the 32 build configurations (build checks and plain read, beside any of the hash, the
-fits and reference data suite, the scene suite, USD read and the sampling suite) that its claims allow: XXRUNS
+fits and reference data suite, the scene suite, USD read and the sampling suite) that its claims allow: 3,432
 runs. The model agrees with every one of S7a-1's 56 files (1,592 runs), none listed; S7a-2's 58, which pass
-their own check, it hands to the results model, which agrees with each (XXRUNS2 runs, "The build's results
+their own check, it hands to the results model, which agrees with each (1,840 runs, "The build's results
 model", below). They disagree with none (measured 2026-10-25 on this branch, at `main`'s `60642b3c`). Until
 then this model gave no verdict on S7a-2's files, each listed under `past_the_declaration`. No file separates the
 configurations but by a label no file compares: each of the 114 gives one answer under all those its claims
-allow, but for `hash_not_checked`, which the results of XXHNC of S7a-2's files hold where the hash is not claimed
-(measured 2026-10-25), so the XXRUNS runs repeat 114 answers. The sweep is design for HP41's declarations,
+allow, but for `hash_not_checked`, which the results of 53 of S7a-2's files hold where the hash is not claimed
+(measured 2026-10-25), so the 3,432 runs repeat 114 answers. The sweep is design for HP41's declarations,
 which hold a member a suite checks; it is no evidence on these files. What a claimed
 suite gives, no verdict whatever else the declaration holds, is held by the direct checks (`direct.py`), not
 by a file.
@@ -709,13 +709,11 @@ fails; its controls rewrite a phrasing, drop `not_reviewed` from its row (the S7
 mutant), change a status, drop a row's condition, add a row and cut a qualifier, and each is found. When
 `coverage.json` exists, a test holds it to the model's table: the file names every reason the table lists (the
 least that can be said before the generated file's shape is known; S7a-2b's generator and row-by-row
-comparison replace it), and a build whose acceptance module exists without the file fails, never skips. One
-departure is allowed: `condition_unknown_name` leaves the first row, by the maintainer's ruling of 2026-10-24,
-whose words #96 lands; it is unobservable, since no waiver that passes the declaration's own check names the
-unregistered condition such a reason carries. The allowance filters the text's first row only while the text
-still lists the code there: once #96's words are on `main` the check fails, saying to delete
-`RULED_OUT_OF_THE_FIRST_ROW`, and a control shows that without the allowance today's text differs from the
-model's row, so that the code put back in the model's row is never hidden by it.
+comparison replace it), and a build whose acceptance module exists without the file fails, never skips; its
+controls miss the first, the last and several reasons, and write the codes as list values and as keys. `main` has
+no `coverage.json` yet (S7a-2b brings it), so the file's check runs on none today. The first row lists three codes
+and not `condition_unknown_name`, which the text says section 4.2 never accepts (`declarations.md:396-397`), and a
+control shows the model's row listing it again is found.
 
 Where the text leaves a point open, the model takes the maintainer's ruling where there is one, else the
 reading it states, and gives `NoVerdict` where it cannot decide, each point listed once in its `OPEN_POINTS` and
@@ -725,29 +723,32 @@ named where it is applied:
 |---|---|
 | `label_of_no_stored_value` | a result resting on no stored value is checked against no label; a refusal at step 0 is told by a read of the same request over no records, which gives `absent` exactly where step 0 passes, and one at steps 1 to 6 by a reason only those steps give, or `absent` |
 | `alternative_a_result_rests_on` | a result over alternatives rests on one exactly where it holds `conditions`; the alternative its reasons name, or, where none names one, any where every alternative stores the same label, else no verdict |
-| `condition_unknown_name_never_covered` | covered by nothing (the maintainer's ruling of 2026-10-24; `main`'s first row lists it until #96's words land) |
+| `implied_applied_by_the_value_shown` | an implied condition filled a condition where the entry shows the value it supplies, with basis `implied` (`declarations.md:293-294`, which states no condition on the specimen), whether or not the field's specimen states its fact and token; the row for supplying (`declarations.md:359`, "on fields whose specimen states that fact and token") and the read side's ("its specimen states each one's fact and token") do, and the two readings differ only for an implied condition whose token the specimen does not state, beside one that supplies the same value |
 | `record_a_read_resolved` | a record a read resolved is the one step 1 found, pinned by `id`, `version` and `content_hash` among the sources (one, or several of identical bytes) on a read that passed step 0, whether or not steps 2 to 5 then refuse it; the text says "resolved" and names no step |
 
 **Agreement with the cases.** With the declaration's own check, the build's models agree with every one of the
-108 build-check files under each of the build configurations its claims allow (3,272 runs), none listed:
-S7a-1's 51 (1,464 runs) and S7a-2's 57 (1,808 runs), and disagree with none (measured 2026-10-25 on this
-branch). `BUILD_EXCEPTIONS` is empty; until this piece it listed S7a-2's 57 under `past_the_declaration`. The
+114 build-check files under each of the build configurations its claims allow (3,432 runs), none listed:
+S7a-1's 56 (1,592 runs) and S7a-2's 58 (1,840 runs), and disagree with none (measured 2026-10-25 on this
+branch). `BUILD_EXCEPTIONS` is empty; until this piece it listed S7a-2's 58 under `past_the_declaration`. The
 comparison is the specification's README's for a build-check case (`cases.py`): results as a set keyed by
 model, location and field, both ways, each result's members as a read result's are, `accepted_by` as a set,
 `not_accepted` as a multiset, and `unused` as a set; its controls (`test_cases.py`) find a result missing,
 given twice or of another model, and an `accepted`, `accepted_by`, `not_accepted`, `value`, `reasons` or
 `unused` that differs.
 
-**The direct checks.** `results_direct.py` holds 40 declarations, most a build-check file's with one thing
+**The direct checks.** `results_direct.py` holds 45 declarations, most a build-check file's with one thing
 changed (a stored record changed in memory where the check needs it, a second source beside it, or a stand-in
 for the read model's read), read over the suite's fixtures, each with the answer the text gives, for what no
 file pins: R05 (`not_reviewed` beside a read's `not_met` that carries a value), a nominal at another record or
 for another field neither given nor applied, an extrapolation given beside the nominal a read applied, two
-implied conditions that agree, one whose token the specimen does not state (applied too: the text adds no
-condition on the specimen) and one naming two conditions, no `label_mismatch` past step 0's `want_mismatch`
+implied conditions that agree, one whose token the specimen does not state (applied too: read from
+`declarations.md:293-294`, which states no condition on the specimen, beside the row for supplying, which does:
+the open point `implied_applied_by_the_value_shown`), one naming two conditions, and implied values of `0` and
+`-0` (which differ, bit for bit, as `read_side_contract.md:110-112` says; the same zeros agree, the control), no `label_mismatch` past step 0's `want_mismatch`
 or `request_incomplete` or past a record refused at steps 2 to 5 (`other_version`, `malformed`,
 `unknown_type`), a label that differs in case alone, the one alternative left checked against its own label,
-and, among labels that differ, left unnamed (no verdict), no `not_reviewed` under `no_pick`, the verdict over
+and, among labels that differ, left unnamed (no verdict, but decided where no label is required, and
+`label_mismatch` where every alternative lacks the label required), no `not_reviewed` under `no_pick`, the verdict over
 two models in either order, acceptances and models permuted, the report's `records` (a record listed once for
 two models, none for a read refused at step 0, a pin no source holds or two sources of different bytes hold,
 and the record refused at steps 2 to 5, listed), a waiver resting on a label (no verdict where it would cover,
@@ -760,12 +761,11 @@ the first model and in the second.
 per rule, among them each of the S7 design's HP43 to HP46 lists (6.5's table) the model holds, under R01 to
 R07 the faults of the case writer's build. The label-trust faults of those lists (`_trusted`, `_label_rests`)
 wait for label trust. Each runs against every build-check file and, failing those, the direct checks; a fault
-that makes the model raise fails its check (its control: the judgement replaced by a function raising). 75 are
-killed, 45 by a case file and 30 by a direct check alone (R05 among them, which no case file catches), and 4
-survive, each with why beside it in `results_mutants.py`: three are faults no declaration that passes its own
-check can show, and one (`results_numbers_compared_by_equality`) is a comparison of a signed zero that the
-text does not settle, for S7a-2p and the maintainer. Measured over every build-check file, 2026-10-25: none
-makes the model raise, and 11 die to one case file alone. The table says only whether a fault is killed or
+that makes the model raise fails its check (its control: the judgement replaced by a function raising). 76 are
+killed, 47 by a case file and 29 by a direct check alone (R05 among them, which no case file catches;
+`results_numbers_compared_by_equality` too, by the two checks of a signed zero), and 3 survive, each with why
+beside it in `results_mutants.py`: faults no declaration that passes its own check can show. Measured over
+every build-check file, 2026-10-25: none makes the model raise, and 13 die to one case file alone. The table says only whether a fault is killed or
 survives; a test holds it to `results_mutants.py`.
 
 | Mutant | Fault | Outcome |
@@ -796,7 +796,7 @@ survives; a test holds it to `results_mutants.py`.
 | `results_given_counted_applied` | every acceptance given counted applied (an implied condition that filled nothing, an extrapolation at an `at_edge` read) | killed |
 | `results_implied_applied_only_where_the_specimen_states_it` | an implied condition that filled a condition counted applied only where the field's specimen states its fact and token | killed |
 | `results_implied_value_of_the_first_entry_supplied` | an implied condition's value taken from its first `implies` entry, whatever the condition an entry names | killed |
-| `results_numbers_compared_by_equality` | JSON compared by `==`, so that an implied condition supplying `-0` fills a condition showing `0` | survives |
+| `results_numbers_compared_by_equality` | JSON compared by `==`, so that an implied condition supplying `-0` fills a condition showing `0` | killed |
 | `results_extrapolation_applied_under_any_assumption` | a given extrapolation counted applied whenever the result rests on an `assumption`, a nominal's too | killed |
 | `results_implied_filled_whatever_the_basis` | an implied condition counted applied where an entry holds its value with a basis other than `implied` | killed |
 | `results_first_implied_only` | of two implied conditions that agree, the first alone counted applied | killed |
@@ -858,6 +858,6 @@ uv run pytest tests/reference -n 6
 
 The whole directory runs in about a minute and a half on eight workers (57 s, 2026-10-22; 61 s with the
 build's model, 2026-10-24; 64 s with its direct checks and 100 faults, 69 s with 104, 2026-10-24; 66 s with 114,
-2026-10-25; XXTIME with the results model, its direct checks and 63 faults, with S7a-2's files read past the
+2026-10-25; 94 s with the results model, its direct checks and 79 faults, with S7a-2's files read past the
 declaration, on a machine shared with other sessions, 2026-10-25), the mutant searches most of it: a survivor's
 search reads every case file under every configuration it allows, about 6 s alone.

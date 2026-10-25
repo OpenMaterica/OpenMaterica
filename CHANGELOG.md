@@ -275,7 +275,7 @@ every family entry goes in `families/CHANGELOG.md`.
   claimed suite checks; item 7's BC-040 it places where the declaration decides it, one refusal a model at its
   `engine`, and names without placing where it does not. `tests/reference/test_cases.py` runs every
   build-check file through it under every configuration of build claims its claims allow: it agrees with each
-  of S7a-1's 56 files, and gives no verdict on S7a-2's 57, listed in `exceptions.py`. 114 seeded faults, the
+  of S7a-1's 56 files, and hands S7a-2's 58, which pass it, to the results model below. 114 seeded faults, the
   hand mutants of the model's rules, 84 killed (50 by the files, 34 by its direct checks) and 30 listed as
   survivors for HP41 and HP42 to kill; its citations, its layering and its token lists
   against the vocabulary are held as the read model's are, and its shape table and token lists against the
@@ -295,13 +295,14 @@ every family entry goes in `families/CHANGELOG.md`.
   target naming a fact, combinations, a `trainable` entry and the watches (S7a-3, S7a-4), and for the rows of
   section 4.2 a pick or an overlay alone reaches (S7c). `build_model.py` hands it a declaration that passes its
   own check. `tests/reference/test_cases.py` compares a build's results as the specification's README says: the
-  models agree with every one of the 108 build-check files, S7a-2's 57 included, under every configuration of
+  models agree with every one of the 114 build-check files, S7a-2's 58 included, under every configuration of
   build claims each allows, and none is listed. Its table of section 4.2 is held to the table parsed from the
   text, since `main` has no `coverage.json` yet, and to `coverage.json` once the file exists (a build whose
-  acceptance module exists without it fails); 40 direct checks hold what no file pins; 79 seeded faults, 75
-  killed (45 by the files, 30 by the direct checks) and 4 listed as survivors; its citations and layering are
-  held as the other models' are. Four open points, each listed once: one the maintainer's ruling, two the
-  model's readings of the text, and one that gives no verdict where it cannot decide.
+  acceptance module exists without it fails); 45 direct checks hold what no file pins; 79 seeded faults, 76
+  killed (47 by the files, 29 by the direct checks) and 3 listed as survivors; its citations and layering are
+  held as the other models' are. Four open points, each listed once: three the model's readings of the text
+  (one of them, an implied condition applied by the value an entry shows, where the text's two sentences on an
+  implied condition differ), and one that gives no verdict where it cannot decide.
 - The measurements a property piece makes before review run on CI as a matrix (maintainer, 2026-10-23), with
   the counts and judgement of a local run: `scripts/measure.py` (floors at the variance measured, at the mean and the least share, kill drift over
   streams, regions of a base against the head with every mutant search's kill, a fuzz control's rate), run alike
