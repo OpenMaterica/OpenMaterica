@@ -13,7 +13,9 @@ share.
   each site the `--sites` patterns take with its cuts, and each draw it cannot cut: a pattern is `fnmatch` on
   a site's name, one beginning with `!` leaves out what it matches, and the last pattern that matches decides.
   It ends with the count of the sites, cuts and uncut draws that the `!` patterns left out of what an earlier
-  pattern took.
+  pattern took, counted by the place a draw is written (`left_out_by_place`): the owner of a strategy built
+  once in a cached function is the first caller on a worker, so the owners a place has, and the sites that
+  make, depend on how the tests are split among the workers; the places and what is drawn at them do not.
 - `run` does the same, then runs each cut as its own process, `--parallel` at a time, stopping at the first
   test that fails (the plugin stops pytest; this script ends the process group at once), and records each
   cut's result in the report (`--report`, JSON, written after each cut): `held` (the first test that failed,
@@ -160,6 +162,36 @@ def judged(site: str, patterns: Sequence[str]) -> str:
     return judgment
 
 
+def absorbed(into: Json, seen: Json) -> None:
+    """What a site's calls drew from, added to `into`'s (the sum of the processes', or of the places')."""
+    into["contexts"] = sorted(set(into["contexts"]) | set(seen["contexts"]))
+    into["calls"] += seen["calls"]
+    for table in ("keys", "lone", "ends", "sizes"):
+        for key, count in seen[table].items():
+            into[table][key] = into[table].get(key, 0) + count
+
+
+def blank(kind: str) -> Json:
+    return {"kind": kind, "contexts": [], "calls": 0, "keys": {}, "lone": {}, "ends": {}, "sizes": {}}
+
+
+def left_out_by_place(sites: dict[str, Json], patterns: Sequence[str]) -> dict[str, int]:
+    """What the `!` patterns leave out, counted by the place a draw is written: each place with what every
+    owner's calls of it drew from. The owners a place has vary with the schedule of the tests, the places and
+    what is drawn at them do not."""
+    leaving: dict[str, Json] = {}
+    for site, seen in sorted(sites.items()):
+        if judged(site, patterns) == LEFT_OUT_BY_A_PATTERN:
+            absorbed(leaving.setdefault(place_of(site), blank(seen["kind"])), seen)
+    counts: dict[str, int] = dict.fromkeys(LEFT_OUT, 0)
+    for place, seen in leaving.items():
+        cuts, uncut = cuts_of(place, seen)
+        counts["sites"] += bool(cuts)
+        counts["cuts"] += len(cuts)
+        counts["uncut"] += uncut is not None
+    return counts
+
+
 def merged(out: Path) -> tuple[dict[str, Json], list[str]]:
     """The sites every process of a run recorded, their counts summed, and the calls of plain `random`."""
     sites: dict[str, Json] = {}
@@ -168,24 +200,16 @@ def merged(out: Path) -> tuple[dict[str, Json], list[str]]:
         recorded = json.loads(path.read_text(encoding="utf-8"))
         randoms.update(recorded["random"])
         for site, seen in recorded["sites"].items():
-            into = sites.setdefault(
-                site,
-                {
-                    "kind": seen["kind"],
-                    "contexts": [],
-                    "calls": 0,
-                    "keys": {},
-                    "lone": {},
-                    "ends": {},
-                    "sizes": {},
-                },
-            )
-            into["contexts"] = sorted(set(into["contexts"]) | set(seen["contexts"]))
-            into["calls"] += seen["calls"]
-            for table in ("keys", "lone", "ends", "sizes"):
-                for key, count in seen[table].items():
-                    into[table][key] = into[table].get(key, 0) + count
+            absorbed(sites.setdefault(site, blank(seen["kind"])), seen)
     return sites, sorted(randoms)
+
+
+def place_of(site: str) -> str:
+    """Where a site's constructor is written, without the owner and the call it is made through
+    (`owner > call > place`): the owner of a strategy built once in a cached function is the first caller in
+    the process, so the owners a place has depend on how the tests are split among the workers, and the place
+    does not."""
+    return site.rpartition(" > ")[2]
 
 
 def pytest_command(tests: Sequence[str], out: Path, workers: int, cut: Json | None) -> list[str]:
@@ -316,15 +340,10 @@ def recorded(args: argparse.Namespace, selection: Json, report: Json) -> bool:
         sites, randoms = merged(out)
     report["record_seconds"] = round(seconds, 1)
     report["sites"], report["uncut"], report["cuts"] = {}, {}, {}
-    left_out = report["left_out"] = dict.fromkeys(LEFT_OUT, 0)
+    left_out = report["left_out"] = left_out_by_place(sites, selection["sites"])
     for site, seen in sorted(sites.items()):
         cuts, uncut = cuts_of(site, seen)
-        judgment = judged(site, selection["sites"])
-        if judgment == LEFT_OUT_BY_A_PATTERN:
-            left_out["sites"] += bool(cuts)
-            left_out["cuts"] += len(cuts)
-            left_out["uncut"] += uncut is not None
-        if judgment != TAKEN:
+        if judged(site, selection["sites"]) != TAKEN:
             continue
         if uncut is not None:
             report["uncut"][site] = uncut
@@ -681,10 +700,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     for problem in found:
         print(problem)
     print(summary(report))
-    timed: int | None = entry.get("timing", {}).get("cuts")
-    if timed is not None and not args.whole and timed != len(report["cuts"]):
-        # Not a failure: the count sizes the cut kind's slices (`scripts/measure.py`) and nothing else.
-        print(f"the baseline's timing counts {timed} cuts, and the selection makes {len(report['cuts'])}")
+    # Not failures: the timing sizes the cut kind's slices and its start margin (`scripts/measure.py`) and
+    # nothing else, and it is a declaration until a run of the cuts observes it.
+    timing: Json = entry.get("timing", {})
+    made = len(report["cuts"])
+    if timing.get("cuts") is not None and not args.whole and timing["cuts"] != made:
+        print(f"the baseline's timing counts {timing['cuts']} cuts, and the selection makes {made}")
+    slowest = max((cut.get("seconds", 0.0) for cut in report["cuts"].values()), default=0.0)
+    if timing.get("seconds") is not None and slowest > timing["seconds"]:
+        print(f"a cut took {slowest} s, longer than the {timing['seconds']} s the baseline's timing plans on")
     return 1 if found else 0
 
 

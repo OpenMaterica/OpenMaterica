@@ -12,6 +12,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -436,6 +437,10 @@ def numbers():
 
 def words():
     return st.text(max_size=3)
+
+
+def flags():
+    return st.booleans()
 """
 )
 # A strategy that draws its own value and one from `lower`, a module its selection leaves out; a second test
@@ -487,8 +492,14 @@ def test_what_the_patterns_leave_out_is_in_the_baseline_and_a_new_draw_through_i
     baseline = {**LEAVING_OUT, "left_out": {**OWN_LEFT, "reason": "temporary"}}
     status, _, output = check(root, "check", "test_own.py", baseline, report="first.json")
     assert status == 0, output
-    # A new draw of the strategy's own through `lower` is left out too, and is not dropped unseen.
-    source = OWN.replace("draw(lower.numbers())", "draw(lower.numbers()), draw(lower.numbers())")
+    # What the counts do not see: another call of a place the strategy already draws from (counted by place).
+    again = OWN.replace("draw(lower.numbers())", "draw(lower.numbers()), draw(lower.numbers())")
+    (root / "tests" / "test_own.py").write_text(again, encoding="utf-8")
+    _, report, _ = check(root, "list", "test_own.py", baseline, report="again.json")
+    assert report["left_out"] == OWN_LEFT
+    # A new draw of the strategy's own through another place of `lower` is left out too, and is not dropped
+    # unseen.
+    source = OWN.replace("draw(lower.words())", "draw(lower.words()), draw(lower.flags())")
     (root / "tests" / "test_own.py").write_text(source, encoding="utf-8")
     status, report, output = check(root, "run", "test_own.py", baseline, report="second.json")
     assert report["left_out"] == {"sites": 2, "cuts": 4, "uncut": 1}
@@ -1268,6 +1279,119 @@ def test_a_selection_that_fails_with_no_cut_is_refused_and_its_failure_printed(
         completed.stdout
     )
     assert not (root / "again.json").exists()
+
+
+def seen_at(kind: str, keys: Sequence[str]) -> dict[str, Any]:
+    return {
+        "kind": kind,
+        "contexts": [],
+        "calls": 1,
+        "keys": dict.fromkeys(keys, 1),
+        "lone": {},
+        "ends": {},
+        "sizes": {},
+    }
+
+
+def test_what_the_patterns_leave_out_is_counted_by_place_whatever_owners_the_schedule_gave_the_draws() -> (
+    None
+):
+    """The owner of a strategy built once in a cached function is the first caller on the worker, so which
+    owners a place has depends on how the tests are split among the workers (the counts of 151, 160 and 165
+    left-out sites that S3c's recording gave at 2, 4 and 8 workers): a place is one site however many owners
+    it has, and it has the values every owner's calls drew from."""
+    numbers = "tests/lower.py::numbers::st.sampled_from([1, 2, 3])"
+    flags = "tests/lower.py::flags::st.booleans()"
+    patterns = ["tests/*", "!* > tests/lower.py::*"]
+
+    def owned(*owners: tuple[str, str, Sequence[str]]) -> dict[str, dict[str, Any]]:
+        kinds = {numbers: "sampled_from", flags: "booleans"}
+        return {
+            f"tests/{owner}.py::{owner} > call > {place}": seen_at(kinds[place], keys)
+            for owner, place, keys in owners
+        }
+
+    one_owner = owned(("a", numbers, ["1", "2", "3"]), ("a", flags, ["True", "False"]))
+    two_owners = owned(
+        ("a", numbers, ["1", "2"]), ("b", numbers, ["2", "3"]), ("a", flags, ["True", "False"])
+    )
+    three_owners = owned(
+        ("c", numbers, ["3"]), ("b", numbers, ["1", "2"]), ("a", flags, ["False"]), ("d", flags, ["True"])
+    )
+    counted = {"sites": 2, "cuts": 3 + 2, "uncut": 0}
+    for sites in (one_owner, two_owners, three_owners):
+        assert input_coverage.left_out_by_place(sites, patterns) == counted
+    # A place not left out is not counted, and one with an owner of the selection's own is taken, so it is
+    # not left out either.
+    taken = {f"tests/a.py::own > call > {numbers}": seen_at("sampled_from", ["1", "2", "3"])}
+    assert input_coverage.left_out_by_place(taken, ["tests/*"]) == dict.fromkeys(input_coverage.LEFT_OUT, 0)
+    alone = {numbers: seen_at("sampled_from", ["1", "2", "3"])}
+    assert input_coverage.left_out_by_place(alone, patterns) == dict.fromkeys(input_coverage.LEFT_OUT, 0)
+    # A place whose values together are too many to cut is one uncut draw, though no owner saw more than 15.
+    many = [str(number) for number in range(input_coverage.MOST_VALUES + 1)]
+    wide = owned(("a", numbers, many[:15]), ("b", numbers, many[10:]))
+    assert input_coverage.left_out_by_place(wide, patterns) == {"sites": 0, "cuts": 0, "uncut": 1}
+
+
+@pytest.mark.parametrize(("budget", "started"), [(1.0, 0), (100.0, 2)])
+def test_the_budget_counts_from_the_commands_start_so_the_recording_spends_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, budget: float, started: int
+) -> None:
+    ran: list[str] = []
+
+    def slow_recording(args: Any, selection: Any, report: dict[str, Any]) -> bool:
+        time.sleep(1.5)
+        report.update(
+            sites={"s": {}},
+            cuts={f"s :: {key}": {"site_id": "s", "change": "drop", "key": key} for key in ("a", "b")},
+            uncut={},
+            left_out=dict.fromkeys(input_coverage.LEFT_OUT, 0),
+        )
+        return True
+
+    def run_cut(args: Any, selection: Any, cut: dict[str, Any]) -> dict[str, Any]:
+        ran.append(cut["key"])
+        return {"result": "held", "test": "t", "message": "m", "seconds": 0.1, "effects": {}}
+
+    monkeypatch.setattr(input_coverage, "recorded", slow_recording)
+    monkeypatch.setattr(input_coverage, "run_cut", run_cut)
+    (tmp_path / "baseline.json").write_text(
+        json.dumps({"fixture": {"tests": ["tests/a.py"], "sites": ["*"]}}), encoding="utf-8"
+    )
+    arguments = ["run", "fixture", "--baseline", str(tmp_path / "baseline.json"), "--budget", str(budget)]
+    status = input_coverage.main([*arguments, "--report", str(tmp_path / "report.json")])
+    assert len(ran) == started
+    # No cut started before the recording spent the budget: the cuts are left (2), where it was not spent the
+    # run goes on to check, and the baseline lists no cut, so each held cut is no finding.
+    assert status == (2 if started == 0 else 0)
+
+
+@pytest.mark.parametrize(("seconds", "noted"), [(150.0, True), (100.0, False), (50.0, False)])
+def test_a_cut_longer_than_the_baselines_timing_is_noted_without_failing_the_check(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], seconds: float, noted: bool
+) -> None:
+    entry: dict[str, Any] = {
+        "tests": ["tests/a.py"],
+        "sites": ["*"],
+        "timing": {"cuts": 1, "seconds": 100.0, "measured": "a fixture"},
+        "left_out": {"reason": "nothing is left out"},
+    }
+    (tmp_path / "baseline.json").write_text(json.dumps({"fixture": entry}), encoding="utf-8")
+    cut = {"site_id": "s", "change": "drop", "key": "a", "result": "held", "test": "t", "seconds": seconds}
+    report: dict[str, Any] = {
+        "selection": {"name": "fixture", "tests": entry["tests"], "sites": entry["sites"]},
+        "profile": "ci",
+        "share": {"scope": None, "slice": None},
+        "sites": {"s": {}},
+        "cuts": {"s :: a": cut},
+        "uncut": {},
+        "left_out": {"sites": 0, "cuts": 0, "uncut": 0},
+    }
+    (tmp_path / "report.json").write_text(json.dumps(report), encoding="utf-8")
+    arguments = ["check", "fixture", "--baseline", str(tmp_path / "baseline.json")]
+    assert input_coverage.main([*arguments, "--report", str(tmp_path / "report.json")]) == 0
+    said = capsys.readouterr().out
+    assert ("a cut took 150.0 s, longer than the 100.0 s the baseline's timing plans on" in said) == noted
 
 
 def test_a_report_of_another_selection_or_profile_is_refused(tmp_path: Path) -> None:
