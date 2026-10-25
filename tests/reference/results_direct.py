@@ -10,13 +10,15 @@ that a fault only a direct check tells apart is a kill, and a rule neither pins 
 import copy
 import json
 from collections import Counter
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
+from contextlib import ExitStack
 from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
 from typing import Final
+from unittest import mock
 
-from tests.reference import build_model, build_results_model
+from tests.reference import build_model, build_results_model, read_model
 from tests.reference.read_model import NoVerdict
 from tests.reference.strict_json import JsonObject, JsonValue, parse
 
@@ -40,6 +42,7 @@ IN_VIVO_UNSTATED: Final = "water_in_vivo_temperature_unstated.json"
 TWO_ALTERNATIVES: Final = "water_two_constant_alternatives.json"
 LABEL_MISSING: Final = "water_label_missing.json"
 DENSITY_TABLE: Final = "density_table.json"
+LINEAR: Final = "water_linear_label_on_viscosity.json"
 
 
 @cache
@@ -99,6 +102,32 @@ class Expected:
     members: Mapping[str, JsonValue]
 
 
+_READ: Final = read_model.read
+
+
+def no_verdict_on_a_read_over_records(
+    request: JsonObject, sources: Sequence[bytes], claims: frozenset[str]
+) -> JsonObject | NoVerdict:
+    """A stand-in read model that gives no verdict on a read over records: no build-check fixture reaches the
+    read model's own no verdicts (it gives one for a fit record or a region), so the results model's path
+    for a read it cannot decide is held by this stand-in."""
+    return (
+        NoVerdict("the stand-in read model's read over records")
+        if sources
+        else _READ(request, sources, claims)
+    )
+
+
+def no_verdict_on_a_read_over_none(
+    request: JsonObject, sources: Sequence[bytes], claims: frozenset[str]
+) -> JsonObject | NoVerdict:
+    """A stand-in read model that gives no verdict on the read the results model makes of a request over no
+    records, to tell whether step 0 passes."""
+    return (
+        _READ(request, sources, claims) if sources else NoVerdict("the stand-in read model's read over none")
+    )
+
+
 @dataclass(frozen=True)
 class Direct:
     what: str
@@ -110,11 +139,31 @@ class Direct:
     refused: bool | None = None  # the verdict, where the check states it
     resolved: tuple[str, ...] | None = None  # the report's `records`, by file, where the check states them
     claims: frozenset[str] = field(default=BUILD)
+    # A record of `records`, by file, changed in memory before it is read: the check keeps its reference.
+    edited: Mapping[str, Callable[[JsonObject], object]] = field(
+        default_factory=dict[str, Callable[[JsonObject], object]]
+    )
+    # Sources read beside the records, by file (the same pin supplied twice, with other bytes).
+    beside: tuple[bytes, ...] = ()
+    read: Callable[..., JsonObject | NoVerdict] | None = None  # a stand-in for the read model's read
+
+
+def source_of(check: Direct, name: str) -> bytes:
+    change = check.edited.get(name)
+    if change is None:
+        return input_bytes(name)
+    record = parse(input_bytes(name))
+    assert isinstance(record, dict)
+    change(record)
+    return json.dumps(record).encode()
 
 
 def answer(check: Direct) -> build_results_model.Report | build_model.Refused | NoVerdict:
-    sources = [input_bytes(name) for name in check.records]
-    return build_results_model.check_build(json.dumps(check.declaration).encode(), sources, check.claims)
+    sources = [*(source_of(check, name) for name in check.records), *check.beside]
+    with ExitStack() as stack:
+        if check.read is not None:
+            stack.enter_context(mock.patch.object(read_model, "read", check.read))
+        return build_results_model.check_build(json.dumps(check.declaration).encode(), sources, check.claims)
 
 
 def reasons_of(value: JsonValue) -> Counter[str]:
@@ -288,10 +337,193 @@ def unstated(condition: str, alternative: int | None = None) -> JsonObject:
     return reason
 
 
+def record_with(**members: JsonValue) -> Callable[[JsonObject], None]:
+    """A stored record with members set (a `schema_version` of another version, a `record_type` of none)."""
+
+    def change(record: JsonObject) -> None:
+        record.update(members)
+
+    return change
+
+
+def record_without(name: str) -> Callable[[JsonObject], None]:
+    def change(record: JsonObject) -> None:
+        del record[name]
+
+    return change
+
+
+def label_stored(label: str) -> Callable[[JsonObject], None]:
+    def change(record: JsonObject) -> None:
+        field_of(record)["label"] = label
+
+    return change
+
+
+def field_of(record: JsonObject) -> JsonObject:
+    """The record's `fluid.dynamic_viscosity`, a field of the suite's fixtures."""
+    members = build_results_model.members
+    sections = members(members(record["body"]).get("sections"))
+    held = members(members(members(sections.get("fluid")).get("fields")).get("dynamic_viscosity"))
+    assert held
+    return held
+
+
+def first_alternative_unlabelled(record: JsonObject) -> None:
+    first = build_results_model.entries(field_of(record)["alternatives"])[0]
+    assert isinstance(first, dict)
+    del first["label"]
+
+
+def waiver_at(code: str, **record: JsonValue) -> Callable[[JsonObject], None]:
+    """The waiver of a build-check file, naming `code`, located at the record with members changed."""
+
+    def change(declaration: JsonObject) -> None:
+        waiver = acceptances(declaration)[0]
+        assert isinstance(waiver, dict)
+        waiver["code"] = code
+        named = waiver["record"]
+        assert isinstance(named, dict)
+        named.update(record)
+
+    return change
+
+
+def labelled_waiver(**members: JsonValue) -> Callable[[JsonObject], None]:
+    def change(declaration: JsonObject) -> None:
+        water_waiver_with_label(declaration)
+        waiver = acceptances(declaration)[0]
+        assert isinstance(waiver, dict)
+        waiver.update(members)
+
+    return change
+
+
+def extrapolation_at_the_nominal(declaration: JsonObject) -> None:
+    """An extrapolation for the field the nominal is for, at its record: given to the read, which applies the
+    nominal."""
+    nominal = acceptances(declaration)[0]
+    assert isinstance(nominal, dict)
+    acceptances(declaration).append(
+        {
+            "acceptance": "extrapolation",
+            "record": nominal["record"],
+            "field": nominal["field"],
+            "method": "constant",
+            "law": "the value at the readable range's nearest end, held constant",
+            "basis": "the density varies little below the tabulated range over the operating band",
+            "reason": "the operating temperature lies below the tabulated range",
+        }
+    )
+
+
+def implied_for_two_conditions(declaration: JsonObject) -> None:
+    """The implied condition supplies the shear rate beside the temperature, the temperature second."""
+    implied = acceptances(declaration)[0]
+    assert isinstance(implied, dict)
+    implied["implies"] = {
+        "shear_rate": {"range": [50.0, 500.0], "unit": "1/s"},
+        "temperature": {"value": 310.15, "unit": "K"},
+    }
+
+
+def in_second_model(**members: JsonValue) -> Callable[[JsonObject], None]:
+    def change(declaration: JsonObject) -> None:
+        model(declaration, 1).update(members)
+
+    return change
+
+
+def same_pin_other_bytes(name: str) -> bytes:
+    """A second source for the pin of a fixture: the record with another name, so another bytes."""
+    record = parse(input_bytes(name))
+    assert isinstance(record, dict)
+    record["name"] = "another name for the same pin"
+    return json.dumps(record).encode()
+
+
 SHEAR_RATE: Final = unstated("shear_rate")
+UNKNOWN_TOKEN: Final[JsonObject] = {"code": "unknown_token"}
+LABEL_MISMATCH: Final[JsonObject] = {"code": "label_mismatch"}
 WANT_MISMATCH: Final[JsonObject] = {"code": "want_mismatch"}
 NOT_REVIEWED: Final[JsonObject] = {"code": "not_reviewed"}
 NOMINAL: Final[JsonObject] = {"acceptance": "nominal", "value": 1180.0}
+
+
+def refused_at_a_step_before_the_field(code: str, change: Callable[[JsonObject], object]) -> Direct:
+    """A record found by its pin, whose stored label differs from the one required, refused by `code` at a
+    step from 2 to 5 (the stored record edited in memory): the result rests on no stored value, and
+    the record was resolved (Open point: record_a_read_resolved)."""
+    reason: JsonObject = {"code": code}
+    return Direct(
+        f"no label_mismatch past a record refused as {code}",
+        declared("bc027_stored_label_differs.json"),
+        (LINEAR,),
+        (
+            Expected(
+                "drag",
+                LINEAR,
+                VISCOSITY,
+                {
+                    "reasons": [reason],
+                    "accepted": False,
+                    "accepted_by": [],
+                    "not_accepted": [reason],
+                },
+            ),
+        ),
+        resolved=(LINEAR,),
+        edited={LINEAR: change},
+    )
+
+
+def waiver_located_at_another(what: str, **record: JsonValue) -> Direct:
+    """A waiver that would cover the water record's `condition_unstated`, located at another `id` or
+    `version` of it: it covers nothing, and is unused."""
+    return Direct(
+        what,
+        changed("bc016_waiver_for_another_code.json", waiver_at("condition_unstated", **record)),
+        (WATER,),
+        (
+            Expected(
+                "drag",
+                WATER,
+                VISCOSITY,
+                {
+                    "reasons": [SHEAR_RATE],
+                    "accepted": False,
+                    "accepted_by": [],
+                    "not_accepted": [SHEAR_RATE],
+                },
+            ),
+        ),
+        frozenset({("drag", 0)}),
+    )
+
+
+def labelled_waiver_that_would_not_cover(what: str, **waiver: JsonValue) -> Direct:
+    """A waiver resting on a label, of a code or a condition that would not cover the reason: decided and
+    unused."""
+    return Direct(
+        what,
+        changed("bc049_reviewed_value.json", labelled_waiver(**waiver)),
+        ("water_review_reviewed.json",),
+        (
+            Expected(
+                "drag",
+                "water_review_reviewed.json",
+                VISCOSITY,
+                {
+                    "reasons": [SHEAR_RATE],
+                    "accepted": False,
+                    "accepted_by": [],
+                    "not_accepted": [SHEAR_RATE],
+                },
+            ),
+        ),
+        frozenset({("drag", 0)}),
+    )
+
 
 CHECKS: Final = (
     # declarations.md:305-306 "join the read's, and the" and "result's status is the worst of them all": a
@@ -337,8 +569,10 @@ CHECKS: Final = (
         ),
         frozenset({("drag", 1)}),
     ),
-    # Open point: two_implied_that_agree. Two implied conditions that both apply and agree both filled the
-    # condition; one whose token the specimen does not state filled nothing.
+    # declarations.md:284-286 "an implied condition that filled a" ... "condition (a `conditions` entry whose
+    # `record` is the value the implied condition supplies, with basis": each implied condition whose value an
+    # entry shows with basis `implied` filled it, whether or not the specimen states its fact and token, so
+    # two supplying one value are both applied.
     Direct(
         "two implied conditions that agree are both applied",
         changed("bc017_fills_an_unstated_condition.json", implied_condition_again("in_vivo")),
@@ -350,19 +584,30 @@ CHECKS: Final = (
         ),
     ),
     Direct(
-        "an implied condition of the same value whose token the specimen does not state is not applied",
+        "an implied condition of the same value whose token the specimen does not state is applied too",
         changed("bc017_fills_an_unstated_condition.json", implied_condition_again("ex_vivo_fresh")),
+        (IN_VIVO_UNSTATED,),
+        (
+            Expected("drag", IN_VIVO_UNSTATED, VISCOSITY, {
+                "status": "met", "reasons": [], "accepted": True, "accepted_by": [0, 1],
+            }),
+        ),
+    ),
+    # declarations.md:285-286 "a `conditions` entry whose `record` is the value the implied condition
+    # supplies": the entry of the condition by its name, whichever the implied condition names first.
+    Direct(
+        "an implied condition naming two conditions fills the one it supplies the value of",
+        changed("bc017_fills_an_unstated_condition.json", implied_for_two_conditions),
         (IN_VIVO_UNSTATED,),
         (
             Expected("drag", IN_VIVO_UNSTATED, VISCOSITY, {
                 "status": "met", "reasons": [], "accepted": True, "accepted_by": [0],
             }),
         ),
-        frozenset({("drag", 1)}),
     ),
     # declarations.md:309-310 "A result that rests on no stored value (its" and "a refusal before step 7 finds
     # the field": no `label_mismatch`, though the record's field holds no label. Open point:
-    # label_of_no_stored_value.
+    # label_of_no_stored_value. A read refused at step 0 resolves no record.
     Direct(
         "no label_mismatch past step 0's want_mismatch",
         changed("bc027_required_label_absent.json", required(want="reference_data")),
@@ -374,6 +619,7 @@ CHECKS: Final = (
             }),
         ),
         frozenset({("drag", 0)}),
+        resolved=(),
     ),
     Direct(
         "no label_mismatch past step 0's request_incomplete",
@@ -387,6 +633,10 @@ CHECKS: Final = (
         ),
         frozenset({("drag", 0)}),
     ),
+    # The same, past a refusal at steps 2 to 5, by each reason that step gives before the field is found.
+    refused_at_a_step_before_the_field("other_version", record_with(schema_version="0.9.0")),
+    refused_at_a_step_before_the_field("malformed", record_without("licence")),
+    refused_at_a_step_before_the_field("unknown_type", record_with(record_type="gadget")),
     # declarations.md:308 "stored on the value the result rests on (the field, or the alternative read)": the
     # one left (its alternatives each store the Newtonian label: Open point: alternative_a_result_rests_on);
     # the field holding them stores none.
@@ -399,6 +649,15 @@ CHECKS: Final = (
                 "status": "met", "reasons": [], "value": 0.000692, "accepted": True, "accepted_by": [],
             }),
         ),
+    ),
+    # read_side_contract.md:302-303 "alternative left or picked": the one left names no reason, and the
+    # alternatives store different labels (the first none), so the label to check is step 7's to say.
+    Direct(
+        "the one alternative left, unnamed among alternatives storing different labels",
+        changed("bc016_waiver_covers_each_alternatives_reason.json", one_alternative_left),
+        (TWO_ALTERNATIVES,),
+        undecided="alternative_unnamed",
+        edited={TWO_ALTERNATIVES: first_alternative_unlabelled},
     ),
     # declarations.md:195 "A result that holds no `provenance` gets no such reason": none under `no_pick`.
     Direct(
@@ -444,6 +703,7 @@ CHECKS: Final = (
             Expected("lift", WATER, VISCOSITY, {"accepted": True}),
         ),
         refused=False,
+        resolved=(WATER,),
     ),
     # declarations.md:242 "lists the 0-based indexes, in the model's `acceptances`, of every": permuted, they
     # follow.
@@ -494,6 +754,24 @@ CHECKS: Final = (
         (Expected("drag", WATER, VISCOSITY, {"reasons": [{"code": "no_requirement"}], "value": None}),),
         resolved=(),
     ),
+    # A pin that no source holds (a hash that differs), and a pin held by two sources of different bytes
+    # (`malformed`), resolve no record (Open point: record_a_read_resolved).
+    Direct(
+        "no record a pin matches by id and version alone",
+        declared("bc027_stored_label_differs.json"),
+        (WATER,),
+        (Expected("drag", LINEAR, VISCOSITY, {"reasons": [{"code": "pin_mismatch"}]}),),
+        resolved=(),
+    ),
+    Direct(
+        "no record where two sources of different bytes hold the pin",
+        changed("bc016_waiver_for_another_code.json", waiver_at("condition_unstated")),
+        (WATER,),
+        (Expected("drag", WATER, VISCOSITY, {"reasons": [{"code": "malformed"}]}),),
+        frozenset({("drag", 0)}),
+        resolved=(),
+        beside=(same_pin_other_bytes(WATER),),
+    ),
     # declarations.md:381 "It covers its reason only on a result whose stored label": trust comes after
     # 0.1.0.dev4; a waiver resting on a label that would cover nothing else is decided.
     Direct(
@@ -513,6 +791,16 @@ CHECKS: Final = (
         ),
         frozenset({("drag", 0)}),
     ),
+    labelled_waiver_that_would_not_cover(
+        "a waiver resting on a label, of another code than the reason's", code="condition_unchecked"
+    ),
+    labelled_waiver_that_would_not_cover(
+        "a waiver resting on a label, of another condition than the reason's", condition="temperature"
+    ),
+    # declarations.md:289-290 "equal in `id`, `version` and `content_hash`": a waiver that would cover,
+    # located at the record's other `version`, or at another `id`, covers nothing.
+    waiver_located_at_another("a waiver located at another version of the record", version="9.9.9"),
+    waiver_located_at_another("a waiver located at another id", id="conformance/another_record"),
     # declarations.md:397 "an `extrapolation`, only on a result whose `assumption` names it": one at another
     # record is not given, nor does it cover.
     Direct(
@@ -527,7 +815,51 @@ CHECKS: Final = (
         ),
         frozenset({("drag", 0)}),
     ),
-    # S7a-3's and S7a-4's: a target naming a fact, combinations, a `trainable` entry.
+    # declarations.md:171-172 "differs or is absent": a label is a token, compared as written.
+    Direct(
+        "a stored label that differs from the one required in case alone",
+        changed("bc016_waiver_for_another_code.json", waiver_at("condition_unstated")),
+        (WATER,),
+        (
+            Expected("drag", WATER, VISCOSITY, {
+                "reasons": [UNKNOWN_TOKEN, LABEL_MISMATCH], "accepted": False, "accepted_by": [],
+                "not_accepted": [UNKNOWN_TOKEN, LABEL_MISMATCH],
+            }),
+        ),
+        frozenset({("drag", 0)}),
+        edited={WATER: label_stored("Materica.Fluid.Newtonian.v1")},
+    ),
+    # read_side_contract.md:133 "the declaration it rests on": a nominal the read applied, and an
+    # extrapolation given beside it, which the result's `assumption` does not name, is not applied.
+    Direct(
+        "an extrapolation given beside a nominal the read applied is not applied",
+        changed("bc020_nominal_inside_the_bounds.json", extrapolation_at_the_nominal),
+        (GRADE,),
+        (
+            Expected("drag", GRADE, DENSITY, {
+                "status": "not_met", "reasons": [WANT_MISMATCH], "value": 1180.0, "assumption": NOMINAL,
+                "accepted": True, "accepted_by": [0], "not_accepted": [],
+            }),
+        ),
+        frozenset({("drag", 1)}),
+    ),
+    # A read the read model gives no verdict on gives none: no build-check fixture reaches the read model's
+    # own no verdicts, so a stand-in read model gives them (`no_verdict_on_a_read_over_records`).
+    Direct(
+        "a read the read model gives no verdict on",
+        declared("bc028_one_model_one_record.json"),
+        (WATER,),
+        undecided="the_read",
+        read=no_verdict_on_a_read_over_records,
+    ),
+    Direct(
+        "a read of the request over no records, to tell step 0, that the read model gives no verdict on",
+        declared("bc028_one_model_one_record.json"),
+        (WATER,),
+        undecided="the_read",
+        read=no_verdict_on_a_read_over_none,
+    ),
+    # S7a-3's and S7a-4's, in the second model too: a target naming a fact, combinations, a `trainable` entry.
     Direct(
         "a target naming a fact",
         changed("bc028_one_model_one_record.json", in_model(target={"species": {"ncbi_taxon": 9606.0}})),
@@ -544,6 +876,20 @@ CHECKS: Final = (
     Direct(
         "a trainable entry",
         changed("bc028_one_model_one_record.json", in_model(
+            trainable=[{"field": VISCOSITY, "record": reference(WATER)}])),
+        (WATER,),
+        undecided="trainable",
+    ),
+    Direct(
+        "a target naming a fact in the second model",
+        changed("bc010_each_model_judged_by_its_own_acceptances.json", in_second_model(
+            target={"species": {"ncbi_taxon": 9606.0}})),
+        (WATER,),
+        undecided="specimen_differences",
+    ),
+    Direct(
+        "a trainable entry in the second model",
+        changed("bc010_each_model_judged_by_its_own_acceptances.json", in_second_model(
             trainable=[{"field": VISCOSITY, "record": reference(WATER)}])),
         (WATER,),
         undecided="trainable",

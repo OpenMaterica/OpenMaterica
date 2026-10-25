@@ -683,14 +683,14 @@ model (`read_model.read`), never through the implementation's read.
   completed review, and none where it holds no `provenance`;
 - the status, the worst of the read's reasons and the build's, every other member as the read returned it,
   `value` included;
-- the acceptances the read applied (the build's terms): an implied condition that applies to the field and
-  whose value a condition entry shows with basis `implied`, a nominal or an extrapolation the result's
-  `assumption` names;
+- the acceptances the read applied (the build's terms): an implied condition whose value a condition entry
+  shows with basis `implied`, so that two supplying one value are both applied, a nominal or an extrapolation
+  the result's `assumption` names;
 - the judgement by section 4.2's table, held as the model's own data (`COVERAGE`): `accepted`, `accepted_by`
   (the acceptances that covered a reason and those the read applied, by index in the model's `acceptances`)
   and `not_accepted`; `specimen_differences`, empty, a target of `{}` naming no fact;
 - `unused`, per model; the verdict (`Report.refused`: a result not accepted); and the report's `consumer`,
-  `records` (each record a read resolved), `declaration`, `refusals` (none), `results` and `unused`.
+  `records` (each record a read resolved: Open point `record_a_read_resolved`), `declaration`, `refusals` (none), `results` and `unused`.
 
 **What it does not.** `NoVerdict`, never a pass, for each kind its `UNDECIDED` names, each given its reason in
 `exceptions.RESULTS_NOT_DECIDED`: a waiver naming a label that would cover a reason by every other test, whose
@@ -699,7 +699,7 @@ without label trust); a target naming a fact, or `combinations` (S7a-3); a `trai
 report's watches, which it leaves out as a build that does not emit them does, so that a case comparing them
 gets no verdict where every member the model decides agrees (S7a-4); a row of section 4.2 that a pick or an
 overlay alone reaches (S7c); the alternative a result rests on, where the result names none and the
-alternatives store different labels or specimens; and a read the read model gives no verdict on. A pick, an overlay or a member a claimed suite checks gives no verdict at the
+alternatives store different labels; and a read the read model gives no verdict on. A pick, an overlay or a member a claimed suite checks gives no verdict at the
 declaration already (`build_model.py`).
 
 **Section 4.2's table.** `main` has no `coverage.json` yet (the S7 design's generated table, which S7a-2's
@@ -713,14 +713,15 @@ whose words #96 lands; it is unobservable, since no waiver that passes the decla
 unregistered condition such a reason carries.
 
 Where the text leaves a point open, the model takes the maintainer's ruling where there is one, else the
-fail-closed choice, each listed once in its `OPEN_POINTS` and named where it is applied:
+reading it states, and gives `NoVerdict` where it cannot decide, each point listed once in its `OPEN_POINTS` and
+named where it is applied:
 
 | Open point | The model's choice |
 |---|---|
-| `two_implied_that_agree` | an implied condition given was applied where it applies to the field read (its specimen states its fact and token) and an entry shows its value with basis `implied`: two that agree and both apply are both cited (the S7 design's choice); one whose fact and token the specimen does not state, though its value equal the entry's, is not, and is unused |
 | `label_of_no_stored_value` | a result resting on no stored value is checked against no label; a refusal at step 0 is told by a read of the same request over no records, which gives `absent` exactly where step 0 passes, and one at steps 1 to 6 by a reason only those steps give, or `absent` |
-| `alternative_a_result_rests_on` | a result over alternatives rests on one exactly where it holds `conditions`; the alternative its reasons name, or, where none names one, any where every alternative stores the same label and specimen, else no verdict |
+| `alternative_a_result_rests_on` | a result over alternatives rests on one exactly where it holds `conditions`; the alternative its reasons name, or, where none names one, any where every alternative stores the same label, else no verdict |
 | `condition_unknown_name_never_covered` | covered by nothing (the maintainer's ruling of 2026-10-24; `main`'s first row lists it until #96's words land) |
+| `record_a_read_resolved` | a record a read resolved is the one step 1 found, pinned by `id`, `version` and `content_hash` among the sources (one, or several of identical bytes) on a read that passed step 0, whether or not steps 2 to 5 then refuse it; the text says "resolved" and names no step |
 
 **Agreement with the cases.** With the declaration's own check, the build's models agree with every one of the
 108 build-check files under each of the build configurations its claims allow (3,272 runs), none listed:
@@ -732,26 +733,35 @@ model, location and field, both ways, each result's members as a read result's a
 given twice or of another model, and an `accepted`, `accepted_by`, `not_accepted`, `value`, `reasons` or
 `unused` that differs.
 
-**The direct checks.** `results_direct.py` holds 23 declarations, most a build-check file's with one thing
-changed, read over the suite's fixtures, each with the answer the text gives, for what no file pins: R05
-(`not_reviewed` beside a read's `not_met` that carries a value), a nominal at another record or for another
-field neither given nor applied, two implied conditions that agree and one whose token the specimen does not
-state, no `label_mismatch` past step 0's `want_mismatch` or `request_incomplete`, the one alternative left
-checked against its own label, no `not_reviewed` under `no_pick`, the verdict over two models in either order,
-acceptances and models permuted, the report's `records`, a waiver resting on a label (no verdict where it
-would cover, decided where it would not), an extrapolation at another record, and the later pieces' no
-verdicts.
+**The direct checks.** `results_direct.py` holds 40 declarations, most a build-check file's with one thing
+changed (a stored record changed in memory where the check needs it, a second source beside it, or a stand-in
+for the read model's read), read over the suite's fixtures, each with the answer the text gives, for what no
+file pins: R05 (`not_reviewed` beside a read's `not_met` that carries a value), a nominal at another record or
+for another field neither given nor applied, an extrapolation given beside the nominal a read applied, two
+implied conditions that agree, one whose token the specimen does not state (applied too: the text adds no
+condition on the specimen) and one naming two conditions, no `label_mismatch` past step 0's `want_mismatch`
+or `request_incomplete` or past a record refused at steps 2 to 5 (`other_version`, `malformed`,
+`unknown_type`), a label that differs in case alone, the one alternative left checked against its own label,
+and, among labels that differ, left unnamed (no verdict), no `not_reviewed` under `no_pick`, the verdict over
+two models in either order, acceptances and models permuted, the report's `records` (a record listed once for
+two models, none for a read refused at step 0, a pin no source holds or two sources of different bytes hold,
+and the record refused at steps 2 to 5, listed), a waiver resting on a label (no verdict where it would cover,
+decided where its record, code or condition differ), a waiver located at another `id` or `version` of the
+record, an extrapolation at another record, the read model's no verdict on either read the model makes (by a
+stand-in, since no build-check fixture reaches the read model's own), and the later pieces' no verdicts, in
+the first model and in the second.
 
-**The mutant table.** `RESULTS_MUTANTS` (`results_mutants.py`) gives the results model 63 faults, one or more
+**The mutant table.** `RESULTS_MUTANTS` (`results_mutants.py`) gives the results model 79 faults, one or more
 per rule, among them each of the S7 design's HP43 to HP46 lists (6.5's table) the model holds, under R01 to
 R07 the faults of the case writer's build. The label-trust faults of those lists (`_trusted`, `_label_rests`)
 wait for label trust. Each runs against every build-check file and, failing those, the direct checks; a fault
-that makes the model raise fails its check (its control: the judgement replaced by a function raising). 59 are
-killed, 45 by a case file and 14 by a direct check alone (R05 among them, which no case file catches), and 4
-survive, each with why beside it in `results_mutants.py`: for HP43 to HP46 to kill, or, for three, faults no
-declaration that passes its own check can show. Measured over every build-check file, 2026-10-25: none makes
-the model raise, and 12 die to one case file alone. The table says only whether a fault is killed or survives;
-a test holds it to `results_mutants.py`.
+that makes the model raise fails its check (its control: the judgement replaced by a function raising). 75 are
+killed, 45 by a case file and 30 by a direct check alone (R05 among them, which no case file catches), and 4
+survive, each with why beside it in `results_mutants.py`: three are faults no declaration that passes its own
+check can show, and one (`results_numbers_compared_by_equality`) is a comparison of a signed zero that the
+text does not settle, for S7a-2p and the maintainer. Measured over every build-check file, 2026-10-25: none
+makes the model raise, and 11 die to one case file alone. The table says only whether a fault is killed or
+survives; a test holds it to `results_mutants.py`.
 
 | Mutant | Fault | Outcome |
 |---|---|---|
@@ -767,6 +777,7 @@ a test holds it to `results_mutants.py`.
 | `results_label_of_the_field_holding_alternatives` | the label checked against the field holding the alternatives, not the alternative read | killed |
 | `results_label_of_the_section` | the label read from the section holding the field, not the field's | killed |
 | `results_any_stored_label_matches` | a stored label that differs taken as the one required | killed |
+| `results_label_compared_without_case` | a stored label that differs from the one required in case alone taken as the one required | killed |
 | `results_absent_label_matches` | a label absent from the value the result rests on taken as the one required | killed |
 | `results_not_checked_with_a_reason_reviewed` | a review `not_checked` with a `reason` taken as completed | killed |
 | `results_not_reviewed_without_provenance` | `not_reviewed` given to a result that holds no `provenance` (R04) | killed |
@@ -778,7 +789,10 @@ a test holds it to `results_mutants.py`.
 | `results_value_dropped_by_the_build` | the read's `value` dropped where the build's `label_mismatch` makes the result `not_met` | killed |
 | `results_unrequired_field_read` | a field in `reads` with no requirement read as if wanted as a value | killed |
 | `results_given_counted_applied` | every acceptance given counted applied (an implied condition that filled nothing, an extrapolation at an `at_edge` read) | killed |
-| `results_implied_filled_whatever_the_specimen` | an implied condition counted applied by the value an entry shows, though the specimen does not state its fact and token | killed |
+| `results_implied_applied_only_where_the_specimen_states_it` | an implied condition that filled a condition counted applied only where the field's specimen states its fact and token | killed |
+| `results_implied_value_of_the_first_entry_supplied` | an implied condition's value taken from its first `implies` entry, whatever the condition an entry names | killed |
+| `results_numbers_compared_by_equality` | JSON compared by `==`, so that an implied condition supplying `-0` fills a condition showing `0` | survives |
+| `results_extrapolation_applied_under_any_assumption` | a given extrapolation counted applied whenever the result rests on an `assumption`, a nominal's too | killed |
 | `results_implied_filled_whatever_the_basis` | an implied condition counted applied where an entry holds its value with a basis other than `implied` | killed |
 | `results_first_implied_only` | of two implied conditions that agree, the first alone counted applied | killed |
 | `results_applied_indexed_among_the_given` | an applied acceptance indexed among those given, not in the model's `acceptances` | killed |
@@ -790,6 +804,8 @@ a test holds it to `results_mutants.py`.
 | `results_waiver_field_ignored` | an acceptance covering a reason of a result whatever field it names | killed |
 | `results_location_ignored` | an acceptance covering a reason of a result whatever record it names | killed |
 | `results_located_by_id_alone` | an acceptance located at a record by its `id` alone (R06) | killed |
+| `results_located_ignoring_the_version` | an acceptance located at a record by its `id` and `content_hash`, its `version` ignored | killed |
+| `results_located_ignoring_the_id` | an acceptance located at a record by its `version` and `content_hash`, its `id` ignored | killed |
 | `results_region_located_at_a_record` | an acceptance naming a region or an interval beside the record located at that record | survives |
 | `results_alternative_reasons_uncovered` | a waiver covering no reason that carries an `alternative` (R07) | killed |
 | `results_nominal_covers_without_assumption` | a nominal covering `want_mismatch` where the result's `assumption` does not name it, step 0's among them | killed |
@@ -800,6 +816,8 @@ a test holds it to `results_mutants.py`.
 | `results_condition_unknown_name_waivable` | a waiver naming `condition_unknown_name` and its condition covering it | survives |
 | `results_label_resting_waiver_trusted` | a waiver naming a label covering as one naming none, whatever the label's trust | killed |
 | `results_label_resting_waiver_undecided_anywhere` | a waiver naming a label given no verdict though it covers nothing by the other tests | killed |
+| `results_label_resting_waiver_undecided_before_its_code` | a waiver naming a label given no verdict before its code is tested against the reason's | killed |
+| `results_label_resting_waiver_undecided_before_its_condition` | a waiver naming a label given no verdict before its condition is tested against the reason's | killed |
 | `results_another_model_s_acceptances` | a model's reason covered by another model's acceptance (R02) | killed |
 | `results_covered_reasons_not_accepted` | `not_accepted` holding a covered reason | killed |
 | `results_acceptance_covering_nothing_cited` | `accepted_by` holding an acceptance of the result's field at its location that covered nothing | killed |
@@ -817,7 +835,15 @@ a test holds it to `results_mutants.py`.
 | `results_unresolved_record_listed` | a record listed in `records` though its read resolved none | killed |
 | `results_unread_record_listed` | a record listed in `records` though nothing was read for it (a field with no requirement) | killed |
 | `results_later_pieces_decided` | a target naming a fact, combinations or a `trainable` entry decided as if absent | killed |
-| `results_found_before_the_field_by_absent_alone` | a read refused at steps 1 to 6 for a reason other than `absent` taken to have found the field | survives |
+| `results_found_before_the_field_by_absent_alone` | a read refused at steps 1 to 6 for a reason other than `absent` taken to have found the field | killed |
+| `results_other_version_taken_to_find_the_field` | a record refused as `other_version` taken to have found the field, its label checked | killed |
+| `results_malformed_taken_to_find_the_field` | a record refused as `malformed` taken to have found the field, its label checked | killed |
+| `results_unknown_type_taken_to_find_the_field` | a record refused as `unknown_type` taken to have found the field, its label checked | killed |
+| `results_later_pieces_of_the_first_model_alone` | a target naming a fact, combinations or a `trainable` entry looked for in the first model alone | killed |
+| `results_unnamed_alternative_decided_as_none` | the alternative a result rests on, where none is named among labels that differ, taken to be none | killed |
+| `results_unnamed_alternative_decided_as_the_first` | the alternative a result rests on, where none is named among labels that differ, taken to be the first | killed |
+| `results_read_without_a_verdict_decided` | a read the read model gives no verdict on taken as a read that gives no reason | killed |
+| `results_step_0_read_without_a_verdict_decided` | the read over no records, to tell step 0, that the read model gives no verdict on taken as passing | killed |
 
 ## Running
 

@@ -297,9 +297,10 @@ every family entry goes in `families/CHANGELOG.md`.
   own check. `tests/reference/test_cases.py` compares a build's results as the specification's README says: the
   models agree with every one of the 108 build-check files, S7a-2's 57 included, under every configuration of
   build claims each allows, and none is listed. Its table of section 4.2 is held to the table parsed from the
-  text, since `main` has no `coverage.json` yet; 23 direct checks hold what no file pins; 63 seeded faults, 59
-  killed (45 by the files, 14 by the direct checks) and 4 listed as survivors; its citations and layering are
-  held as the other models' are. Four open points, each the maintainer's ruling or the fail-closed choice.
+  text, since `main` has no `coverage.json` yet; 40 direct checks hold what no file pins; 79 seeded faults, 75
+  killed (45 by the files, 30 by the direct checks) and 4 listed as survivors; its citations and layering are
+  held as the other models' are. Four open points, each listed once: one the maintainer's ruling, two the
+  model's readings of the text, and one that gives no verdict where it cannot decide.
 - The measurements a property piece makes before review run on CI as a matrix (maintainer, 2026-10-23), with
   the counts and judgement of a local run: `scripts/measure.py` (floors at the variance measured, at the mean and the least share, kill drift over
   streams, regions of a base against the head with every mutant search's kill, a fuzz control's rate), run alike

@@ -18,13 +18,13 @@ verdict and the report.
 that would cover a reason but for label trust, which comes after 0.1.0.dev4; a target naming a fact, or
 `combinations` (S7a-3); a `trainable` entry (S7a-4); the report's watches (S7a-4); a pick, an overlay or a row
 of section 4.2 that only they reach (S7c); the alternative a result rests on, where the result does not name
-it and the alternatives are stored otherwise; and a read the read model gives no verdict on. The
+it and the alternatives store different labels; and a read the read model gives no verdict on. The
 declaration's own check, and its no verdict for a claimed suite or a pick or an overlay, are
 `build_model.py`'s.
 
-**Where the text is silent.** The model takes the maintainer's ruling where there is one, else the fail-closed
-choice. Each such point is listed once in `OPEN_POINTS`, and named where it is applied ("Open point:
-<name>")."""
+**Where the text is silent.** The model takes the maintainer's ruling where there is one, else the reading it
+states, and gives `NoVerdict` where it cannot decide. Each such point is listed once in `OPEN_POINTS`, and
+named where it is applied ("Open point: <name>")."""
 
 import struct
 from collections.abc import Iterable, Sequence
@@ -36,30 +36,28 @@ from tests.reference.read_model import REASONS, NoVerdict, Status
 from tests.reference.strict_json import JsonObject, JsonValue, parse
 
 OPEN_POINTS: Final = {
-    "two_implied_that_agree": (
-        "an implied condition given to a read was applied where it applies to the field read (its specimen "
-        "states its fact and token) and a condition entry shows its value with basis `implied`, so two that "
-        "agree and both apply are both cited in `accepted_by` (the S7 design's choice); one whose fact and "
-        "token the specimen does not state filled nothing, though its value equal the entry's, and is not "
-        "(the fail-closed choice: unused, so that the consumer sees it did nothing)"
-    ),
     "label_of_no_stored_value": (
         "a result that rests on no stored value is checked against no label, as the text says; a refusal "
         "before step 7 finds the field is told by the read itself: a read of the same request over no "
         "records that gives anything but `absent` was refused at step 0, and a reason given only before "
-        "step 7, or `absent`, ends the read before the field is found"
+        "step 7, or `absent`, ends the read before the field is found (the model's reading)"
     ),
     "alternative_a_result_rests_on": (
         "a result over alternatives rests on one alternative exactly where it holds `conditions`; the "
         "alternative is the one its reasons name, and where none names one the model decides only if every "
-        "alternative stores the same label and specimen, else gives no verdict, since only step 7 says which "
-        "one is left"
+        "alternative stores the same label, else gives no verdict, since only step 7 says which one is left"
     ),
     "condition_unknown_name_never_covered": (
         "`condition_unknown_name` is covered by nothing (the maintainer's ruling of 2026-10-24, whose words "
         "land with S7a-1b's first commit, section 4.2's first row then naming three codes, pending until it "
         "is on `main`); `main`'s text lists it in the first row, but no waiver that passes the declaration's "
         "own check names the unregistered condition such a reason carries, so the two readings never differ"
+    ),
+    "record_a_read_resolved": (
+        "a record a read resolved is the record step 1 found, pinned by its `id`, `version` and "
+        "`content_hash` among the sources (one source, or several of identical bytes) on a read that passed "
+        'step 0, whether or not steps 2 to 5 then refuse it; the text says "resolved" and names no step '
+        "(the model's reading)"
     ),
 }
 
@@ -70,7 +68,7 @@ UNDECIDED: Final = {
     "trainable": "a trainable entry (S7a-4)",
     "watches": "the report's watches (S7a-4)",
     "picks_and_overlays": "a row of section 4.2 that a pick or an overlay alone reaches (S7c)",
-    "alternative_unnamed": "the unnamed alternative a result rests on, among alternatives stored otherwise",
+    "alternative_unnamed": "the unnamed alternative a result rests on, among labels that differ",
     "the_read": "the read",
 }
 
@@ -149,20 +147,13 @@ BEFORE_THE_FIELD: Final = (
 
 @dataclass(frozen=True)
 class Stored:
-    """The value a result rests on, as stored (the field, or the alternative read), and its section."""
+    """The value a result rests on, as stored (the field, or the alternative read)."""
 
     value: JsonValue
-    section: JsonObject
 
     @property
     def label(self) -> JsonValue:
         return members(self.value).get("label")
-
-    @property
-    def specimen(self) -> JsonObject:
-        # read_side_contract.md:129 "the field's specimen facts, the section's merged with the field's";
-        # record_format.md:145-146 "A field's own `specimen` overrides the section's, fact by fact."
-        return {**members(self.section.get("specimen")), **members(members(self.value).get("specimen"))}
 
 
 @dataclass(frozen=True)
@@ -173,7 +164,7 @@ class Made:
     result: JsonObject
     given: tuple[int, ...] = ()
     applied: tuple[int, ...] = ()
-    resolved: JsonObject | None = None  # the record the read resolved
+    resolved: JsonObject | None = None  # the record the read resolved (Open point: record_a_read_resolved)
 
 
 @dataclass(frozen=True)
@@ -306,24 +297,27 @@ def field_result(
     acceptances = entries(model.get("acceptances"))
     given = given_to(acceptances, record, name)
     request = request_for(declaration, record, name, requirement, [acceptances[index] for index in given])
-    read = read_model.read(request, sources, claims)
-    if isinstance(read, NoVerdict):
-        raise _Undecided("the_read", read.why)
+    read = read_of(request, sources, claims)
     passed_step_0 = step_0_passes(request, claims)
-    # The stored value is looked for only where a label is required or an implied condition is given: the
-    # alternative a result rests on is not always known (Open point: alternative_a_result_rests_on).
-    looked_for = "label" in requirement or any(
-        members(acceptances[index]).get("acceptance") == "implied_condition" for index in given
-    )
-    stored = stored_value(read, record, name, sources) if passed_step_0 and looked_for else None
+    # The stored value is looked for only where a label is required: the alternative a result rests on is not
+    # always known (Open point: alternative_a_result_rests_on).
+    stored = stored_value(read, record, name, sources) if passed_step_0 and "label" in requirement else None
     reasons: list[JsonValue] = [*entries(read["reasons"]), *build_reasons(requirement, read, stored)]
     # declarations.md:305-307 "The build's own reasons (`no_requirement`, `label_mismatch`, `not_reviewed`)
     # join the read's, and the" ... "result's status is the worst of them all. Every other member of the
     # result is as the read returned it," and "including `value`, where the read returned one"
     result: JsonObject = {**read, "status": status_of(reasons), "reasons": reasons, **location}
-    applied = applied_by(read, given, acceptances, stored)
+    applied = applied_by(read, given, acceptances)
     resolved = record if passed_step_0 and resolved_by_step_1(record, sources) else None
     return Made(result, given, applied, resolved)
+
+
+def read_of(request: JsonObject, sources: Sequence[bytes], claims: frozenset[str]) -> JsonObject:
+    """The read model's read of the request, or no verdict where it gives none."""
+    read = read_model.read(request, sources, claims)
+    if isinstance(read, NoVerdict):
+        raise _Undecided("the_read", read.why)
+    return read
 
 
 def given_to(acceptances: Sequence[JsonValue], record: JsonObject, name: str) -> tuple[int, ...]:
@@ -378,9 +372,7 @@ def step_0_passes(request: JsonObject, claims: frozenset[str]) -> bool:
     0)"): a read of it over no records goes on to step 1, which finds no candidate and gives `absent`
     (read_side_contract.md:208-209 "the read gives `absent`, unless a supplied" and "source is unreadable").
     Open point: label_of_no_stored_value."""
-    over_none = read_model.read(request, (), claims)
-    if isinstance(over_none, NoVerdict):
-        raise _Undecided("the_read", over_none.why)
+    over_none = read_of(request, (), claims)
     return same(over_none["reasons"], [{"code": "absent"}])
 
 
@@ -398,6 +390,7 @@ def pinned(record: JsonObject, sources: Sequence[bytes]) -> list[read_model.Sour
 
 
 def resolved_by_step_1(record: JsonObject, sources: Sequence[bytes]) -> bool:
+    # Open point: record_a_read_resolved.
     # read_side_contract.md:211-213 "With one, the read goes on, whatever else was supplied" and "With two or
     # more whose bytes are all identical, it reads one; with two or more whose bytes differ, the read gives
     # `malformed`"
@@ -422,7 +415,7 @@ def stored_value(read: JsonObject, record: JsonObject, name: str, sources: Seque
     held = members(members(members(body).get("sections")).get(section))
     field_value = members(held.get("fields")).get(key)
     if "alternatives" not in members(field_value):
-        return Stored(field_value, held)
+        return Stored(field_value)
     # read_side_contract.md:302-303 "A result that rests on no single alternative, every outcome but one" and
     # "alternative left or picked, holds no `value`, `assumption` or `conditions`"
     if "conditions" not in read:
@@ -437,12 +430,10 @@ def stored_value(read: JsonObject, record: JsonObject, name: str, sources: Seque
     if len(named) == 1:
         (index,) = named
         if index.is_integer() and 0 <= index < len(alternatives):
-            return Stored(alternatives[int(index)], held)
+            return Stored(alternatives[int(index)])
     # Open point: alternative_a_result_rests_on.
-    stored = [Stored(alternative, held) for alternative in alternatives]
-    if not named and all(
-        same(one.label, stored[0].label) and one.specimen == stored[0].specimen for one in stored
-    ):
+    stored = [Stored(alternative) for alternative in alternatives]
+    if not named and all(same(one.label, stored[0].label) for one in stored):
         return stored[0]
     raise _Undecided("alternative_unnamed")
 
@@ -472,9 +463,7 @@ def status_of(reasons: Iterable[JsonValue]) -> Status:
     return read_model.worst(REASONS[str(members(reason).get("code"))].status for reason in reasons)
 
 
-def applied_by(
-    read: JsonObject, given: Sequence[int], acceptances: Sequence[JsonValue], stored: Stored | None
-) -> tuple[int, ...]:
+def applied_by(read: JsonObject, given: Sequence[int], acceptances: Sequence[JsonValue]) -> tuple[int, ...]:
     """The acceptances given to the read that it applied: declarations.md:284-286 "A read **applied** an
     acceptance given to it where its result shows it: an implied condition that filled a" ... "a nominal or an
     extrapolation that the result's `assumption` names"; declarations.md:287-288 "An implied condition,
@@ -483,21 +472,18 @@ def applied_by(
     for index in given:
         acceptance = members(acceptances[index])
         kind = acceptance.get("acceptance")
-        if (kind == "implied_condition" and filled(read, acceptance, stored)) or (
+        if (kind == "implied_condition" and filled(read, acceptance)) or (
             kind in ("nominal", "extrapolation") and names(read.get("assumption"), acceptance)
         ):
             applied.append(index)
     return tuple(applied)
 
 
-def filled(read: JsonObject, implied: JsonObject, stored: Stored | None) -> bool:
-    """declarations.md:285-286 "condition (a `conditions` entry whose `record` is the value the implied
-    condition supplies, with basis", by an implied condition that applies to the field read:
-    declarations.md:351 "supplies a value for a condition the record leaves unstated, on fields whose specimen
-    states that fact and token". Open point: two_implied_that_agree."""
-    fact = members((stored.specimen if stored is not None else {}).get(str(implied.get("fact"))))
-    if "status" in fact or not same(fact.get("token"), implied.get("token")):
-        return False
+def filled(read: JsonObject, implied: JsonObject) -> bool:
+    """Whether the implied condition filled a condition of the result: declarations.md:285-286 "condition (a
+    `conditions` entry whose `record` is the value the implied condition supplies, with basis". Each implied
+    condition whose value an entry shows with basis `implied` filled it, so that two supplying one value are
+    both applied."""
     for entry in entries(read.get("conditions")):
         held = members(members(entry).get("record"))
         supplied = members(members(implied.get("implies")).get(str(members(entry).get("name"))))

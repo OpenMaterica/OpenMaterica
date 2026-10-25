@@ -40,6 +40,7 @@ _filled = results.filled
 _judge = results.judge
 _located_at = results.located_at
 _model_results = results.model_results
+_read_of = results.read_of
 _request_for = results.request_for
 _status_of = results.status_of
 _stored_value = results.stored_value
@@ -123,14 +124,22 @@ def label_from_the_result(
     labels = [label for label in entries(read.get("labels")) if label in read_model.FIELD_LABELS]
     if labels:
         value["label"] = labels[0]
-    return Stored(value, found.section)
+    return Stored(value)
+
+
+def section_of_field(record: JsonObject, name: str, sources: Sequence[bytes]) -> JsonObject:
+    """The section of the pinned record that holds the field `name`, as stored, or none."""
+    found = results.pinned(record, sources)
+    value = found[0].value if found else None
+    body = members(value).get("body") if isinstance(value, dict) else None
+    return members(members(members(body).get("sections")).get(name.partition(".")[0]))
 
 
 def stored_wherever(
     read: JsonObject, record: JsonObject, name: str, sources: Sequence[bytes]
 ) -> Stored | None:
     found = _stored_value(read, record, name, sources)
-    return found if found is not None else Stored({}, {})
+    return found if found is not None else Stored({})
 
 
 def step_0_unread(request: JsonObject, claims: frozenset[str]) -> bool:
@@ -145,17 +154,17 @@ def field_holding_alternatives_stored(
     found = results.pinned(record, sources)
     if not found:
         return None
-    section, _, key = name.partition(".")
-    body = members(found[0].value).get("body") if isinstance(found[0].value, dict) else None
-    held = members(members(members(body).get("sections")).get(section))
-    return Stored(members(held.get("fields")).get(key), held)
+    held = section_of_field(record, name, sources)
+    return Stored(members(held.get("fields")).get(name.partition(".")[2]))
 
 
 def section_stored(
     read: JsonObject, record: JsonObject, name: str, sources: Sequence[bytes]
 ) -> Stored | None:
     found = _stored_value(read, record, name, sources)
-    return None if found is None else Stored(found.section, found.section)
+    if found is None:
+        return None
+    return Stored(section_of_field(record, name, sources))
 
 
 def reasons_dropping(
@@ -178,6 +187,14 @@ def any_label_matches(requirement: JsonObject, read: JsonObject, stored: Stored 
 
 def absent_label_matches(requirement: JsonObject, read: JsonObject, stored: Stored | None) -> bool:
     return stored is not None and stored.label is None
+
+
+def case_blind_label_matches(requirement: JsonObject, read: JsonObject, stored: Stored | None) -> bool:
+    return stored is not None and str(stored.label).lower() == str(requirement["label"]).lower()
+
+
+def before_the_field_without(code: str) -> tuple[str, ...]:
+    return tuple(held for held in results.BEFORE_THE_FIELD if held != code)
 
 
 def reasons_adding(adds: Callable[[JsonObject, JsonObject], bool]) -> Callable[..., list[JsonObject]]:
@@ -283,15 +300,15 @@ def unrequired_field_read(
 
 
 def given_applied(
-    read: JsonObject, given: Sequence[int], acceptances: Sequence[JsonValue], stored: Stored | None
+    read: JsonObject, given: Sequence[int], acceptances: Sequence[JsonValue]
 ) -> tuple[int, ...]:
     return tuple(given)
 
 
 def first_implied_only(
-    read: JsonObject, given: Sequence[int], acceptances: Sequence[JsonValue], stored: Stored | None
+    read: JsonObject, given: Sequence[int], acceptances: Sequence[JsonValue]
 ) -> tuple[int, ...]:
-    applied = _applied_by(read, given, acceptances, stored)
+    applied = _applied_by(read, given, acceptances)
     implied = [
         index for index in applied if members(acceptances[index]).get("acceptance") == "implied_condition"
     ]
@@ -299,27 +316,75 @@ def first_implied_only(
 
 
 def indexed_among_the_given(
-    read: JsonObject, given: Sequence[int], acceptances: Sequence[JsonValue], stored: Stored | None
+    read: JsonObject, given: Sequence[int], acceptances: Sequence[JsonValue]
 ) -> tuple[int, ...]:
-    return tuple(list(given).index(index) for index in _applied_by(read, given, acceptances, stored))
+    return tuple(list(given).index(index) for index in _applied_by(read, given, acceptances))
 
 
-def filled_whatever_the_specimen(read: JsonObject, implied: JsonObject, stored: Stored | None) -> bool:
-    fact: JsonObject = {"token": implied.get("token")}
-    value: JsonObject = {"specimen": {str(implied.get("fact")): fact}}
-    return _filled(read, implied, Stored(value, {}))
+def implied_applied_where_the_specimen_states_it(
+    declaration: JsonObject,
+    model: JsonObject,
+    record: JsonObject,
+    name: str,
+    requirement: JsonObject | None,
+    sources: Sequence[bytes],
+    claims: frozenset[str],
+) -> Made:
+    """An implied condition that filled a condition counted applied only where the field's specimen states its
+    fact and token: a condition the text does not add."""
+    made = _field_result(declaration, model, record, name, requirement, sources, claims)
+    held = section_of_field(record, name, sources)
+    value = members(members(held.get("fields")).get(name.partition(".")[2]))
+    specimen = {**members(held.get("specimen")), **members(value.get("specimen"))}
+    acceptances = entries(model.get("acceptances"))
+
+    def stated(index: int) -> bool:
+        implied = members(acceptances[index])
+        if implied.get("acceptance") != "implied_condition":
+            return True
+        fact = members(specimen.get(str(implied.get("fact"))))
+        return results.same(fact.get("token"), implied.get("token"))
+
+    return dataclasses.replace(made, applied=tuple(index for index in made.applied if stated(index)))
 
 
-def filled_whatever_the_basis(read: JsonObject, implied: JsonObject, stored: Stored | None) -> bool:
-    fact = members((stored.specimen if stored is not None else {}).get(str(implied.get("fact"))))
-    if not results.same(fact.get("token"), implied.get("token")):
-        return False
+def filled_by_the_first_entry_supplied(read: JsonObject, implied: JsonObject) -> bool:
+    """An implied condition's value taken from its first `implies` entry, whatever the condition."""
+    first: JsonValue = next(iter(members(implied.get("implies")).values()), None)
+    return any(
+        bool(members(first))
+        and results.same(
+            members(members(entry).get("record")),
+            {**results.without_basis(members(first)), "basis": "implied"},
+        )
+        for entry in entries(read.get("conditions"))
+    )
+
+
+def filled_whatever_the_basis(read: JsonObject, implied: JsonObject) -> bool:
     return any(
         bool(supplied) and results.same(results.without_basis(held), results.without_basis(supplied))
         for entry in entries(read.get("conditions"))
         for held in [members(members(entry).get("record"))]
         for supplied in [members(members(implied.get("implies")).get(str(members(entry).get("name"))))]
     )
+
+
+def extrapolation_applied_under_any_assumption(
+    read: JsonObject, given: Sequence[int], acceptances: Sequence[JsonValue]
+) -> tuple[int, ...]:
+    """A given extrapolation counted applied whenever the result rests on an `assumption`, a nominal's too."""
+    applied = set(_applied_by(read, given, acceptances))
+    if "assumption" in read:
+        applied |= {
+            index for index in given if members(acceptances[index]).get("acceptance") == "extrapolation"
+        }
+    return tuple(sorted(applied))
+
+
+def numbers_equal(one: JsonValue, other: JsonValue) -> bool:
+    """JSON compared by `==`, so that `0` and `-0` are one."""
+    return one == other
 
 
 def named_by_kind(assumption: JsonValue, acceptance: JsonObject) -> bool:
@@ -406,10 +471,51 @@ def located_by_id(acceptance: JsonObject, record: JsonObject) -> bool:
     return members(acceptance["record"]).get("id") == record.get("id")
 
 
+def located_by(*names: str) -> Callable[[JsonObject, JsonObject], bool]:
+    """An acceptance located at a record by `names` alone, of `id`, `version` and `content_hash`."""
+
+    def located_at(acceptance: JsonObject, record: JsonObject) -> bool:
+        if "region" in acceptance or "interval" in acceptance or "record" not in acceptance:
+            return _located_at(acceptance, record)
+        named = members(acceptance["record"])
+        return all(named.get(name) == record.get(name) for name in names)
+
+    return located_at
+
+
 def region_at_a_record(acceptance: JsonObject, record: JsonObject) -> bool:
     return _located_at(
         {name: held for name, held in acceptance.items() if name not in ("region", "interval")}, record
     )
+
+
+def label_undecided_after(
+    *tests: Callable[[JsonObject, JsonObject, JsonObject], bool],
+) -> Callable[[JsonObject, JsonObject, JsonObject], JsonObject | None]:
+    """A waiver naming a label given no verdict as soon as `tests` pass, before the tests that follow them."""
+
+    def change(acceptance: JsonObject, reason: JsonObject, result: JsonObject) -> JsonObject | None:
+        row = ROW_OF.get(str(reason.get("code")))
+        located = _located_at(acceptance, members(result["record"]))
+        passes = (
+            row is not None
+            and acceptance.get("acceptance") == row.kind
+            and acceptance.get("field") == result["field"]
+            and located
+        )
+        if "label" in acceptance and passes and all(test(acceptance, reason, result) for test in tests):
+            raise results._Undecided("label_trust")  # pyright: ignore[reportPrivateUsage]
+        return acceptance
+
+    return change
+
+
+def code_named(acceptance: JsonObject, reason: JsonObject, result: JsonObject) -> bool:
+    return results.same(acceptance.get("code"), reason.get("code"))
+
+
+def nothing_tested(acceptance: JsonObject, reason: JsonObject, result: JsonObject) -> bool:
+    return True
 
 
 def judged_changed(change: Callable[[JsonObject, Made, JsonObject], JsonObject]) -> Callable[..., JsonObject]:
@@ -466,15 +572,18 @@ def report_from(
     unused_of: Callable[[list[JsonObject], list[list[JsonObject]], list[list[Made]]], list[JsonObject]]
     | None = None,
     results_of: Callable[[list[JsonObject]], list[JsonObject]] | None = None,
+    pieces_of: Callable[[list[JsonObject]], list[JsonObject]] | None = None,
 ) -> Callable[..., Report]:
     """The model's report, with one of its parts made otherwise: how a result is judged, given every model;
-    what is unused, given every model's results; or the results kept."""
+    what is unused, given every model's results; the results kept; or the models whose later pieces (a target
+    naming a fact, combinations, a `trainable` entry) are looked for."""
 
     def report(declaration: JsonObject, sources: Sequence[bytes], claims: frozenset[str]) -> Report:
         models = [members(model) for model in entries(declaration.get("models"))]
         made: list[list[Made]] = []
-        for model in models:
+        for model in pieces_of(models) if pieces_of else models:
             results.later_pieces(model)
+        for model in models:
             made.append(results.model_results(declaration, model, sources, claims))
         judged = [
             [judge_of(one, model, models) if judge_of else results.judge(one, model) for one in ones]
@@ -559,6 +668,61 @@ def every_record_of_the_store(
 
 def later_pieces_decided(model: JsonObject) -> None:
     return None
+
+
+def first_model_alone(models: list[JsonObject]) -> list[JsonObject]:
+    return models[:1]
+
+
+def alternative_unnamed_decided(
+    chosen: Callable[[Sequence[JsonValue]], Stored | None],
+) -> Callable[..., Stored | None]:
+    """The unnamed alternative a result rests on decided by `chosen`, not given no verdict."""
+
+    def stored_value(
+        read: JsonObject, record: JsonObject, name: str, sources: Sequence[bytes]
+    ) -> Stored | None:
+        try:
+            return _stored_value(read, record, name, sources)
+        except results._Undecided as undecided:  # pyright: ignore[reportPrivateUsage]
+            if undecided.why != results.UNDECIDED["alternative_unnamed"]:
+                raise
+            held = section_of_field(record, name, sources)
+            field_value = members(members(held.get("fields")).get(name.partition(".")[2]))
+            alternatives = entries(field_value.get("alternatives"))
+            return chosen(alternatives)
+
+    return stored_value
+
+
+def first_alternative(alternatives: Sequence[JsonValue]) -> Stored | None:
+    return Stored(alternatives[0])
+
+
+def no_alternative(alternatives: Sequence[JsonValue]) -> Stored | None:
+    return None
+
+
+def read_undecided_as_no_reason(
+    request: JsonObject, sources: Sequence[bytes], claims: frozenset[str]
+) -> JsonObject:
+    """A read the read model gives no verdict on taken as a read that gives no reason."""
+    try:
+        return _read_of(request, sources, claims)
+    except results._Undecided:  # pyright: ignore[reportPrivateUsage]
+        return {"status": "unknown", "reasons": []}
+
+
+def step_0_read_undecided_as_passed(
+    request: JsonObject, sources: Sequence[bytes], claims: frozenset[str]
+) -> JsonObject:
+    """The same read, over no records to tell step 0, taken as the `absent` that says step 0 passes."""
+    try:
+        return _read_of(request, sources, claims)
+    except results._Undecided:  # pyright: ignore[reportPrivateUsage]
+        if sources:
+            raise
+        return {"status": "unknown", "reasons": [{"code": "absent"}]}
 
 
 def refused_by_the_first_model(self: Report) -> bool:
@@ -647,6 +811,12 @@ RESULTS_MUTANTS: Mapping[str, Mutant] = {
         'is absent"',
         {"build_reasons": reasons_dropping(any_label_matches)},
     ),
+    "results_label_compared_without_case": mutant(
+        "a stored label that differs from the one required in case alone taken as the one required",
+        'declarations.md:171-172 "when the label stored on the" and "value the result rests on differs or '
+        'is absent"',
+        {"build_reasons": reasons_dropping(case_blind_label_matches)},
+    ),
     "results_absent_label_matches": mutant(
         "a label absent from the value the result rests on taken as the one required",
         'declarations.md:171-172 "when the label stored on the" and "value the result rests on differs or '
@@ -709,11 +879,35 @@ RESULTS_MUTANTS: Mapping[str, Mutant] = {
         '"acceptance given and not so shown was not applied"',
         {"applied_by": given_applied},
     ),
-    "results_implied_filled_whatever_the_specimen": mutant(
-        "an implied condition counted applied by the value an entry shows, though the specimen does not "
-        "state its fact and token",
-        "OPEN_POINTS: two_implied_that_agree",
-        {"filled": filled_whatever_the_specimen},
+    "results_implied_applied_only_where_the_specimen_states_it": mutant(
+        "an implied condition that filled a condition counted applied only where the field's specimen states "
+        "its fact and token",
+        'declarations.md:285-286 "condition (a `conditions` entry whose `record` is the value the implied '
+        'condition supplies, with basis"',
+        {"field_result": implied_applied_where_the_specimen_states_it},
+    ),
+    "results_implied_value_of_the_first_entry_supplied": mutant(
+        "an implied condition's value taken from its first `implies` entry, whatever the condition an entry "
+        "names",
+        'declarations.md:285-286 "condition (a `conditions` entry whose `record` is the value the implied '
+        'condition supplies, with basis"',
+        {"filled": filled_by_the_first_entry_supplied},
+    ),
+    "results_numbers_compared_by_equality": mutant(
+        "JSON compared by `==`, so that an implied condition supplying `-0` fills a condition showing `0`",
+        'record_format.md:70-72 "Every number is the IEEE 754 double nearest it, ties to even, integers '
+        'included:" and "`1e-400` as `0` and `-1e-400` as `-0`), as JavaScript reads them."',
+        {"same": numbers_equal},
+        "the text reads `-0` as a double of its own but states no equality for the value an implied "
+        "condition supplies, so no direct check pins the model's bit-for-bit comparison against `==`; only "
+        "an implied condition supplying `-0` beside the entry the read made from one supplying `0` "
+        "separates them, and which the text means is S7a-2p's to settle with the maintainer",
+    ),
+    "results_extrapolation_applied_under_any_assumption": mutant(
+        "a given extrapolation counted applied whenever the result rests on an `assumption`, a nominal's too",
+        'read_side_contract.md:133 "the declaration it rests on, as `{"acceptance"}` with its kind\'s own '
+        'members as the request gives them"',
+        {"applied_by": extrapolation_applied_under_any_assumption},
     ),
     "results_implied_filled_whatever_the_basis": mutant(
         "an implied condition counted applied where an entry holds its value with a basis other than "
@@ -724,7 +918,8 @@ RESULTS_MUTANTS: Mapping[str, Mutant] = {
     ),
     "results_first_implied_only": mutant(
         "of two implied conditions that agree, the first alone counted applied",
-        "OPEN_POINTS: two_implied_that_agree",
+        'declarations.md:285-286 "condition (a `conditions` entry whose `record` is the value the implied '
+        'condition supplies, with basis"',
         {"applied_by": first_implied_only},
     ),
     "results_applied_indexed_among_the_given": mutant(
@@ -782,6 +977,18 @@ RESULTS_MUTANTS: Mapping[str, Mutant] = {
         'declarations.md:289-290 "when it names the record read, equal in `id`, `version`" and "and '
         '`content_hash`; one located at a region or an interval is located at no record"',
         {"located_at": located_by_id},
+    ),
+    "results_located_ignoring_the_version": mutant(
+        "an acceptance located at a record by its `id` and `content_hash`, its `version` ignored",
+        'declarations.md:289-290 "when it names the record read, equal in `id`, `version`" and "and '
+        '`content_hash`; one located at a region or an interval is located at no record"',
+        {"located_at": located_by("id", "content_hash")},
+    ),
+    "results_located_ignoring_the_id": mutant(
+        "an acceptance located at a record by its `version` and `content_hash`, its `id` ignored",
+        'declarations.md:289-290 "when it names the record read, equal in `id`, `version`" and "and '
+        '`content_hash`; one located at a region or an interval is located at no record"',
+        {"located_at": located_by("version", "content_hash")},
     ),
     "results_region_located_at_a_record": mutant(
         "an acceptance naming a region or an interval beside the record located at that record",
@@ -841,6 +1048,18 @@ RESULTS_MUTANTS: Mapping[str, Mutant] = {
         'declarations.md:291-293 "An acceptance **covers** a reason or" ... "located at the result\'s '
         "location, and is of a kind section 4.2's row for that reason names\"",
         {"covers": covers_changed(label_undecided_anywhere)},
+    ),
+    "results_label_resting_waiver_undecided_before_its_code": mutant(
+        "a waiver naming a label given no verdict before its code is tested against the reason's",
+        'declarations.md:291-293 "An acceptance **covers** a reason or" ... "located at the result\'s '
+        "location, and is of a kind section 4.2's row for that reason names\"",
+        {"covers": covers_changed(label_undecided_after(nothing_tested))},
+    ),
+    "results_label_resting_waiver_undecided_before_its_condition": mutant(
+        "a waiver naming a label given no verdict before its condition is tested against the reason's",
+        'declarations.md:291-293 "An acceptance **covers** a reason or" ... "located at the result\'s '
+        "location, and is of a kind section 4.2's row for that reason names\"",
+        {"covers": covers_changed(label_undecided_after(code_named))},
     ),
     # The judgement and `unused` (HP43 `judge`, `unused`)
     "results_another_model_s_acceptances": mutant(
@@ -949,7 +1168,50 @@ RESULTS_MUTANTS: Mapping[str, Mutant] = {
         "a read refused at steps 1 to 6 for a reason other than `absent` taken to have found the field",
         "OPEN_POINTS: label_of_no_stored_value",
         {"BEFORE_THE_FIELD": ("absent",)},
-        "no case and no direct check reads a record found by its pin and refused at steps 2 to 5 under a "
-        "requirement with a `label` whose record holds none: the suite's fixtures all pass those steps",
+    ),
+    "results_other_version_taken_to_find_the_field": mutant(
+        "a record refused as `other_version` taken to have found the field, its label checked",
+        'declarations.md:309-310 "A result that rests on no stored value (its" and "record or field not '
+        'found, a refusal before step 7 finds the field, or no single alternative:"',
+        {"BEFORE_THE_FIELD": before_the_field_without("other_version")},
+    ),
+    "results_malformed_taken_to_find_the_field": mutant(
+        "a record refused as `malformed` taken to have found the field, its label checked",
+        'declarations.md:309-310 "A result that rests on no stored value (its" and "record or field not '
+        'found, a refusal before step 7 finds the field, or no single alternative:"',
+        {"BEFORE_THE_FIELD": before_the_field_without("malformed")},
+    ),
+    "results_unknown_type_taken_to_find_the_field": mutant(
+        "a record refused as `unknown_type` taken to have found the field, its label checked",
+        'declarations.md:309-310 "A result that rests on no stored value (its" and "record or field not '
+        'found, a refusal before step 7 finds the field, or no single alternative:"',
+        {"BEFORE_THE_FIELD": before_the_field_without("unknown_type")},
+    ),
+    "results_later_pieces_of_the_first_model_alone": mutant(
+        "a target naming a fact, combinations or a `trainable` entry looked for in the first model alone",
+        'declarations.md:318 "For each fact the target names, the build compares the record\'s fact"',
+        {"report": report_from(pieces_of=first_model_alone)},
+    ),
+    "results_unnamed_alternative_decided_as_none": mutant(
+        "the alternative a result rests on, where none is named among labels that differ, taken to be none",
+        "OPEN_POINTS: alternative_a_result_rests_on",
+        {"stored_value": alternative_unnamed_decided(no_alternative)},
+    ),
+    "results_unnamed_alternative_decided_as_the_first": mutant(
+        "the alternative a result rests on, where none is named among labels that differ, taken to be the "
+        "first",
+        "OPEN_POINTS: alternative_a_result_rests_on",
+        {"stored_value": alternative_unnamed_decided(first_alternative)},
+    ),
+    "results_read_without_a_verdict_decided": mutant(
+        "a read the read model gives no verdict on taken as a read that gives no reason",
+        'declarations.md:306-307 "Every other member of the result is as the read returned it," and '
+        '"including `value`, where the read returned one"',
+        {"read_of": read_undecided_as_no_reason},
+    ),
+    "results_step_0_read_without_a_verdict_decided": mutant(
+        "the read over no records, to tell step 0, that the read model gives no verdict on taken as passing",
+        "OPEN_POINTS: label_of_no_stored_value",
+        {"read_of": step_0_read_undecided_as_passed},
     ),
 }
