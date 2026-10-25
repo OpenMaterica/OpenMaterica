@@ -15,6 +15,24 @@ every family entry goes in `families/CHANGELOG.md`.
 ## [Unreleased]
 
 ### Added
+- HP41 and HP42, the declaration's own check's properties (S7a-1p; the S7 design's 6.4), in a ninth Hypothesis
+  shard, `build` (`tests/conftest.py`'s `SHARDS`, `ci.yml`'s matrix, at the default timeouts until CI measures
+  it). `tests/property/test_declaration_properties.py` holds `Declaration.from_json` to an oracle written from
+  `declarations.md` section 1 (each planted fault's rules by its name, the refusal paragraph's order for a
+  member two rules name, one refusal per case and pointer), over the declarations
+  `tests/property/declaration_strategies.py` draws from the text alone, never from `SHAPE`, with faults planted
+  by name at their pointers: HP41 in seven parts, each drawing its way first among at most five but
+  `every_fault`, and HP42, the scene, engine and sampling members item 12 refuses after items 7 and 8 and the
+  `population_level` rule, beside HP41's faults and held to the same declaration's refusals without the member,
+  and failing closed where a build claims the member's suite. Every part checks first that the declaration drawn
+  is taken and that the check never raises. 70 mutants (`test_declaration_mutants.py`), the design's 35 and 35
+  more that the build's reference model's listed survivors and S7a-1b's review name, each killed at both sizes
+  at its way and its assertion, their kill points recorded; an audit control for each drawing part. A sixth
+  Atheris target, `tests/fuzz/build_bytes.py`: raw bytes in place of one member of a build-check case's
+  declaration, failing where `check_build` raises anything but its `NotImplementedError`, where a refusal's
+  pointer names no member, or where a refusal's case is none of the refusal paragraph's; its seeded fault
+  (`MATERICA_FUZZ_SEEDED_FAULT=declarations`) lands with it, and its control, which only the build's reference
+  model can see, with the model.
 - The build's own reasons, its verdict and its report (S7a-2b; `declarations.md` sections 2 and 4.2).
   `check_build` gives the report of a declaration that passes its own check. The build's own reasons join the
   read's (section 2 item 8): `no_requirement` for a field read with no requirement; `label_mismatch` where the
