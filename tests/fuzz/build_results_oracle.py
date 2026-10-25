@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The relations the build's fuzz target holds a report of results to (the S7 design's 6.5, "Fuzzing"),
 importable without Atheris so that `tests/unit/test_fuzz_build_results.py` can show each failing: two that
-need no model, cheap enough to check on every input.
+need no model, cheap enough to check on every input, and the build's results model where it decides.
 
 - 4.2's own law: an accepted result holds no `not_met` reason that no assumption and no `trainable`
   acceptance covers (`declarations.md` section 4.2: the rows that cover a `not_met` reason are an
@@ -11,13 +11,23 @@ need no model, cheap enough to check on every input.
 - the refusal law: the report is refused exactly where it holds a refusal or a result not accepted (section 2
   item 5 and the report's paragraph).
 
-The third relation the design names, the build model's verdict where it decides, waits for the results model
-(#98); and the target that calls these, `build_bytes.py`, with its control (`_covers` letting a waiver naming
-`condition_outside` cover it, which 4.2's own law sees), arrives with S7a-1's (#100).
+- the model: where the build's results model (`tests/reference/build_results_model.py`) decides, the
+  declaration's own refusals, or each result's status, reasons, verdict, `accepted_by` and `not_accepted`,
+  the acceptances unused and `refused`, are the model's.
+
+The target that calls these, `build_bytes.py`, with its control (`_covers` letting a waiver naming
+`condition_outside` cover it, which 4.2's own law and the model both see), arrives with S7a-1's (#100).
 """
+
+import json
+from collections.abc import Collection, Mapping, Sequence
+from typing import cast
 
 from materica.core.report import BuildReport, BuildResult
 from materica.core.vocabulary import VOCABULARY
+from materica.shapes import Suite
+from tests.reference import build_model, build_results_model
+from tests.reference.read_model import NoVerdict
 
 # The `not_met` reasons a row of section 4.2 covers by an assumption, and the kind the assumption names.
 ON_AN_ASSUMPTION = {"outside_range": "extrapolation", "want_mismatch": "nominal"}
@@ -52,3 +62,78 @@ def check_results(report: BuildReport) -> None:
     assert report.refused == refused, (
         f"refused {report.refused}, where its refusals and results give {refused}"
     )
+
+
+# The build's results model (`tests/reference/build_results_model.py`): a result by its model, record and
+# field, and what the relation compares of it.
+ResultKey = tuple[str, tuple[str, str, str], str]
+Compared = tuple[object, ...]
+
+
+def _reason_key(reason: Mapping[str, object]) -> tuple[object, ...]:
+    alternative = reason.get("alternative")
+    return (
+        reason.get("code"),
+        reason.get("condition"),
+        None if alternative is None else int(cast(float, alternative)),
+    )
+
+
+def _compared(result: Mapping[str, object]) -> Compared:
+    """What the relation compares of a result, as JSON: its status, its reasons as a multiset, the verdict,
+    `accepted_by` as a set and `not_accepted` as a multiset."""
+    reasons = cast(list[Mapping[str, object]], result["reasons"])
+    not_accepted = cast(list[Mapping[str, object]], result["not_accepted"])
+    return (
+        result["status"],
+        tuple(sorted(map(_reason_key, reasons), key=repr)),
+        result["accepted"],
+        tuple(sorted({int(index) for index in cast(list[float], result["accepted_by"])})),
+        tuple(sorted(map(_reason_key, not_accepted), key=repr)),
+    )
+
+
+def _keyed(results: Sequence[Mapping[str, object]]) -> dict[ResultKey, Compared]:
+    keyed: dict[ResultKey, Compared] = {}
+    for result in results:
+        record = cast(Mapping[str, str], result["record"])
+        key = (
+            str(result["model"]),
+            (record["id"], record["version"], record["content_hash"]),
+            str(result["field"]),
+        )
+        keyed[key] = _compared(result)
+    return keyed
+
+
+def check_against_the_model(
+    declaration: bytes, sources: Sequence[bytes], claims: Collection[Suite], report: BuildReport
+) -> None:
+    """The report against the build's results model where the model decides (the S7 design's 6.5): the
+    declaration's own refusals as a set, or each result's status, reasons, verdict, `accepted_by` and
+    `not_accepted`, and the unused acceptances; nothing where the model gives no verdict."""
+    modelled = build_results_model.check_build(declaration, sources, frozenset(claims))
+    if isinstance(modelled, NoVerdict):
+        return
+    if isinstance(modelled, build_model.Refused):
+        wanted = {(one.item, one.pointer) for one in modelled.refusals}
+        found = {(one.item, one.pointer) for one in report.refusals}
+        assert found == wanted, f"refusals {sorted(found)}, the model's {sorted(wanted)}"
+        return
+    assert not report.refusals, (
+        f"refused {[(one.item, one.pointer) for one in report.refusals]}, the model takes it"
+    )
+    given = json.loads(json.dumps(report.to_json()))
+    found_results = _keyed(given["results"])
+    wanted_results = _keyed(modelled.results)
+    assert found_results.keys() == wanted_results.keys(), (
+        f"results {sorted(found_results)}, the model's {sorted(wanted_results)}"
+    )
+    for key, wanted_one in wanted_results.items():
+        assert found_results[key] == wanted_one, f"{key}: {found_results[key]}, the model's {wanted_one}"
+    found_unused = sorted((one["model"], int(one["acceptance"])) for one in given["unused"])
+    wanted_unused = sorted(
+        (str(one["model"]), int(cast(float, one["acceptance"]))) for one in modelled.unused
+    )
+    assert found_unused == wanted_unused, f"unused {found_unused}, the model's {wanted_unused}"
+    assert report.refused == modelled.refused, f"refused {report.refused}, the model's {modelled.refused}"
