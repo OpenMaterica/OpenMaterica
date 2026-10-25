@@ -17,7 +17,10 @@ and token lists are `SHAPE`'s: so the code, the schema and the text hold one lis
 Not held here: the own members' cell's types, and its constraints but a pick's `index` and an
 extrapolation's `law`; the facts' shapes, which `provenance.md` section 6.2 gives (`_FACTS`); and the rules
 on a name given twice, read or checked over, which no Holds phrase states: the unit examples and the
-build-check files hold those.
+build-check files hold those. Also not held, because no cell phrase gives it: the type of a member inside a
+`{...}` phrase (a tolerance's `unit`, a sampling's `reason` and `independence`), a `range`'s entry types and
+length, and two prose clauses the checks do not read, the members table's "which no other requirement holds"
+and BC-043's row's "in any other requirement". These are held, where at all, by the unit examples.
 
 Each check returns its problems; each has controls that change `SHAPE`, the text or the schema and find one.
 """
