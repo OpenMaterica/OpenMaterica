@@ -5,9 +5,13 @@ and every build-check case file, run through the build's own model (`build_model
 
 Case files and their inputs are read with the model's own strict JSON, so that nothing the model is given
 passes through `materica`; the comparison is the conformance runner's, whose own tests show it fails on wrong
-answers (`tests/conformance/test_comparator.py`)."""
+answers (`tests/conformance/test_comparator.py`). A build's results are compared as the specification's README
+says ("Case files", the build-check case), by that comparison where a member is a read result's."""
 
+import dataclasses
 import itertools
+import json
+from collections import Counter
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import cache
@@ -15,7 +19,7 @@ from pathlib import Path
 from typing import Final, Literal
 
 from tests.conformance.runner import CONFORMANCE, CaseFile, CaseFileError, compare
-from tests.reference import build_model, read_model
+from tests.reference import build_model, build_results_model, read_model
 from tests.reference.exceptions import BUILD_EXCEPTIONS, EXCEPTIONS, Excepted
 from tests.reference.strict_json import JsonObject, JsonValue, NotStrictJson, parse
 
@@ -151,10 +155,14 @@ def judged(name: str, found: Outcome, exceptions: Mapping[str, Excepted]) -> str
     return None
 
 
-def build_answer(case_file: CaseFile, claims: frozenset[str]) -> build_model.Refused | read_model.NoVerdict:
-    """The build model's answer to a build-check case: its declaration's own check (the records are read only
-    past it)."""
-    return build_model.check_build(case_file.input_bytes("declaration"), claims)
+BuildAnswer = build_model.Refused | build_results_model.Report | read_model.NoVerdict
+
+
+def build_answer(case_file: CaseFile, claims: frozenset[str]) -> BuildAnswer:
+    """The build's answer to a build-check case: its declaration's own check (`build_model.py`), and past it
+    the reads, the results and the report (`build_results_model.py`)."""
+    sources = [input_bytes(path) for path in case_file.input_paths("records")]
+    return build_results_model.check_build(case_file.input_bytes("declaration"), sources, claims)
 
 
 def refusal_key(refusal: JsonValue) -> tuple[str, str]:
@@ -165,13 +173,17 @@ def refusal_key(refusal: JsonValue) -> tuple[str, str]:
     return item, pointer
 
 
-def build_differences(case_file: CaseFile, report: build_model.Refused) -> list[str] | read_model.NoVerdict:
+def build_differences(
+    case_file: CaseFile, report: build_model.Refused | build_results_model.Report
+) -> list[str] | read_model.NoVerdict:
     """How a refused declaration's report differs from the case's expected answer, or `NoVerdict` where the
     case compares the refusals of a rule the model does not place.
 
     README.md:259-261 "`refusals`, each `{"item": "<the rule's case id>", "pointer"}`, compared as a set" and
     "where `compare.rules_compared` lists case ids, only the refusals of those rules are compared"; and
     README.md:152-153 "A member `compare` names and `expected` omits must be absent from the result"."""
+    if isinstance(report, build_results_model.Report):
+        return report_differences(case_file, report)
     rules = set(case_file.rules)
     unplaced = sorted(rule for rule in report.unplaced if not rules or rule in rules)
     if unplaced:
@@ -199,6 +211,149 @@ def build_differences(case_file: CaseFile, report: build_model.Refused) -> list[
                 f"refusals: missing {sorted(wanted - found)}, unexpected {sorted(found - wanted)}"
             )
     return differences
+
+
+def report_differences(
+    case_file: CaseFile, report: build_results_model.Report
+) -> list[str] | read_model.NoVerdict:
+    """How a build's report differs from the case's expected answer in the members the model decides, or,
+    where none differs and the case compares a member the model does not decide (the watches, S7a-4's),
+    `NoVerdict`.
+
+    README.md:257-258 "`expected` holds the members of the build's report it compares"; README.md:152-153 "A
+    member `compare` names and `expected` omits must be absent from the result", an empty list counting as
+    absent, as the build-check suite's README reads it for a refused declaration's results ("gives no
+    results, no watches and nothing unused")."""
+    undecided = [member for member in case_file.members if member in report.undecided]
+    given = report.to_json()
+    differences: list[str] = []
+    for member in case_file.members:
+        if member in undecided:
+            continue
+        found = given.get(member)
+        if member not in case_file.expected:
+            difference = None if found in (None, []) else f"must be absent or empty, got {found!r}"
+        elif member in SET_MEMBERS:
+            difference = sets_differ(*(SET_MEMBERS[member](case_file, entries(value)) for value in (
+                case_file.expected[member], found)))  # fmt: skip
+        elif member == "results":
+            difference = results_differ(case_file, entries(case_file.expected[member]), entries(found))
+        else:
+            difference = "; ".join(compare(dataclasses.replace(case_file, members=(member,)), given)) or None
+        if difference is not None:
+            differences.append(f"{member}: {difference}")
+    if undecided and not differences:
+        return read_model.NoVerdict("; ".join(report.undecided[member] for member in undecided))
+    return differences
+
+
+def entries(value: JsonValue) -> list[JsonValue]:
+    return value if isinstance(value, list) else []
+
+
+def sets_differ(wanted: Counter[str], found: Counter[str]) -> str | None:
+    if found == wanted:
+        return None
+    return f"missing {sorted((wanted - found).elements())}, unexpected {sorted((found - wanted).elements())}"
+
+
+def refusal_keys(case_file: CaseFile, refusals: list[JsonValue]) -> Counter[str]:
+    # README.md:259-261 "`refusals`, each `{"item": "<the rule's case id>", "pointer"}`, compared as a set"
+    # and "where `compare.rules_compared` lists case ids, only the refusals of those rules are compared"
+    keys = (refusal_key(refusal) for refusal in refusals)
+    return Counter({json.dumps(key): 1 for key in keys if not case_file.rules or key[0] in case_file.rules})
+
+
+def unused_keys(case_file: CaseFile, unused: list[JsonValue]) -> Counter[str]:
+    # README.md:267 "`unused`, as a set of `{"model", "acceptance"}`"
+    return Counter(
+        {json.dumps([members(entry).get("model"), members(entry).get("acceptance")]): 1 for entry in unused}
+    )
+
+
+def not_accepted_keys(case_file: CaseFile, not_accepted: list[JsonValue]) -> Counter[str]:
+    """README.md:264-265 "`not_accepted` as a multiset of reasons, as `reasons` are, and of specimen
+    differences by `section` and": a reason by its code, condition and alternative, as `compare` keys one."""
+    return Counter(
+        json.dumps(["reason", *reason_identity(case_file, members(entry))])
+        if "code" in members(entry)
+        else json.dumps(["difference", members(entry).get("section"), members(entry).get("fact")])
+        for entry in not_accepted
+    )
+
+
+def reason_identity(case_file: CaseFile, reason: JsonObject) -> tuple[JsonValue, JsonValue, str | None]:
+    # README.md:150 "Reasons are compared as a multiset of their `code`, `condition` and `alternative`"; an
+    # index exactly, bit for bit under `exact`
+    alternative = reason.get("alternative")
+    if "alternative" not in reason:
+        return reason.get("code"), reason.get("condition"), None
+    if not isinstance(alternative, float):
+        raise CaseFileError(f"a reason's alternative is not a number: {alternative!r}")
+    index = repr(alternative if case_file.exact else alternative + 0.0)
+    return reason.get("code"), reason.get("condition"), index
+
+
+SET_MEMBERS: Final[Mapping[str, Callable[[CaseFile, list[JsonValue]], Counter[str]]]] = {
+    "refusals": refusal_keys,
+    "unused": unused_keys,
+}
+# README.md:269-270 "and `compare.result_members` the members of each result," and "`model`, the location and
+# `field` always compared": a result's key, its location being its `record`, `region` or `interval`
+RESULT_KEY: Final = ("model", "record", "region", "interval", "field", "fields")
+
+
+def members(value: JsonValue) -> JsonObject:
+    return value if isinstance(value, dict) else {}
+
+
+def result_key(result: JsonValue) -> str:
+    return json.dumps(
+        {name: members(result)[name] for name in RESULT_KEY if name in members(result)}, sort_keys=True
+    )
+
+
+def results_differ(case_file: CaseFile, expected: list[JsonValue], found: list[JsonValue]) -> str | None:
+    """README.md:262-264 "`results`, compared as a set keyed by `model`, the location and `field`, or `fields`
+    for a combination; each" and "result's members compared as a read result's are (above), `accepted_by` as a
+    set of indexes, and": both ways, so a result given and not expected fails, as one expected and not
+    given."""
+    wanted = {result_key(result): members(result) for result in expected}
+    if len(wanted) != len(expected):
+        raise CaseFileError(f"{case_file.path.name} expects two results of one key")
+    given = Counter(result_key(result) for result in found)
+    problems = sets_differ(Counter(wanted.keys()), given)
+    by_key = {result_key(result): members(result) for result in found}
+    details = [
+        f"{key}: {difference}"
+        for key in sorted(wanted.keys() & by_key.keys())
+        for difference in result_differences(case_file, wanted[key], by_key[key])
+    ]
+    return "; ".join([*([problems] if problems else []), *details]) or None
+
+
+def result_differences(case_file: CaseFile, wanted: JsonObject, result: JsonObject) -> list[str]:
+    """The members `compare.result_members` names: each as a read result's is, but `accepted_by`, a set, and
+    `not_accepted`, a multiset."""
+    plain = tuple(name for name in case_file.result_members if name not in ("accepted_by", "not_accepted"))
+    expected = {name: wanted[name] for name in plain if name in wanted}
+    differences = compare(dataclasses.replace(case_file, members=plain, expected=expected), result)
+    keyed = {"accepted_by": index_keys, "not_accepted": not_accepted_keys}
+    for name, keys in keyed.items():
+        if name not in case_file.result_members:
+            continue
+        if not isinstance(result.get(name), list):
+            differences.append(f"{name}: missing")
+        elif difference := sets_differ(
+            keys(case_file, entries(wanted.get(name))), keys(case_file, entries(result[name]))
+        ):
+            differences.append(f"{name}: {difference}")
+    return differences
+
+
+def index_keys(case_file: CaseFile, indexes: list[JsonValue]) -> Counter[str]:
+    # README.md:263 "`accepted_by` as a set of indexes, and"
+    return Counter({repr(index): 1 for index in indexes})
 
 
 def build_outcome(case_file: CaseFile) -> Outcome:

@@ -141,6 +141,9 @@ OPEN_POINTS: Final[Mapping[str, str]] = {
 # another stands aside where the other is itself at fault"): the rules that do so are marked "Stands aside".
 ORDER: Final = ("BC-004", "BC-005", "BC-040", "BC-044", "BC-043", "BC-037", "BC-050", "BC-051", "BC-048")
 SHAPE: Final = "BC-048"
+# What the model gives a declaration that passes its own check: the build's results model
+# (`build_results_model.py`) takes the declaration on from there.
+PAST_THE_DECLARATION: Final = "past the declaration (S7a-2 to S7a-4)"
 
 # The declaration's own token lists, beside the read model's tables
 # declarations.md:197 "A requirement's `review` holds `reviewed`, the one token of schema 0.1.0"
@@ -461,7 +464,7 @@ class DeclarationCheck:
             return NoVerdict("; ".join(f"{rule}, {why}" for rule, why in sorted(self.unplaced.items())))
         if self.picks_or_overlays:
             return NoVerdict("a pick or an overlay acceptance (S7c)")
-        return NoVerdict("past the declaration (S7a-2 to S7a-4)")
+        return NoVerdict(PAST_THE_DECLARATION)
 
     def shaped(
         self,
