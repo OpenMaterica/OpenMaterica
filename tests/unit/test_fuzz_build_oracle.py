@@ -403,6 +403,29 @@ def test_the_control_s_fault_fails_the_model_s_relation_with_the_line_ci_reads_a
     assert re.search(CONTROLS["declarations"].found, f"AssertionError: {found.value}"), str(found.value)
 
 
+def test_the_control_s_fault_beside_another_missing_member_is_its_find_too(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The same third acceptance without its `section` too: the check's BC-048 there, for the `section` and
+    for the `reason` the fault leaves to the shape table, is the model's as well, for the `section`, so the
+    line shows the model's BC-005 alone, as four of the ten runs of `measure.yml`'s fuzz kind found the fault
+    (run 40263772231); it is the control's find too."""
+    seed = loaded("bc005_accepted_difference_without_reason.json")
+    acceptances = member_at(seed, "/models/0/acceptances")
+    assert acceptances is not None
+    assert isinstance(acceptances[0], list)
+    third = acceptances[0][1]
+    assert isinstance(third, dict)
+    without_section = {name: held for name, held in third.items() if name != "section"}
+    changed = placed(seed, "/models/0/acceptances/2", without_section)
+    check_declaration(changed, store())
+    monkeypatch.setattr(declarations, "_reasons", faulty_reasons)
+    alone = "the implementation gives [], the model [('BC-005', '/models/0/acceptances/2')]"
+    with pytest.raises(AssertionError, match=re.escape(alone)) as found:
+        check_declaration(changed, store())
+    assert re.search(CONTROLS["declarations"].found, f"AssertionError: {found.value}"), str(found.value)
+
+
 def test_seven_seeds_show_the_design_s_fault_unnarrowed(
     target: ModuleType, monkeypatch: pytest.MonkeyPatch
 ) -> None:

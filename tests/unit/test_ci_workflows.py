@@ -8980,19 +8980,24 @@ def test_the_table_alternatives_control_check_can_fail(
 
 # `build_bytes.py`'s control (S7a-1; `MATERICA_FUZZ_SEEDED_FAULT=declarations`, `tests/fuzz/seeded_fault.py`):
 # item 4 skipping every acceptance after a model's second, which the target's relation to the build's
-# reference model finds, the implementation refusing an acceptance as a member missing (BC-048) where the
-# model gives BC-005. Its rate is not measured yet (measure.yml's fuzz kind runs it on CI): until it is, four
+# reference model finds, the model giving BC-005 at an acceptance where the implementation does not (it
+# refuses the missing member as BC-048). Until measure.yml's fuzz kind measures its rate with that find, four
 # runs side by side, each of up to 900 s, the window of the bar the maintainer's ruling sets the fuzz
 # controls. The step passes where any finds it.
 TARGET_BUILD, DECLARATIONS = "tests.fuzz.build_bytes", "declarations"
 DECLARATIONS_RUNS = 4
 DECLARATIONS_RUN_SECONDS = 900
 DECLARATIONS_ERROR = "::error::the declarations runs did not find the fault seeded in the declaration's check"
-# The fault as the target's oracle words it, a third acceptance without its `reason`; and another
+# The fault as the target's oracle words it, a third acceptance without its `reason`; the same where the
+# acceptance lacks another member too, whose BC-048 there is the model's as well, so that the model's BC-005
+# shows alone (four of CI's ten runs of measure.yml's fuzz kind found it so, run 40263772231); and another
 # disagreement of the model's, which is not that fault's.
 DECLARATIONS_FINDING = (
     "AssertionError: the implementation gives [('BC-048', '/models/0/acceptances/2')], the model "
     "[('BC-005', '/models/0/acceptances/2')]"
+)
+DECLARATIONS_FINDING_ALONE = (
+    "AssertionError: the implementation gives [], the model [('BC-005', '/models/0/acceptances/3')]"
 )
 ANOTHER_DECLARATIONS_FINDING = (
     "AssertionError: the implementation gives [], the model [('BC-048', '/models/0/acceptances/2')]"
@@ -9006,6 +9011,7 @@ DECLARATIONS_FOUND = {
 DECLARATIONS_CASES = (
     ("declarations-1", DECLARATIONS_FINDING, True),
     (f"declarations-{DECLARATIONS_RUNS}", DECLARATIONS_FINDING, True),
+    ("declarations-2", DECLARATIONS_FINDING_ALONE, True),
     ("", DECLARATIONS_FINDING, False),
     (
         " ".join(f"declarations-{run}" for run in range(1, DECLARATIONS_RUNS + 1)),
@@ -9073,8 +9079,11 @@ def declarations_control_problems(ci: Workflow, directory: Path) -> list[str]:
         runs = [call for call in calls if (call["module"], call["fault"]) == (TARGET_BUILD, DECLARATIONS)]
         if index == 0:
             problems += declarations_runs_problems(runs, control_dictionary(calls, TARGET_BUILD))
-        found = "the" if finding == DECLARATIONS_FINDING else "another"
-        case = f"{finds or 'no run'} reporting {found} finding"
+        found = {
+            DECLARATIONS_FINDING: "the finding",
+            DECLARATIONS_FINDING_ALONE: "the finding, the model's BC-005 alone",
+        }.get(finding, "another finding")
+        case = f"{finds or 'no run'} reporting {found}"
         if passes and status != 0:
             problems.append(f"the step fails where {case}")
         if not passes and (status == 0 or DECLARATIONS_ERROR not in printed):
