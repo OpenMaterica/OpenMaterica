@@ -95,6 +95,7 @@
       "chains_unchecked": [11, 71],
       "combination_unchecked": [9, 6],
       "consumer_shape_unchecked": [2, 2],
+      "difference_judged_beside_its_fact_at_fault": [1, 1],
       "difference_of_any_refused": [2, 2],
       "distribution_parameters_unchecked": [3, 44],
       "distribution_taken": [3, 11],
