@@ -158,15 +158,18 @@ declaration is. A rule that judges one member against another stands aside where
 fault, so that one fault is one refusal: the `population_level` rule beside a `represents` that is no token, a
 requirement's `field` against a `reads` at fault (an empty one too), and a waiver's missing `condition`
 beside a `code` that is refused; an acceptance that names no known kind is refused at itself, and none of its
-other members is judged. A rule that judges one member against another stands aside only as far as its verdict
-depends on the member at fault: what the judged member's own type, shape or registered names settle,
-whichever value the member at fault holds, is still judged. An entry that is no well-formed name (a reference without string `id`,
-`version` and `content_hash`, a `field` that is no string) is neither the same as nor different from another,
-and no rule compares it. A fault more than one rule names carries the case of the first of: items 3, 4, 7 and 8, the
-`population_level` rule and section 4.1's location rule [BC-004] [BC-005] [BC-040] [BC-044] [BC-043] [BC-037];
-section 4.1 item 4 [BC-050]; item 12 [BC-051]; this paragraph [BC-048]. Two faults with one case and one
-pointer are one refusal. The build reports every refusal it finds, and reads nothing for a declaration it
-refuses. [BC-048]
+other members is judged. That has three exceptions. A member is still held to what it must be whichever value
+the other holds, namely its JSON type (a distribution parameter's value is a number; an accepted difference's
+`value` is an object, a status object, judged as one, or `"any"`), a label that no registered field has, and
+`params` where no registered field's row allows the form `parameter_set`. A rule the text states for a member at
+fault still applies: a waiver whose `code` is no reason names no `condition`. And an entry that is no well-formed
+name (a reference without string `id`, `version` and `content_hash`, a `field` that is no string) is
+neither the same as nor different from another, and no rule compares it. An acceptance that names no known kind
+keeps the rule above: none of its other members is judged. A fault more than one rule names carries the case of
+the first of: items 3, 4, 7 and 8, the `population_level` rule and section 4.1's location rule [BC-004] [BC-005]
+[BC-040] [BC-044] [BC-043] [BC-037]; section 4.1 item 4 [BC-050]; item 12 [BC-051]; this paragraph
+[BC-048]. Two faults with one case and one pointer are one refusal. The build reports every refusal it finds,
+and reads nothing for a declaration it refuses. [BC-048]
 
 1. Only a model that reads a field declares anything about it. A field in `reads` with no requirement gives
    `unknown` with the reason `no_requirement`; the build reads nothing for it, so its result holds `status`,
