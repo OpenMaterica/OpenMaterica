@@ -1260,10 +1260,10 @@ def plant_missing(p: Planting) -> None:
 
 
 def plant_other_type(p: Planting) -> None:
-    """A member of another JSON type than its row's, the type it holds by chance and a boolean among a
-    number's others, refused at it and nothing inside it checked; in one draw in five an entry of another type
-    appended to a list whose entries something rests on (`reads`, `checked_over.records`) or none
-    (`consumer_parameters`)."""
+    """A member of another JSON type than its row's, a string, an object or a list by chance (a number's
+    other types are `not_a_number`'s), refused at it and nothing inside it checked; in one draw in five an
+    entry of another type appended to a list whose entries something rests on (`reads`,
+    `checked_over.records`) or none (`consumer_parameters`)."""
     if p.draw(st.integers(0, 4)) == 0:
         name = p.choose(("reads", "records", "consumer_parameters"))
         m = p.model_index()
@@ -1280,11 +1280,11 @@ def plant_other_type(p: Planting) -> None:
         for member in site.value
         if member in TYPES.get(site.place, {}) and not rests_on(p, site, member)
     ]
-    # The type a member holds first, then a member of that type, so that a number, which few members hold,
-    # is drawn as often as a string.
+    # The type a member holds first, then a member of that type, so that a list, which few members hold, is
+    # drawn as often as a string.
     kinds = [
         kind
-        for kind in ("number", "string", "object", "list")
+        for kind in ("string", "object", "list")
         if any(TYPES[site.place][member] == kind for site, member in candidates)
     ]
     kind = p.choose(kinds)
@@ -1488,15 +1488,42 @@ CONSTRAINTS: dict[str, Callable[[Planting], None]] = {
 
 
 def plant_breaks_holds(p: Planting) -> None:
-    """A value its row's Holds column refuses, refused at that member: another JSON type (in one draw in
-    three); or constraints the column states (section 1's list of departures), each in about half the draws
-    and one at least, at places apart, so that each constraint's check is met in about one draw of the part in
-    eight."""
+    """A value its row's Holds column refuses, refused at that member: a string, an object or a list given
+    another JSON type (in one draw in three); or constraints the column states (section 1's list of
+    departures), each in about half the draws and one at least, at places apart, so that each constraint's
+    check is met in about one draw of the stratum in eight."""
     if p.draw(st.integers(0, 2)) == 0:
         plant_other_type(p)
         return
     for name in included(p, tuple(CONSTRAINTS)):
         CONSTRAINTS[name](p)
+
+
+def plant_not_a_number(p: Planting) -> None:
+    """A member whose row holds a number, holding another JSON type (a boolean among them, which is no
+    number), refused at it and nothing inside it checked: an operating condition's `value`, a tolerance's, an
+    implied condition's, a mixing block's `fraction_sum_tolerance` or a pick's `index`. Where the declaration
+    holds none, an operating condition holding a `value` is declared first, which the text takes. A way of
+    its own, apart from the other types: a check that takes a boolean where a number is asked for is seen
+    here at the member it takes, where among objects and lists one that takes a boolean anywhere may raise
+    for it deeper in first."""
+    candidates = [
+        (site, member)
+        for site in sites(p.declaration)
+        for member in site.value
+        if TYPES.get(site.place, {}).get(member) == "number" and not rests_on(p, site, member)
+    ]
+    if not candidates:
+        operating = cast(Json, p.declaration["operating_conditions"])
+        name = p.choose([name for name in free_operating(p) if name not in operating])
+        low, high = scale(name)
+        held: Json = {"value": p.draw(floats(low, high)), "unit": UNITS[name]}
+        operating[name] = held
+        candidates = [(Site("operating condition", pointer("operating_conditions", name), held), "value")]
+    site, member = candidates[p.index(len(candidates))]
+    p.kinds.append(f"{site.place}: {member}")
+    site.value[member] = p.draw(other_type("number"))
+    p.plant("holds", site.pointer + pointer(member))
 
 
 # The depths a member is added at, each a group of places: the declaration's own, a model entry's, a
@@ -1619,10 +1646,13 @@ def plant_empty_list(p: Planting) -> None:
     `reads`, `checked_over.records`, an `overlay_scope`'s `accepts` and a token condition's accept list, each
     in about half the draws and one at least. A model's requirements, `trainable` entries and combinations
     stay beside its emptied `reads`: "a requirement's `field` against a `reads` at fault (an empty one too)"
-    is not judged (the refusal paragraph), and neither is a `trainable` entry's. Before the records are
-    emptied, the `trainable` entries that rest on them go; and no accept list is set in a model whose `reads`
-    is emptied, whose requirement for it would add a field to `reads`."""
-    if p.draw(st.integers(0, 3)) == 0:
+    is not judged (the refusal paragraph), and neither is a `trainable` entry's: so a model whose `reads` is
+    emptied holds a requirement first in three draws in four where it holds neither (one for a field it
+    reads, which the text takes). Before the records are emptied, the `trainable` entries that rest on them
+    go; and no accept list is set in a model whose `reads` is emptied, whose requirement for it would add a
+    field to `reads`."""
+    # Two booleans, each drawn about evenly, where `st.integers(0, 3)` draws its 0 about half the time.
+    if p.draw(st.booleans()) and p.draw(st.booleans()):
         p.kinds.append("models")
         p.declaration["models"] = []
         p.plant("holds", "/models")
@@ -1633,6 +1663,10 @@ def plant_empty_list(p: Planting) -> None:
         m = p.model_index()
         model = p.models[m]
         if which == "reads":
+            judged = [*requirements_of(model), *cast(list[Json], model.get("trainable", []))]
+            if not judged and not (p.draw(st.booleans()) and p.draw(st.booleans())):
+                field = p.choose(registered_reads(model))
+                entries(model, "requirements").append(p.draw(requirement(field)))
             model["reads"] = []
             emptied.add(m)
             p.plant("holds", pointer("models", m, "reads"))
@@ -1657,6 +1691,7 @@ def plant_empty_list(p: Planting) -> None:
 SHAPE: dict[str, Callable[[Planting], None]] = {
     "missing": plant_missing,
     "breaks_holds": plant_breaks_holds,
+    "not_a_number": plant_not_a_number,
     "unknown": plant_unknown,
     "slip": plant_slip,
     "empty_list": plant_empty_list,
@@ -2202,14 +2237,17 @@ def plant_label_unreviewed(p: Planting) -> None:
     """Section 4.1 item 4: a waiver naming a `label`, refused "unless the requirement for its field names that
     `label` and holds `review: "reviewed"`", at its `label`: the requirement lacking `review`, the label,
     both, or absent, or the waiver's field none registered (a slip of a labelled one), by chance. A labelled
-    waiver that rested on the requirement before is refused so too."""
+    waiver that rested on the requirement before is refused so too. Or, by chance as well, the waiver's
+    `label` is `null` beside a reviewed requirement naming no label: `null` names no label, so item 4 does not
+    judge it, and the shape table alone refuses it, as a member of another JSON type (maintainer,
+    2026-10-25)."""
     m = p.model_index()
     model = p.models[m]
     field = p.choose(sorted(LABELS))
     reads = reads_of(model)
     if field not in reads:
         reads.append(field)
-    lacking = p.choose(("review", "label", "both", "requirement", "a registered field"))
+    lacking = p.choose(("review", "null", "label", "both", "requirement", "a registered field"))
     p.kinds.append(lacking)
     if lacking == "a registered field":
         # A waiver whose `field` no field registered here is: no requirement names it, so item 4 refuses its
@@ -2230,11 +2268,16 @@ def plant_label_unreviewed(p: Planting) -> None:
             position = len(listed) - 1
         held = cast(Json, listed[position])
         held["label"], held["review"] = LABELS[field], REVIEW
-        for member in {"review": ("review",), "label": ("label",), "both": ("label", "review")}[lacking]:
+        lacks = {"review": ("review",), "label": ("label",), "both": ("label", "review"), "null": ("label",)}
+        for member in lacks[lacking]:
             del held[member]
     for k in labelled_waivers(model, field):
         p.plant("label_unreviewed", pointer("models", m, "acceptances", k, "label"))
     at, held = append_acceptance(p, m, "waiver")
+    if lacking == "null":
+        held["field"], held["label"] = field, None
+        p.plant("holds", at + "/label")
+        return
     held["field"], held["label"] = field, LABELS[field]
     p.plant("label_unreviewed", at + "/label")
 
@@ -2274,8 +2317,9 @@ def plant_two_rules(p: Planting) -> None:
         at, held = append_acceptance(p, m, "waiver")
         field = p.choose(sorted(LABELS))
         held["field"] = field
-        # Not `null`: beside a reviewed requirement naming no label the check reads the two as one label and
-        # takes the waiver under item 4, where the text refuses it (an open point, not drawn until ruled).
+        # Not `null`, which names no label, so that item 4 does not judge it (maintainer, 2026-10-25): the
+        # check refuses it by item 4 but beside a reviewed requirement naming no label, where
+        # `plant_label_unreviewed` draws it. The other types here it refuses by item 4 too (an open point).
         held["label"] = p.draw(
             st.one_of(
                 st.sampled_from([label for label in ANY_LABEL if label != LABELS[field]]),
@@ -2374,7 +2418,7 @@ PARTS: dict[str, dict[str, Callable[[Planting], None]]] = {
 STRATA: dict[str, tuple[tuple[str, ...], ...]] = {
     "reasons": (("tolerance_reason", "accept_reason"), ("acceptance_reason", "basis"), ("empty_text",)),
     "locations": (("unlocated", "accepted_difference_unlocated"), ("overlay_unlocated", "located")),
-    "shape": (("missing", "empty_list"), ("unknown", "slip"), ("breaks_holds",)),
+    "shape": (("missing", "empty_list"), ("unknown", "slip"), ("breaks_holds",), ("not_a_number",)),
     "tokens": (("outside_list", "other_members_token"), ("slip_of_token", "misspelt_name"), ("other_case",)),
     "names": (
         ("requirement_unread", "trainable_unread"),
@@ -2512,20 +2556,26 @@ def engine(draw: st.DrawFn) -> Json:
 
 
 def plant_engine(p: Planting, m: int) -> None:
-    """A model with `engine`, over a domain or over its records (by chance), its crosswalk pinned in three
-    draws in four, its requirements wanting `value` in about half the draws and as drawn in the rest, and in
-    about one draw in three one of its values, in `values` or `region_values`, without its `reason` or
-    `basis` (item 7: "A declared engine value without `reason` and `basis` ... is refused at build", at the
-    model's `engine` and not at the value: the refusal paragraph). The oracle reads item 7 from what it is
-    over, its crosswalk (pinned, and never passed to this version's build), its values and its requirements'
-    `want`s; a missing crosswalk is the shape table's fault, the draw where item 7 alone tells an engine model
-    over records from one over a domain."""
+    """A model with `engine`, over a domain or over its records (by chance); and item 7's other reasons to
+    refuse it: none in about half the draws, where what the model is over alone tells whether item 7 refuses
+    it; an unexplained value alone in about a quarter; and in the rest each in about half, one at least: its
+    crosswalk pinned (and never passed to this version's build); one of its values, in `values` or
+    `region_values`, without its `reason` or `basis` ("A declared engine value without `reason` and `basis`
+    ... is refused at build", at the model's `engine` and not at the value: the refusal paragraph); one of its
+    requirements wanting a token other than `value`, the others as drawn, where otherwise each wants `value`.
+    The oracle reads item 7 from what the model is over, its crosswalk, its values and its requirements'
+    `want`s; a missing crosswalk is the shape table's fault."""
     model = p.models[m]
     over = p.choose(("domain", "records"))
     if over == "domain":
         plant_checked_over(p, m, "domain")
     held = p.draw(engine())
-    unexplained = p.draw(st.integers(0, 2)) == 0
+    reasons: list[str] = []
+    if not p.draw(st.booleans()):
+        reasons = (
+            ["unexplained"] if p.draw(st.booleans()) else included(p, ("crosswalk", "unexplained", "want"))
+        )
+    unexplained = "unexplained" in reasons
     if unexplained:
         values = cast(Json, held["values"])
         if not values:
@@ -2534,13 +2584,17 @@ def plant_engine(p: Planting, m: int) -> None:
         declared = [*values.values(), *(value for region in regions.values() for value in region.values())]
         value = cast(Json, declared[p.index(len(declared))])
         del value[p.choose(("reason", "basis"))]
-    pinned = p.draw(st.integers(0, 3)) > 0
+    pinned = "crosswalk" in reasons
     if not pinned:
         del held["crosswalk"]
         p.plant("missing_member", pointer("models", m, "engine"), "crosswalk")
-    if not p.draw(st.booleans()):
+    required = requirements_of(model)
+    if "want" in reasons and required:
+        other = required[p.index(len(required))]
+        other["want"] = p.choose([want for want in WANTS if want != "value"])
+    elif "want" not in reasons:
         # "A model with `engine` reads the fields its crosswalk sources, with `want` `value`" (item 7).
-        for item in requirements_of(model):
+        for item in required:
             item["want"] = "value"
     model["engine"] = held
     wants = tuple(str(item["want"]) for item in requirements_of(model) if isinstance(item.get("want"), str))

@@ -76,7 +76,9 @@ RULES: Mapping[str, frozenset[str]] = {
     "unlisted": SHAPE,
     # Section 4.1 item 4: a waiver naming a `label` is refused "unless the requirement for its field names
     # that `label` and holds `review: "reviewed"`" [BC-050], at its `label`; one of another field, or of
-    # another type, breaks the label row's Holds too.
+    # another type, breaks the label row's Holds too. A `label` of `null` names no label, so item 4 does not
+    # judge it: a member of another JSON type, refused at itself by the shape table alone, `holds`
+    # (maintainer, 2026-10-25).
     "label_unreviewed": frozenset({"BC-050"}),
     "waiver_label": frozenset({"BC-050", "BC-048"}),
     # "for a text that is not valid JSON, or a declaration that is not an object, the empty pointer".
