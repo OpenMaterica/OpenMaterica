@@ -263,6 +263,13 @@ DATA_RULES = (
         tests=("tests/unit/test_fuzz_build_oracle.py",),
     ),
     DataRule(
+        "the fuzz README, whose counts of the build target's seeds the oracle's tests hold",
+        r"tests/fuzz/README\.md",
+        "the build target's oracle tests read the README's counts of the seed declarations and inputs and "
+        "compare them to the build-check files",
+        tests=("tests/unit/test_fuzz_build_oracle.py",),
+    ),
+    DataRule(
         "an example record",
         r"examples/.+",
         "the example tests check each record against the schemas, its sources and what a read of it gives",
