@@ -161,6 +161,7 @@ REVIEWS: dict[str, str] = {
     "S7a-2p: `label_mismatch` left out of a result whose read is `met`": (
         "label_mismatch_left_out_of_a_read_met"
     ),
+    "S7a-2p: the results in another order, which HP46 compared as a multiset": "results_in_reverse",
 }
 
 

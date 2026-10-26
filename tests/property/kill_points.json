@@ -74,6 +74,7 @@
       "requirement_label_and_review_given": [1, 1],
       "rests_on_the_first_alternative_under_want_mismatch": [69, 69],
       "results_deduplicated_by_field": [5, 5],
+      "results_in_reverse": [1, 1],
       "review_not_required": [2, 2],
       "status_lowered_when_accepted": [35, 35],
       "stored_under_the_default_claims": [4, 4],
