@@ -16,10 +16,6 @@
     "refusals": [
       {
         "item": "BC-048",
-        "pointer": "/models/0/combinations/0"
-      },
-      {
-        "item": "BC-048",
         "pointer": "/models/0/combinations/0/2"
       }
     ]

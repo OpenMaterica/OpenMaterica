@@ -5,6 +5,7 @@ precedence rule's corners, the report of a refused declaration, and what this ve
 raises naming each acceptance."""
 
 import copy
+import dataclasses
 import json
 from collections.abc import Callable
 from pathlib import Path
@@ -19,6 +20,7 @@ from materica.core.identifiers import MaterialRef
 from materica.core.jsonio import JsonValue
 from materica.core.record import RecordStore
 from materica.core.report import BuildRefusal
+from materica.core.vocabulary import VOCABULARY
 from materica.shapes import Suite
 from tests.spec_sync.schemas import agreed
 
@@ -1113,7 +1115,11 @@ def test_a_trainable_entrys_location_is_judged_beside_a_field_that_is_no_string(
 
 def test_a_trainable_entry_with_no_name_is_never_given_twice() -> None:
     """R1 (an entry that is no well-formed name is neither the same as nor different from another), for the
-    two members of an entry's name: the field and the reference."""
+    two members of an entry's name that this version can show: the field and the reference. A `region` or an
+    `interval` makes an entry that item 12 refuses at the entry itself, and a second such entry's refusal as a
+    name given twice would be at that same entry, which item 12's case outranks; under a build that claims
+    the scene suite the check does not run. So whether a `region` that is no string is a name cannot be seen
+    until the scene suite is built, and no assertion here holds it."""
     first, second = "/models/0/trainable/0", "/models/0/trainable/1"
     no_field: list[JsonValue] = [{"field": 1.0, "record": WATER}, {"field": 1.0, "record": WATER}]
     assert refusals(a_declaration(lambda d: model(d).update(trainable=no_field))) == {
@@ -1125,13 +1131,6 @@ def test_a_trainable_entry_with_no_name_is_never_given_twice() -> None:
     assert refusals(a_declaration(lambda d: model(d).update(trainable=unnamed))) == {
         ("BC-048", f"{first}/record/id"),
         ("BC-048", f"{second}/record/id"),
-    }
-    no_region: list[JsonValue] = [entry_at(region=1.0), entry_at(region=1.0)]
-    assert refusals(a_declaration(lambda d: model(d).update(trainable=no_region))) == {
-        ("BC-048", f"{first}/region"),
-        ("BC-048", f"{second}/region"),
-        ("BC-051", first),
-        ("BC-051", second),
     }
     # The control: two entries that are well-formed names and the same are given twice, at the later.
     same: list[JsonValue] = [entry_at(record=WATER), entry_at(record=WATER)]
@@ -1195,6 +1194,44 @@ def test_a_trainable_entry_at_a_region_or_an_interval_is_at_a_location_a_model_o
         lambda d: model(d).update(checked_over={"domain": "lumen"}, trainable=[entry_at(**{name: held})])
     )
     assert refusals(over_a_scene) == {("BC-051", f"{CHECKED_OVER}/domain"), ("BC-051", TRAINABLE_0)}
+
+
+# A trainable entry's field at fault: the location kind is judged all the same (the location is judged against
+# the model, not against the field, so the field at fault leaves it be).
+FIELDS_AT_FAULT: list[tuple[str, Json]] = [
+    ("no string", {"field": 1.0}),
+    ("null", {"field": None}),
+    ("missing", {}),
+]
+
+
+@pytest.mark.parametrize(("what", "field"), FIELDS_AT_FAULT, ids=[what for what, _ in FIELDS_AT_FAULT])
+def test_a_trainable_entrys_location_kind_is_judged_beside_a_field_at_fault(what: str, field: Json) -> None:
+    """A `record` where the model is checked over a domain, and a `region` where it is checked over records,
+    are refused at the location whatever the entry's `field` holds (the fault of the field is its own); the
+    control is the same entry beside a field that is a string, which is refused at the location alike."""
+    at_field = (TRAINABLE_0, TRAINABLE_0 + "/field")[what != "missing"]
+    domain = a_declaration(
+        lambda d: model(d).update(checked_over={"domain": "lumen"}, trainable=[field | {"record": WATER}])
+    )
+    assert refusals(domain) == {
+        ("BC-051", f"{CHECKED_OVER}/domain"),
+        ("BC-048", f"{TRAINABLE_0}/record"),
+        ("BC-048", at_field),
+    }
+    over_records = a_declaration(lambda d: model(d).update(trainable=[field | {"region": "lumen"}]))
+    assert refusals(over_records) == {
+        ("BC-051", TRAINABLE_0),
+        ("BC-048", f"{TRAINABLE_0}/region"),
+        ("BC-048", at_field),
+    }
+    string = a_declaration(
+        lambda d: model(d).update(
+            checked_over={"domain": "lumen"},
+            trainable=[{"field": "fluid.dynamic_viscosity", "record": WATER}],
+        )
+    )
+    assert refusals(string) == {("BC-051", f"{CHECKED_OVER}/domain"), ("BC-048", f"{TRAINABLE_0}/record")}
 
 
 @pytest.mark.parametrize(
@@ -1271,15 +1308,21 @@ COMBINABLE: list[JsonValue] = [
     "magnetic.saturation_magnetisation",
 ]
 COMBINATIONS: list[tuple[list[JsonValue], Refusals]] = [
-    # Two registered fields of one section are refused whatever else the list holds.
+    # A combination is refused for its sections only where every entry is a registered field and all are of
+    # one section: the rule judges the entries against each other, and stands aside beside an entry at fault
+    # (which might have been a field of another section).
     (["magnetic.remanence", "magnetic.saturation_magnetisation"], {("BC-048", "/models/0/combinations/0")}),
     (
         ["magnetic.remanence", "magnetic.saturation_magnetisation", 1.0],
-        {("BC-048", "/models/0/combinations/0"), ("BC-048", "/models/0/combinations/0/2")},
+        {("BC-048", "/models/0/combinations/0/2")},
     ),
     (
         ["magnetic.remanence", "magnetic.saturation_magnetisation", "no.such_field"],
-        {("BC-048", "/models/0/combinations/0"), ("BC-048", "/models/0/combinations/0/2")},
+        {("BC-048", "/models/0/combinations/0/2")},
+    ),
+    (
+        ["magnetic.remanence", 1.0, "magnetic.saturation_magnetisation"],
+        {("BC-048", "/models/0/combinations/0/1")},
     ),
     # An entry that is no registered field has no section: one registered field is not a combination of one.
     (["magnetic.remanence", "magnetic.no_such_field"], {("BC-048", "/models/0/combinations/0/1")}),
@@ -1314,3 +1357,112 @@ def test_a_trainable_entrys_record_is_judged_against_checked_over_beside_a_secon
     assert refusals(a_declaration(lambda d: model(d).update(trainable=[listed]))) == found - {
         ("BC-048", f"{at}/record")
     }
+
+
+def test_a_combination_is_judged_over_the_registered_fields_not_those_in_reads() -> None:
+    """A field the vocabulary registers has its section whether or not the model reads it: two of one section
+    are refused as a combination, and the one not in `reads` is refused at itself too (the control: the fields
+    of two sections are refused at the field not read alone)."""
+    reads: list[JsonValue] = ["fluid.dynamic_viscosity", "magnetic.remanence"]
+    one_section = a_declaration(
+        lambda d: model(d).update(
+            reads=reads, combinations=[["magnetic.remanence", "magnetic.saturation_magnetisation"]]
+        )
+    )
+    assert refusals(one_section) == {
+        ("BC-048", "/models/0/combinations/0"),
+        ("BC-048", "/models/0/combinations/0/1"),
+    }
+    two_sections = a_declaration(
+        lambda d: model(d).update(reads=reads, combinations=[["magnetic.remanence", "bulk.density"]])
+    )
+    assert refusals(two_sections) == {("BC-048", "/models/0/combinations/0/1")}
+
+
+@pytest.mark.parametrize("field", ["fluid.viscosity", 1.0, None], ids=["unregistered", "number", "null"])
+def test_params_are_refused_beside_a_field_that_no_registered_field_is(field: JsonValue) -> None:
+    """`params` is held to a field whose row allows the form `parameter_set`, whichever value the `field`
+    holds: beside one that is unregistered or no string it is refused at itself, and the field is refused at
+    itself too (section 1: the judged member's own registered names settle it). The control: the same nominal
+    with a `value` in place of `params` is refused for its field alone."""
+    nominal = at_acceptance(NOMINAL | {"field": field})
+    assert refusals(nominal(params={"a": 1.0})) == {
+        ("BC-048", "/models/0/acceptances/1/field"),
+        ("BC-048", "/models/0/acceptances/1/params"),
+    }
+    assert refusals(nominal(value=1.0)) == {("BC-048", "/models/0/acceptances/1/field")}
+
+
+def test_params_beside_an_unregistered_field_are_refused_only_where_no_registered_field_allows_them(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The exception reads "`params` where no registered field's row allows the form `parameter_set`": beside
+    a field that is no registered field, `params` is refused unless some registered row allows the form (none
+    does in 0.1.0, so this supplies one); beside a registered field its own row decides (the control)."""
+    registered = VOCABULARY.fields["bulk.density"]
+    monkeypatch.setitem(
+        VOCABULARY.fields,
+        "bulk.density",
+        dataclasses.replace(registered, forms=(*registered.forms, "parameter_set")),
+    )
+    nominal = at_acceptance(NOMINAL)
+    params = "/models/0/acceptances/1/params"
+    for field in ["fluid.viscosity", 1.0, None]:
+        found = refusals(nominal(field=field, params={"a": 1.0}))
+        assert ("BC-048", params) not in found, field
+        assert ("BC-048", "/models/0/acceptances/1/field") in found, field
+    # Beside a registered field without the form its own row decides: refused. With it: not.
+    assert ("BC-048", params) in refusals(nominal(params={"a": 1.0}))
+    allowed = Declaration.from_json(nominal(field="bulk.density", params={"a": 1.0}))
+    assert isinstance(allowed, Declaration)
+
+
+def at_acceptance(acceptance: Json) -> Callable[..., Json]:
+    """The declaration with `acceptance` (and a reason) appended to the model's acceptances, and `members`."""
+
+    def declaration(**members: JsonValue) -> Json:
+        return a_declaration(appended(acceptance, **members))
+
+    return declaration
+
+
+@pytest.mark.parametrize("situation", list(LABEL_SITUATIONS))
+def test_a_waivers_label_that_is_the_empty_string_is_a_string_and_still_judged(situation: str) -> None:
+    """The empty string is a string that names no label of its field: BC-050's at the label (which outranks
+    BC-048's refusal of it as no registered label), unlike a label of another JSON type, which is BC-048's
+    alone."""
+    change, _ = LABEL_SITUATIONS[situation]
+
+    def given(declaration: Json) -> None:
+        waiver_of(declaration).update(label="")
+        change(declaration)
+
+    assert refusals(a_declaration(given)) == {("BC-050", f"{WAIVER}/label")}
+
+
+def test_a_trainable_entry_naming_a_field_twice_is_judged_by_version_hash_and_field() -> None:
+    """Two entries are one name only if the field and the reference's `id`, `version` and `content_hash` are
+    all the same: each of the three, differing alone, is a second entry for another name (the control: the
+    same name is given twice, at the later entry)."""
+    later = "/models/0/trainable/1"
+    versioned = cast(Json, WATER) | {"version": "2.0.0"}
+    pinned = cast(Json, WATER) | {"content_hash": "sha256:" + "1" * 64}
+    reads: list[JsonValue] = ["fluid.dynamic_viscosity", "bulk.density"]
+    differs: list[tuple[JsonValue, JsonValue]] = [
+        (entry_at(record=WATER), {"field": "bulk.density", "record": WATER}),
+        (entry_at(record=WATER), entry_at(record=versioned)),
+        (entry_at(record=WATER), entry_at(record=pinned)),
+    ]
+
+    def found_with(entries: list[JsonValue]) -> set[tuple[str, str]]:
+        checked = Declaration.from_json(
+            a_declaration(lambda d: model(d).update(reads=reads, trainable=entries))
+        )
+        return (
+            {(refusal.item, refusal.pointer) for refusal in checked} if isinstance(checked, tuple) else set()
+        )
+
+    for pair in differs:
+        assert ("BC-048", later) not in found_with(list(pair)), pair
+    same = found_with([entry_at(record=WATER)] * 2)
+    assert same == {("BC-048", later)}
