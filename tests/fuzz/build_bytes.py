@@ -12,14 +12,13 @@ The first byte picks a seed declaration, one of those the build-check suite's ca
 up to the first newline, are a JSON pointer (RFC 6901) to a member of it, or to one its object does not hold
 yet, or to the end of one of its lists; the rest, read by `jsonio.parse`, stands in that member's place, and
 `check_build` checks the declaration over the records the seed's case reads. The target fails when
-`check_build` raises anything but the `NotImplementedError` it raises for a declaration that passed its own
-check, when a refusal's pointer names no member of the declaration, or when a refusal names a case outside
-the refusal paragraph's: the relations of `build_oracle.py`, which `tests/unit/test_fuzz_build_oracle.py`
-shows failing.
-
-The design's fourth relation, the build's reference model's verdict held to the check's, comes with the model
-(`tests/reference/build_model.py`), which this piece's base does not hold. The seeds are every member of every
-seed declaration, each at its own pointer, and each whole declaration at the empty pointer.
+`check_build` raises anything but a `NotImplementedError` of what this version does not build past the
+declaration's own check, when a refusal's pointer names no member of the declaration, when a refusal names a
+case outside the refusal paragraph's, or when the build's reference model (`tests/reference/build_model.py`)
+refuses the declaration and the check's refusals differ from its own as no known divergence says: the
+relations of `build_oracle.py`, which `tests/unit/test_fuzz_build_oracle.py` shows failing. The seeds are
+every member of every seed declaration, each at its own pointer, and each whole declaration at the empty
+pointer.
 """
 
 import json

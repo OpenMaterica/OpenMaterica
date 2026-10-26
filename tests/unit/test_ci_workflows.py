@@ -3153,11 +3153,12 @@ def test_the_selection_check_can_fail(fault: Callable[[Workflow], None], problem
 # interrupt is to its shards' (`MEASURED_ON_CI`).
 FUZZ_SLOWEST_ON_CI = 126.7
 # The minutes the job's steps may add to that run, by estimate, until a run on CI measures them: the two
-# rounds of S4d's control it did not run, 15 at most each (four runs of up to 900 s side by side). Counting
-# one round run, not two, is the larger estimate. The 55 minutes estimated after the run of 2026-10-21 for
-# S4d's control and the replay of its property modules came to 15.3 measured in that run (the control step
-# 13.0 longer, the replay 2.3).
-FUZZ_ADDED_SINCE = 30.0
+# rounds of S4d's control it did not run, 15 at most each (four runs of up to 900 s side by side), and S7a-1's
+# control of `build_bytes.py`, 15 at most (four runs of up to 900 s side by side). Counting one round run, not
+# two, is the larger estimate. The 55 minutes estimated after the run of 2026-10-21 for S4d's control and the
+# replay of its property modules came to 15.3 measured in that run (the control step 13.0 longer, the replay
+# 2.3).
+FUZZ_ADDED_SINCE = 45.0
 
 
 def fuzz_margin_problems(ci: Workflow) -> list[str]:
@@ -3176,12 +3177,12 @@ def test_the_fuzz_job_has_twice_its_slowest_run_on_ci() -> None:
     assert fuzz_margin_problems(workflow("ci.yml")) == []
 
 
-@pytest.mark.parametrize("minutes", [65, 100, 119, 136, 167, 195, 222, 223, 313])
+@pytest.mark.parametrize("minutes", [65, 100, 119, 136, 167, 195, 222, 223, 313, 343])
 def test_the_fuzz_margin_check_can_fail(minutes: int) -> None:
     ci = copy.deepcopy(workflow("ci.yml"))
     ci["jobs"]["fuzz"]["timeout-minutes"] = minutes
     found = fuzz_margin_problems(ci)
-    expected = f"fuzz times out at {minutes} minutes, less than twice its 126.7 on CI and the 30 added since"
+    expected = f"fuzz times out at {minutes} minutes, less than twice its 126.7 on CI and the 45 added since"
     assert found == [expected], found
 
 
@@ -8166,8 +8167,10 @@ TABLES_CASES = (
 # seconds for the other run to start, records whether it did, and prints `STUB_FINDING` where its corpus is
 # among `STUB_FINDS`; on a run of the table value's fault, likewise for the three others, `STUB_EDGE_FINDING`
 # and `STUB_EDGE_FINDS`; on a run of fuzz target 5's fault (S3c), likewise for the others of its runs,
-# `STUB_METHOD_FINDING` and `STUB_METHOD_FINDS`; and on a run of the table alternatives' fault (S4d), likewise
-# for the three others, `STUB_ALTERNATIVES_FINDING` and `STUB_ALTERNATIVES_FINDS`. A fuzz run lasts
+# `STUB_METHOD_FINDING` and `STUB_METHOD_FINDS`; on a run of the table alternatives' fault (S4d), likewise
+# for the three others, `STUB_ALTERNATIVES_FINDING` and `STUB_ALTERNATIVES_FINDS`; and on a run of
+# `build_bytes.py`'s fault (S7a-1), likewise for the three others, `STUB_DECLARATIONS_FINDING` and
+# `STUB_DECLARATIONS_FINDS`. A fuzz run lasts
 # `STUB_RUN_SECONDS` (none by default), then reports as libFuzzer does at the end of a run, with or without a
 # finding.
 FUZZ_CONTROL_UV = """
@@ -8194,12 +8197,12 @@ elif module == "pytest":
     print("IndexError: the seeded fault in the read")
     print("  - during reuse phase (0.00 seconds):")
     print("    - 0 passing examples, 1 failing examples, 0 invalid examples")
-elif fault in ("tables", "table_edges", "extrapolation_method", "table_alternatives"):
+elif fault in ("tables", "table_edges", "extrapolation_method", "table_alternatives", "declarations"):
     corpus = Path(given[0]).name
     started = Path(os.environ["RUNNER_TEMP"], "started", fault)
     started.mkdir(parents=True, exist_ok=True)
     (started / corpus).touch()
-    others = {"tables": 1, "table_edges": 3, "table_alternatives": 3}
+    others = {"tables": 1, "table_edges": 3, "table_alternatives": 3, "declarations": 3}
     wanted = others[fault] if fault in others else int(os.environ["STUB_METHOD_OTHERS"])
     deadline = time.monotonic() + float(os.environ["STUB_PARTNER_WAIT"])
     while (
@@ -8216,6 +8219,7 @@ elif fault in ("tables", "table_edges", "extrapolation_method", "table_alternati
         "table_edges": "STUB_EDGE_",
         "extrapolation_method": "STUB_METHOD_",
         "table_alternatives": "STUB_ALTERNATIVES_",
+        "declarations": "STUB_DECLARATIONS_",
     }[fault]
     if corpus in os.environ[stub + "FINDS"].split():
         print(os.environ[stub + "FINDING"])
@@ -8285,6 +8289,7 @@ def tables_control_problems(ci: Workflow, directory: Path) -> list[str]:
             "STUB_EDGE_FINDING": TABLE_EDGES_FINDING,
             **METHOD_FOUND,
             **ALTERNATIVES_FOUND,
+            **DECLARATIONS_FOUND,
             "STUB_PARTNER_WAIT": "5" if index == 0 else "0",
         }
         status, _, printed = run_step(control_step(ci), {}, where / "work", base=environment, scratch=where)
@@ -8438,6 +8443,7 @@ def table_edges_control_problems(ci: Workflow, directory: Path) -> list[str]:
             "STUB_EDGE_FINDING": finding,
             **METHOD_FOUND,
             **ALTERNATIVES_FOUND,
+            **DECLARATIONS_FOUND,
             "STUB_PARTNER_WAIT": "5" if index == 0 else "0",
         }
         status, _, printed = run_step(control_step(ci), {}, where / "work", base=environment, scratch=where)
@@ -8634,6 +8640,7 @@ def method_control_problems(ci: Workflow, directory: Path) -> list[str]:
             "STUB_METHOD_FINDING": finding,
             "STUB_METHOD_OTHERS": str(METHOD_RUNS - 1),
             **ALTERNATIVES_FOUND,
+            **DECLARATIONS_FOUND,
             "STUB_PARTNER_WAIT": "5" if index == 0 else "0",
         }
         status, _, printed = run_step(control_step(ci), {}, where / "work", base=environment, scratch=where)
@@ -8838,6 +8845,7 @@ def alternatives_control_problems(ci: Workflow, directory: Path) -> list[str]:
             **METHOD_FOUND,
             "STUB_ALTERNATIVES_FINDS": finds,
             "STUB_ALTERNATIVES_FINDING": finding,
+            **DECLARATIONS_FOUND,
             "STUB_PARTNER_WAIT": "5" if index == 0 else "0",
         }
         status, _, printed = run_step(control_step(ci), {}, where / "work", base=environment, scratch=where)
@@ -8970,6 +8978,204 @@ def test_the_table_alternatives_control_check_can_fail(
     assert any(problem in line for line in problems), problems
 
 
+# `build_bytes.py`'s control (S7a-1; `MATERICA_FUZZ_SEEDED_FAULT=declarations`, `tests/fuzz/seeded_fault.py`):
+# item 4 skipping every acceptance after a model's second, which the target's relation to the build's
+# reference model finds, the implementation refusing an acceptance as a member missing (BC-048) where the
+# model gives BC-005. Its rate is not measured yet (measure.yml's fuzz kind runs it on CI): until it is, four
+# runs side by side, each of up to 900 s, the window of the bar the maintainer's ruling sets the fuzz
+# controls. The step passes where any finds it.
+TARGET_BUILD, DECLARATIONS = "tests.fuzz.build_bytes", "declarations"
+DECLARATIONS_RUNS = 4
+DECLARATIONS_RUN_SECONDS = 900
+DECLARATIONS_ERROR = "::error::the declarations runs did not find the fault seeded in the declaration's check"
+# The fault as the target's oracle words it, a third acceptance without its `reason`; and another
+# disagreement of the model's, which is not that fault's.
+DECLARATIONS_FINDING = (
+    "AssertionError: the implementation gives [('BC-048', '/models/0/acceptances/2')], the model "
+    "[('BC-005', '/models/0/acceptances/2')]"
+)
+ANOTHER_DECLARATIONS_FINDING = (
+    "AssertionError: the implementation gives [], the model [('BC-048', '/models/0/acceptances/2')]"
+)
+# The stub's environment where every case of another fault's control finds this fault in its first run.
+DECLARATIONS_FOUND = {
+    "STUB_DECLARATIONS_FINDS": "declarations-1",
+    "STUB_DECLARATIONS_FINDING": DECLARATIONS_FINDING,
+}
+# Each case: the corpora of the runs that report a finding, the finding, and whether the step passes.
+DECLARATIONS_CASES = (
+    ("declarations-1", DECLARATIONS_FINDING, True),
+    (f"declarations-{DECLARATIONS_RUNS}", DECLARATIONS_FINDING, True),
+    ("", DECLARATIONS_FINDING, False),
+    (
+        " ".join(f"declarations-{run}" for run in range(1, DECLARATIONS_RUNS + 1)),
+        ANOTHER_DECLARATIONS_FINDING,
+        False,
+    ),
+)
+
+
+def declarations_runs_problems(runs: list[dict[str, Any]], dictionary: str | None) -> list[str]:
+    """Where `build_bytes.py`'s fault is not run `DECLARATIONS_RUNS` times, on as many corpora, side by side,
+    each `DECLARATIONS_RUN_SECONDS`, with the dictionary the step writes for the target (`dictionary`), as
+    measure.py's fuzz kind runs it."""
+    problems = (
+        []
+        if len(runs) == DECLARATIONS_RUNS
+        else [f"{len(runs)} runs of the declaration's fault, not {DECLARATIONS_RUNS}"]
+    )
+    if len({run["arguments"][0] for run in runs}) != len(runs):
+        problems.append("the declaration's runs share a corpus")
+    for run in runs:
+        seconds = [word.partition("=")[2] for word in run["arguments"] if word.startswith("-max_total_time=")]
+        if seconds != [str(DECLARATIONS_RUN_SECONDS)]:
+            lasting = " and ".join(seconds) or "unlimited"
+            problems.append(
+                f"a run of the declaration's fault for {lasting} s, not {DECLARATIONS_RUN_SECONDS}"
+            )
+        if run["beside"] < DECLARATIONS_RUNS - 1:
+            problems.append(
+                f"a run of the declaration's fault beside {run['beside']} others, not side by side"
+            )
+        if dictionary is None or dictionaries(run) != [dictionary]:
+            problems.append(
+                f"a run of the declaration's fault with the dictionaries {dictionaries(run)}, not the step's"
+            )
+    return problems
+
+
+def declarations_control_problems(ci: Workflow, directory: Path) -> list[str]:
+    """The control step run as written with `FUZZ_CONTROL_UV`, in each of `DECLARATIONS_CASES`: where its runs
+    of `build_bytes.py`'s fault are not as `declarations_runs_problems` holds them, or where it passes or
+    fails otherwise than the case says, failing at that fault's check."""
+    problems: list[str] = []
+    for index, (finds, finding, passes) in enumerate(DECLARATIONS_CASES):
+        where = directory / str(index)
+        (where / "work").mkdir(parents=True)
+        environment = runner(where, FUZZ_CONTROL_UV) | {
+            "STUB_FINDS": "tables-1",
+            "STUB_FINDING": TABLES_FINDING,
+            "STUB_EDGE_FINDS": "table-edges-1",
+            "STUB_EDGE_FINDING": TABLE_EDGES_FINDING,
+            **METHOD_FOUND,
+            **ALTERNATIVES_FOUND,
+            "STUB_DECLARATIONS_FINDS": finds,
+            "STUB_DECLARATIONS_FINDING": finding,
+            "STUB_PARTNER_WAIT": "5" if index == 0 else "0",
+        }
+        status, _, printed = run_step(control_step(ci), {}, where / "work", base=environment, scratch=where)
+        recorded = where / "calls.jsonl"
+        calls = (
+            [json.loads(line) for line in recorded.read_text("utf-8").splitlines()]
+            if recorded.exists()
+            else []
+        )
+        runs = [call for call in calls if (call["module"], call["fault"]) == (TARGET_BUILD, DECLARATIONS)]
+        if index == 0:
+            problems += declarations_runs_problems(runs, control_dictionary(calls, TARGET_BUILD))
+        found = "the" if finding == DECLARATIONS_FINDING else "another"
+        case = f"{finds or 'no run'} reporting {found} finding"
+        if passes and status != 0:
+            problems.append(f"the step fails where {case}")
+        if not passes and (status == 0 or DECLARATIONS_ERROR not in printed):
+            problems.append(f"the step does not fail at the declaration's check where {case}")
+    return problems
+
+
+def test_the_control_step_runs_build_bytes_s_fault_and_sees_its_finding(tmp_path: Path) -> None:
+    assert declarations_control_problems(workflow("ci.yml"), tmp_path) == []
+
+
+# Parts of the control step's script, as YAML gives it, without the block's indentation.
+DECLARATIONS_LOOP = f"""\
+for worker in {" ".join(str(run) for run in range(1, DECLARATIONS_RUNS + 1))}; do
+  cp -r "$control/declarations" "$control/declarations-$worker"
+"""
+DECLARATIONS_RUN_END = f"""\
+    > "$control/declarations-$worker.log" 2>&1 &
+done
+wait || true
+cat "$control"/declarations-[1-{DECLARATIONS_RUNS}].log > "$control/declarations.log"
+"""
+DECLARATIONS_CHECK = 'if ! grep -q "$declared" "$control/declarations.log"; then\n'
+DECLARATIONS_DICTIONARY = (
+    f'"$control/declarations-$worker" -dict="$control/declaration.dict" '
+    f"-max_total_time={DECLARATIONS_RUN_SECONDS}"
+)
+
+
+def without_the_declaration_s_runs(text: str) -> str:
+    start = text.index(DECLARATIONS_LOOP)
+    end = text.index(DECLARATIONS_RUN_END) + len(DECLARATIONS_RUN_END)
+    return text[:start] + text[end:]
+
+
+def without_the_declaration_s_check(text: str) -> str:
+    start = text.index(DECLARATIONS_CHECK)
+    return text[:start] + text[text.index("\nfi\n", start) + len("\nfi\n") :]
+
+
+def with_one_declaration_run_fewer(text: str) -> str:
+    fewer = " ".join(str(run) for run in range(1, DECLARATIONS_RUNS))
+    return text.replace(
+        DECLARATIONS_LOOP, DECLARATIONS_LOOP.replace(f"in {fewer} {DECLARATIONS_RUNS};", f"in {fewer};")
+    )
+
+
+def with_shorter_declaration_runs(text: str) -> str:
+    start = text.index(DECLARATIONS_LOOP)
+    return text[:start] + text[start:].replace(
+        f"-max_total_time={DECLARATIONS_RUN_SECONDS}", f"-max_total_time={DECLARATIONS_RUN_SECONDS - 60}", 1
+    )
+
+
+def with_the_declaration_s_runs_one_after_the_other(text: str) -> str:
+    return text.replace(DECLARATIONS_RUN_END, DECLARATIONS_RUN_END.replace("2>&1 &", "2>&1"))
+
+
+def with_the_declaration_s_runs_without_the_dictionary(text: str) -> str:
+    return text.replace(
+        DECLARATIONS_DICTIONARY,
+        f'"$control/declarations-$worker" -max_total_time={DECLARATIONS_RUN_SECONDS}',
+    )
+
+
+@pytest.mark.parametrize(
+    ("fault", "problem"),
+    [
+        (without_the_declaration_s_runs, f"0 runs of the declaration's fault, not {DECLARATIONS_RUNS}"),
+        (
+            with_one_declaration_run_fewer,
+            f"{DECLARATIONS_RUNS - 1} runs of the declaration's fault, not {DECLARATIONS_RUNS}",
+        ),
+        (
+            with_shorter_declaration_runs,
+            f"for {DECLARATIONS_RUN_SECONDS - 60} s, not {DECLARATIONS_RUN_SECONDS}",
+        ),
+        (with_the_declaration_s_runs_one_after_the_other, "beside 0 others, not side by side"),
+        (
+            without_the_declaration_s_check,
+            "the step does not fail at the declaration's check where no run reporting",
+        ),
+        (
+            with_the_declaration_s_runs_without_the_dictionary,
+            "declaration's fault with the dictionaries [], not",
+        ),
+    ],
+    ids=["runs-removed", "one-run-fewer", "shorter", "one-after-the-other", "check-removed", "no-dictionary"],
+)
+def test_the_declaration_control_check_can_fail(
+    tmp_path: Path, fault: Callable[[str], str], problem: str
+) -> None:
+    ci = copy.deepcopy(workflow("ci.yml"))
+    found = control_step(ci)
+    changed = fault(found["run"])
+    assert changed != found["run"]
+    found["run"] = changed
+    problems = declarations_control_problems(ci, tmp_path)
+    assert any(problem in line for line in problems), problems
+
+
 # --- the control step's find times -------------------------------------------------------------------------
 # The maintainer's ruling of 2026-10-23: the control step prints each run's find time, so that CI's runs
 # measure the rates the fuzz controls' bar is judged by. The step prints, for every control, a line a run,
@@ -8987,6 +9193,7 @@ FIND_TIME_CONTROLS = {
     "table_edges": (4, 4),
     "extrapolation_method": (METHOD_RUNS, METHOD_RUNS),
     "table_alternatives": (8, ALTERNATIVES_SIDE_BY_SIDE),
+    "declarations": (DECLARATIONS_RUNS, DECLARATIONS_RUNS),
 }
 FIND_TIME_LINE = re.compile(
     r"^fuzz-control (\w+) round=(\d+) run=(\d+) found=(yes|no) seconds=(\d+\.\d)$", re.MULTILINE
@@ -9017,6 +9224,7 @@ FIND_TIME_CASES: tuple[tuple[dict[str, str], dict[str, set[int]]], ...] = (
             **METHOD_FOUND,
             "STUB_ALTERNATIVES_FINDS": "table-alternatives-5",
             "STUB_ALTERNATIVES_FINDING": ALTERNATIVES_FINDING,
+            **DECLARATIONS_FOUND,
             "STUB_RUN_SECONDS": str(FIND_TIME_RUN_SECONDS),
         },
         {
@@ -9028,6 +9236,7 @@ FIND_TIME_CASES: tuple[tuple[dict[str, str], dict[str, set[int]]], ...] = (
             "table_edges": {1},
             "extrapolation_method": {1},
             "table_alternatives": {5},
+            "declarations": {1},
         },
     ),
     (
@@ -9039,6 +9248,7 @@ FIND_TIME_CASES: tuple[tuple[dict[str, str], dict[str, set[int]]], ...] = (
             **METHOD_FOUND,
             "STUB_ALTERNATIVES_FINDS": EVERY_ALTERNATIVES_RUN,
             "STUB_ALTERNATIVES_FINDING": ANOTHER_ALTERNATIVES_FINDING,
+            **DECLARATIONS_FOUND,
         },
         {
             "bytes": {1},
@@ -9049,6 +9259,7 @@ FIND_TIME_CASES: tuple[tuple[dict[str, str], dict[str, set[int]]], ...] = (
             "table_edges": {1},
             "extrapolation_method": {1},
             "table_alternatives": set(),
+            "declarations": {1},
         },
     ),
 )

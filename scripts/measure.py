@@ -182,6 +182,16 @@ CONTROLS = {
         dictionary="acceptance.dict",
         ci_runs=4,
     ),
+    "declarations": Control(
+        "declarations",
+        "build_bytes",
+        900,
+        "^AssertionError: the implementation gives .*'BC-048', '/models/[0-9]*/acceptances/[0-9]*'.*, "
+        "the model .*'BC-005', '/models/[0-9]*/acceptances/[0-9]*'",
+        corpus="declarations",
+        dictionary="declaration.dict",
+        ci_runs=4,
+    ),
     # Rounds of four, another only where none of a round found it, three at most.
     "table_alternatives": Control(
         "table_alternatives",
