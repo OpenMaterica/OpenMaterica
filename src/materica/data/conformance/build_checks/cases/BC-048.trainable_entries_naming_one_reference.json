@@ -1,0 +1,35 @@
+{
+  "case": "BC-048",
+  "variant": "trainable_entries_naming_one_reference",
+  "suite": "build_checks",
+  "schema_version": "0.1.0",
+  "inputs": {
+    "records": [
+      "water_fixture.json"
+    ],
+    "declaration": "bc048_trainable_entries_naming_one_reference.json"
+  },
+  "request": {
+    "operation": "check_build"
+  },
+  "expected": {
+    "refusals": [
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/trainable/1"
+      },
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/trainable/1/record/x"
+      }
+    ]
+  },
+  "compare": {
+    "members": [
+      "refusals",
+      "results",
+      "watches",
+      "unused"
+    ]
+  }
+}

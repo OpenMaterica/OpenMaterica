@@ -1,0 +1,43 @@
+{
+  "case": "BC-048",
+  "variant": "trainable_record_and_region_the_record_not_listed",
+  "suite": "build_checks",
+  "schema_version": "0.1.0",
+  "claims": {
+    "scene_documents": false
+  },
+  "inputs": {
+    "records": [
+      "water_fixture.json",
+      "glycerol_fixture.json"
+    ],
+    "declaration": "bc048_trainable_record_and_region_the_record_not_listed.json"
+  },
+  "request": {
+    "operation": "check_build"
+  },
+  "expected": {
+    "refusals": [
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/trainable/0/record"
+      },
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/trainable/0/region"
+      },
+      {
+        "item": "BC-051",
+        "pointer": "/models/0/trainable/0"
+      }
+    ]
+  },
+  "compare": {
+    "members": [
+      "refusals",
+      "results",
+      "watches",
+      "unused"
+    ]
+  }
+}

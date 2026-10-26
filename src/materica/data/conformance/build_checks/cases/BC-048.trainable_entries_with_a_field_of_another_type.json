@@ -1,0 +1,35 @@
+{
+  "case": "BC-048",
+  "variant": "trainable_entries_with_a_field_of_another_type",
+  "suite": "build_checks",
+  "schema_version": "0.1.0",
+  "inputs": {
+    "records": [
+      "water_fixture.json"
+    ],
+    "declaration": "bc048_trainable_entries_with_a_field_of_another_type.json"
+  },
+  "request": {
+    "operation": "check_build"
+  },
+  "expected": {
+    "refusals": [
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/trainable/0/field"
+      },
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/trainable/1/field"
+      }
+    ]
+  },
+  "compare": {
+    "members": [
+      "refusals",
+      "results",
+      "watches",
+      "unused"
+    ]
+  }
+}

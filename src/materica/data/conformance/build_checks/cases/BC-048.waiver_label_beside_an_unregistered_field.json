@@ -1,0 +1,47 @@
+{
+  "case": "BC-048",
+  "variant": "waiver_label_beside_an_unregistered_field",
+  "suite": "build_checks",
+  "schema_version": "0.1.0",
+  "inputs": {
+    "records": [
+      "water_fixture.json"
+    ],
+    "declaration": "bc048_waiver_label_beside_an_unregistered_field.json"
+  },
+  "request": {
+    "operation": "check_build"
+  },
+  "expected": {
+    "refusals": [
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/acceptances/0/field"
+      },
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/acceptances/0/label"
+      },
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/reads/0"
+      },
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/requirements/0/field"
+      },
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/requirements/0/label"
+      }
+    ]
+  },
+  "compare": {
+    "members": [
+      "refusals",
+      "results",
+      "watches",
+      "unused"
+    ]
+  }
+}

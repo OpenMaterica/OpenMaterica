@@ -1,0 +1,37 @@
+{
+  "case": "BC-048",
+  "variant": "population_level_within_status_object_with_a_reason_that_is_no_text",
+  "suite": "build_checks",
+  "schema_version": "0.1.0",
+  "claims": {
+    "sampling": false
+  },
+  "inputs": {
+    "records": [
+      "water_fixture.json"
+    ],
+    "declaration": "bc048_population_level_within_status_object_with_a_reason_that_is_no_text.json"
+  },
+  "request": {
+    "operation": "check_build"
+  },
+  "expected": {
+    "refusals": [
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/requirements/0/population_level/within/reason"
+      }
+    ]
+  },
+  "compare": {
+    "members": [
+      "refusals",
+      "results",
+      "watches",
+      "unused"
+    ],
+    "rules_compared": [
+      "BC-048"
+    ]
+  }
+}
