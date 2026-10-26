@@ -642,17 +642,21 @@ and none at the value. Before, the paragraph did not say, and a second implement
 cases as a second refusal (BC-005, BC-040, BC-043, BC-048).
 
 A default of 2026-10-26, which the maintainer has yet to confirm, taken after a comparison of the declaration
-check with the build's reference model: a rule that judges one member against another stands aside only as far
-as its verdict depends on the member at fault (`declarations.md` section 1, the refusal paragraph). What the
-judged member's own type, shape or registered names settle, whichever value the member at fault holds, is
-still judged: a waiver's `condition` beside a `code` that is no string or is missing, which names no condition
-whichever it is; a combination's fields of one section beside an entry that is no registered field; a
-`trainable` entry's location beside a `field` that is no string. An entry that is no well-formed name (a
-reference without string `id`, `version` and `content_hash`, a `field` that is no string) is neither the same
-as nor different from another, and no rule compares it, so it is never given twice and a `trainable` entry's
-record is compared with the listed ones by reference. Before, the paragraph gave three examples of standing
-aside and did not say where the principle stops, so two implementations could stop it at different places
-(BC-048).
+check with the build's reference model: a rule that judges one member against another stands aside where the
+other is itself at fault, with three exceptions (`declarations.md` section 1, the refusal paragraph). A member is
+still held to what it must be whichever value the other holds: its JSON type (a distribution parameter's value
+is a number; an accepted difference's `value` is an object, a status object judged as one, or `"any"`), a label
+that no registered field has, and `params` where no registered field's row allows the form `parameter_set`. A
+rule the text states for a member at fault still applies: a waiver whose `code` is no reason names no
+`condition`. And an entry that is no well-formed name (a reference without string `id`, `version` and
+`content_hash`, a `field` that is no string) is neither the same as nor different from another, and no rule
+compares it, so it is never given twice and a `trainable` entry's record is compared with the listed ones by
+reference. An acceptance that names no known kind keeps the rule above: none of its other members is judged.
+One reading follows that no earlier text stated: a combination is refused for its sections only where every
+entry is a registered field and all are of one section, so two fields of one section beside a third entry that
+is no registered field are refused at that entry alone (the sections rule judges the entries against each
+other). Before, the paragraph gave three examples of standing aside and did not say where the principle stops,
+so two implementations could stop it at different places (BC-048).
 
 A second default of 2026-10-26, taken with the same comparison and not yet confirmed by the maintainer: a
 `trainable` entry at a `record` where its model is checked over a domain or a path, and one at a `region` or
