@@ -2641,9 +2641,10 @@ def label_refusal_at_the_waiver(
     pointer: str,
     name: str | None,
     requirements: Mapping[str, JsonObject],
+    given: JsonObject,
 ) -> None:
     before = len(self.faults)
-    _build_waiver(self, typed, pointer, name, requirements)
+    _build_waiver(self, typed, pointer, name, requirements, given)
     self.faults[before:] = [
         build.Fault(pointer, fault.rules) if "BC-050" in fault.rules else fault
         for fault in self.faults[before:]
@@ -2656,9 +2657,10 @@ def label_rule_without_review(
     pointer: str,
     name: str | None,
     requirements: Mapping[str, JsonObject],
+    given: JsonObject,
 ) -> None:
     reviewed = {field: {**requirement, "review": "reviewed"} for field, requirement in requirements.items()}
-    _build_waiver(self, typed, pointer, name, reviewed)
+    _build_waiver(self, typed, pointer, name, reviewed, given)
 
 
 def unknown_code_names_a_condition(
@@ -2667,8 +2669,9 @@ def unknown_code_names_a_condition(
     pointer: str,
     name: str | None,
     requirements: Mapping[str, JsonObject],
+    given: JsonObject,
 ) -> None:
-    _build_waiver(self, typed, pointer, name, requirements)
+    _build_waiver(self, typed, pointer, name, requirements, given)
     if typed.get("code") not in model.REASONS and "condition" not in typed:
         self.fault(pointer)
 
@@ -2679,9 +2682,10 @@ def condition_unknown_name_taken(
     pointer: str,
     name: str | None,
     requirements: Mapping[str, JsonObject],
+    given: JsonObject,
 ) -> None:
     before = len(self.faults)
-    _build_waiver(self, typed, pointer, name, requirements)
+    _build_waiver(self, typed, pointer, name, requirements, given)
     if typed.get("code") == "condition_unknown_name":
         self.faults[before:] = [
             fault for fault in self.faults[before:] if fault.pointer != build.at(pointer, "code")
@@ -2694,8 +2698,9 @@ def condition_missing_beside_a_refused_code(
     pointer: str,
     name: str | None,
     requirements: Mapping[str, JsonObject],
+    given: JsonObject,
 ) -> None:
-    _build_waiver(self, typed, pointer, name, requirements)
+    _build_waiver(self, typed, pointer, name, requirements, given)
     if typed.get("code") == "condition_unknown_name" and "condition" not in typed:
         self.fault(pointer, apart="condition")
 
@@ -2879,13 +2884,16 @@ def range_sorted(self: build.DeclarationCheck, typed: JsonObject, pointer: str, 
 def own_members_eased(kind: str, ease: Callable[[JsonObject], JsonObject]) -> Callable[..., None]:
     def own_members(
         self: build.DeclarationCheck,
-        given: str,
+        kind_given: str,
         typed: JsonObject,
         pointer: str,
         name: str | None,
         requirements: Mapping[str, JsonObject],
+        given: JsonObject,
     ) -> None:
-        _build_own_members(self, given, ease(typed) if given == kind else typed, pointer, name, requirements)
+        _build_own_members(
+            self, kind_given, ease(typed) if kind_given == kind else typed, pointer, name, requirements, given
+        )
 
     return own_members
 
@@ -2966,9 +2974,10 @@ def waiver_dropping(
         pointer: str,
         name: str | None,
         requirements: Mapping[str, JsonObject],
+        given: JsonObject,
     ) -> None:
         before = len(self.faults)
-        _build_waiver(self, typed, pointer, name, requirements)
+        _build_waiver(self, typed, pointer, name, requirements, given)
         self.faults[before:] = [fault for fault in self.faults[before:] if not drop(fault, pointer, name)]
 
     return waiver
@@ -3056,11 +3065,16 @@ def accepts_filled(typed: JsonObject) -> JsonObject:
     return {**typed, "accepts": ["consumer"]} if typed.get("accepts") == [] else typed
 
 
+ONE_RECORD: JsonObject = {"id": "a", "version": "1", "content_hash": "sha256:0"}
+
+
 def trainable_twice_by_field(self: build.DeclarationCheck, typed: JsonObject, pointer: str) -> None:
     entries = typed.get("trainable")
     if isinstance(entries, list):
         by_field: list[JsonValue] = [
-            {"field": entry["field"], "record": {}} if isinstance(entry, dict) and "field" in entry else entry
+            {"field": entry["field"], "record": ONE_RECORD}
+            if isinstance(entry, dict) and "field" in entry
+            else entry
             for entry in entries
         ]
         typed = {**typed, "trainable": by_field}
@@ -3701,7 +3715,6 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
         "a `trainable` entry at a region or an interval taken without the scene suite",
         'declarations.md:205-206 "an acceptance or `trainable` entry located at a region or an interval"',
         {"DeclarationCheck.trainable": faults_dropped(_build_trainable, no_bc_051)},
-        "no case holds a `trainable` entry at a region or an interval, whatever the suite",
         module=build,
     ),
     "build_claimed_suite_beyond_unrecorded": Mutant(
@@ -3749,7 +3762,6 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
         "two `trainable` entries for one field at two locations refused",
         'declarations.md:132-133 "two `trainable` entries for one field at one location"',
         {"DeclarationCheck.trainable_twice": trainable_twice_by_field},
-        "no case holds two `trainable` entries for one field",
         module=build,
     ),
     "build_engine_over_a_domain_refused": Mutant(

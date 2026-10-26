@@ -52,15 +52,9 @@ from tests.reference.strict_json import JsonObject, JsonValue, NotStrictJson, pa
 
 OPEN_POINTS: Final[Mapping[str, str]] = {
     "exactly_one_of": (
-        "where a place takes exactly one of two or three members and holds none or more than one, the fault "
-        "is the object's, at its pointer, as a missing member's is"
-    ),
-    "member_judged_beside_a_faulty_one": (
-        "the refusal paragraph names three pairs of members one of which stands aside where the other is at "
-        "fault; the model applies the same reading to the pairs it does not name: a label beside a field "
-        "that is not registered, an implied condition's `token` or an accepted difference's `value` beside "
-        "a fact that is none of section 6.2's, a distribution's parameters beside a token that is none of "
-        "section 4's, a `trainable` entry's location beside a broken `checked_over`"
+        "where a place takes exactly one of two or three members and holds none, the fault is the object's, "
+        "at its pointer, as a missing member's is; where it holds more than one, the fault is the object's "
+        "own, one with any other rule's fault at the same pointer"
     ),
     "reads_at_fault": (
         "a `reads` at fault is the member itself, absent, of another JSON type or empty; an entry of it that "
@@ -68,7 +62,6 @@ OPEN_POINTS: Final[Mapping[str, str]] = {
         "`reads` at fault no field is judged against it: a combination's fields and a `trainable` entry's "
         "stand aside as a requirement's does, the paragraph's principle applied to the pairs it does not name"
     ),
-    "combination_sections": "a combination's fields are from pairwise different sections",
     "chain_ends": (
         "a chain's `from` and `to` each hold `family`, a string, and `record`, a material reference, and its "
         "`state_mapping` maps names to strings"
@@ -80,11 +73,6 @@ OPEN_POINTS: Final[Mapping[str, str]] = {
     "accepted_difference_basis": (
         "an accepted difference's `value` may hold `basis`, `stated` or `inferred` (`stated` alone for "
         "`mimics`), and `inferred_from`, a string"
-    ),
-    "trainable_location_in_a_scene": (
-        "whether a `trainable` entry's region or interval lies in the domain or path its model is checked "
-        "over is the scene suite's: the model does not place that BC-048; over records a region or an "
-        "interval never does, nor does a record over a domain or a path"
     ),
     "interval_location": (
         "the text gives an interval location no shape: the model does not place the BC-048 of one, and a "
@@ -139,6 +127,10 @@ OPEN_POINTS: Final[Mapping[str, str]] = {
 # another missing member's: `Fault.apart` names which. A rule that judges one member against another does not
 # judge it where the other is at fault (declarations.md:156-157 "A rule that judges one member against
 # another stands aside where the other is itself at fault"): the rules that do so are marked "Stands aside".
+# It stands aside only as far as its verdict depends on the member at fault; what the faulty member's own
+# type, shape or registered names settle is still judged, and an entry that is no well-formed name (a
+# reference without string `id`, `version` and `content_hash`, a `field` that is no string) is neither the
+# same as nor different from another, and no rule compares it (ruling of 2026-10-26).
 ORDER: Final = ("BC-004", "BC-005", "BC-040", "BC-044", "BC-043", "BC-037", "BC-050", "BC-051", "BC-048")
 SHAPE: Final = "BC-048"
 # What the model gives a declaration that passes its own check: the build's results model
@@ -394,10 +386,22 @@ def empty(value: JsonValue) -> bool:
     return value == []
 
 
-def given_before(value: JsonValue, earlier: Iterable[JsonValue]) -> bool:
+def given_before(value: object, earlier: Iterable[object]) -> bool:
     # declarations.md:131 "a name is given twice where the table allows it once"; declarations.md:146 "of two
     # of one name, the later entry of its list, whole"
     return value in list(earlier)
+
+
+def reference_of(value: JsonValue) -> tuple[str, str, str] | None:
+    """A material reference's name, its `id`, `version` and `content_hash`, or None where the value is no
+    well-formed reference and names nothing (the comment at `ORDER`). What else it holds is not its name."""
+    # declarations.md:120 "| material reference | `id`, `version`, `content_hash` | yes | strings |"
+    if not isinstance(value, dict):
+        return None
+    identifier, version, content_hash = (value.get(member) for member in ("id", "version", "content_hash"))
+    if isinstance(identifier, str) and isinstance(version, str) and isinstance(content_hash, str):
+        return identifier, version, content_hash
+    return None
 
 
 def read_by(name: JsonValue, reads: list[str] | None) -> bool:
@@ -495,8 +499,15 @@ class DeclarationCheck:
             if required == "yes" and name not in value:
                 self.fault(missing_at(pointer, name), *(missing or {}).get(name, (SHAPE,)), apart=name)
         alternatives = [name for name, (_, required) in place.items() if required == "one"]
-        if alternatives and sum(name in value for name in alternatives) != 1:
-            self.fault(pointer, apart="one of")  # Open point: exactly_one_of.
+        if alternatives:
+            # Open point: exactly_one_of. None is a missing member's fault, apart from the object's own; two
+            # or more are the object's own fault, one with any other rule's fault there (declarations.md:145
+            # "The pointer names the member at fault").
+            held = sum(name in value for name in alternatives)
+            if held == 0:
+                self.fault(pointer, apart="one of")
+            elif held > 1:
+                self.fault(pointer)
         locations = [name for name, (_, required) in place.items() if required == "located"]
         if locations and not any(name in value for name in locations):
             # declarations.md:367 "An acceptance whose kind needs a location and names none is refused"
@@ -622,11 +633,13 @@ class DeclarationCheck:
             self.chain(chain, at_index)
         if "precision" in typed:
             self.token(typed["precision"], at(pointer, "precision"), PRECISIONS)
+        # declarations.md:204-205 "where it does not claim the scene suite, a model checked over a domain
+        # or a path, `region_conditions`": the member that needs the suite, whatever JSON type it holds.
+        if "region_conditions" in members(entry) and self.lacks(
+            "scene_documents", "region_conditions under the scene suite (S7b)"
+        ):
+            self.fault(at(pointer, "region_conditions"), "BC-051")
         if isinstance(region_conditions := typed.get("region_conditions"), dict):
-            # declarations.md:204-205 "where it does not claim the scene suite, a model checked over a domain
-            # or a path, `region_conditions`"
-            if self.lacks("scene_documents", "region_conditions under the scene suite (S7b)"):
-                self.fault(at(pointer, "region_conditions"), "BC-051")
             for region, conditions in region_conditions.items():
                 if isinstance(conditions, dict):
                     self.operating_conditions(conditions, at(pointer, "region_conditions", region))
@@ -644,7 +657,7 @@ class DeclarationCheck:
 
     def checked_over(self, typed: JsonObject, pointer: str) -> list[JsonValue] | Literal["scene"] | None:
         """The records a model is checked over, "scene" for a domain or a path, or None where `checked_over`
-        is broken (Open point: member_judged_beside_a_faulty_one)."""
+        is broken (the comment at `ORDER`)."""
         if "checked_over" not in typed:
             return None
         value = typed["checked_over"]
@@ -654,21 +667,26 @@ class DeclarationCheck:
                 "scene_documents", "a model checked over a domain or a path under the scene suite (S7b)"
             ):
                 self.fault(at(pointer, name), "BC-051")
-        if held is None or len(members(value).keys() & {"domain", "path", "records"}) != 1:
+        if held is None:
             return None
+        one = len(members(value).keys() & {"domain", "path", "records"}) == 1
         records = held.get("records")
         if not isinstance(records, list):
-            return "scene" if "records" not in members(value) else None
+            return "scene" if one and "records" not in members(value) else None
         if empty(records):
             # declarations.md:91 "at least one material reference, none twice"
             self.fault(at(pointer, "records"))
+        names: list[tuple[str, str, str] | None] = []
         for index, record in enumerate(records):
             self.shaped(record, at(pointer, "records", index), REFERENCE)
-            if given_before(record, records[:index]):
+            named = reference_of(record)
+            if one and named is not None and given_before(named, names):
                 # declarations.md:147-148 "the field in `reads` or the record in `checked_over.records`
-                # itself"
+                # itself". A record is named by its reference. Beside another alternative neither side judges
+                # a record twice.
                 self.fault(at(pointer, "records", index))
-        return records
+            names.append(named)
+        return records if one else None
 
     def reads(self, typed: JsonObject, pointer: str) -> list[str] | None:
         """The fields a model lists in `reads`, or None where the member is at fault: absent, of another JSON
@@ -731,15 +749,17 @@ class DeclarationCheck:
                 self.token(rule, at(pointer, "rules", name), MIXING_RULES)
 
     def combination(self, combination: JsonValue, pointer: str, reads: list[str] | None) -> None:
-        # declarations.md:98 "lists of two or more fields in `reads`, from different sections"; Open point:
-        # combination_sections.
+        # declarations.md:98 "lists of two or more fields in `reads`, from different sections"; refused where
+        # the Holds list refuses, declarations.md:139 "fewer than two fields or of fields of one section": the
+        # registered fields among the entries are all of one section (a ruling of 2026-10-26). A name that
+        # is no field has no section.
         if not isinstance(combination, list):
             self.fault(pointer)
             return
         sections = [
             name.partition(".")[0] for name in combination if isinstance(name, str) and name in FIELDS
         ]
-        if len(combination) < 2 or len(set(sections)) < len(sections):
+        if len(combination) < 2 or (len(sections) > 1 and len(set(sections)) == 1):
             self.fault(pointer)
         for index, name in enumerate(combination):
             if self.token(name, at(pointer, index), FIELDS) and not read_by(name, reads):
@@ -783,10 +803,13 @@ class DeclarationCheck:
                     # point: item_7_beyond_the_declaration.
                     self.other_want = self.other_want or (wants and requirement["want"] != "value")
                     self.item_7_scopes.append(at(at_index, "want"))
-            if "label" in requirement and registered:
-                # declarations.md:106 "| | `label` | no | a label registered for the field"; Open point:
-                # member_judged_beside_a_faulty_one.
-                self.token(requirement["label"], at(at_index, "label"), label_of(str(name)))
+            if "label" in requirement:
+                # declarations.md:106 "| | `label` | no | a label registered for the field". Beside a field
+                # that is not registered it is judged against every registered label, which refuses one no
+                # field has (the comment at `ORDER`).
+                self.token(
+                    requirement["label"], at(at_index, "label"), label_of(str(name) if registered else None)
+                )
             if "review" in requirement:
                 self.token(requirement["review"], at(at_index, "review"), REVIEWS)
             for condition, entry in members(requirement.get("conditions")).items():
@@ -899,7 +922,7 @@ class DeclarationCheck:
         ):
             self.fault(pointer, "BC-051")
         self.picks_or_overlays = self.picks_or_overlays or kind in ("pick", "overlay")
-        self.own_members(kind, typed, pointer, str(field_name) if field_name else None, requirements)
+        self.own_members(kind, typed, pointer, str(field_name) if field_name else None, requirements, value)
 
     def own_members(
         self,
@@ -908,6 +931,7 @@ class DeclarationCheck:
         pointer: str,
         name: str | None,
         requirements: Mapping[str, JsonObject],
+        given: JsonObject,
     ) -> None:
         # declarations.md:118 "a pick's `index`, a whole number not below zero; a waiver's `code`, a reason
         # of"
@@ -915,7 +939,7 @@ class DeclarationCheck:
         if kind == "pick" and "index" in typed and not (whole(index) and index >= 0):
             self.fault(at(pointer, "index"))
         elif kind == "waiver":
-            self.waiver(typed, pointer, name, requirements)
+            self.waiver(typed, pointer, name, requirements, given)
         elif kind == "implied_condition":
             fact = typed.get("fact")
             if "fact" in typed and self.token(fact, at(pointer, "fact"), TOKEN_FACTS) and "token" in typed:
@@ -946,7 +970,12 @@ class DeclarationCheck:
                 self.token(token, at(pointer, "accepts", index), ACCEPTS)
 
     def waiver(
-        self, typed: JsonObject, pointer: str, name: str | None, requirements: Mapping[str, JsonObject]
+        self,
+        typed: JsonObject,
+        pointer: str,
+        name: str | None,
+        requirements: Mapping[str, JsonObject],
+        given: JsonObject,
     ) -> None:
         code = typed.get("code")
         known = "code" in typed and self.token(code, at(pointer, "code"), REASONS)
@@ -956,21 +985,22 @@ class DeclarationCheck:
             self.fault(at(pointer, "code"))
         # declarations.md:118 "a waiver whose `code` is no reason names no condition"
         names_one = known and code in CODES_NAMING_A_CONDITION
-        if names_one and "condition" not in typed:
+        # A `condition` of another JSON type is present, and the member at fault, not a missing one.
+        if names_one and "condition" not in given:
             # Stands aside beside a `code` that is refused (declarations.md:158-159 "a waiver's missing
             # `condition` beside a `code` that is refused").
             if not refused:
                 self.fault(pointer, apart="condition")
-        elif "condition" in typed and not names_one:
+        elif "condition" in given and not names_one:
             self.fault(at(pointer, "condition"))
         elif "condition" in typed:
             self.token(typed["condition"], at(pointer, "condition"), CONDITIONS)
         if "label" not in typed:
             return
         label = typed["label"]
-        # A label that is none of the field's is the token rule's fault (Open point:
-        # member_judged_beside_a_faulty_one: none is judged beside a field that is not registered).
-        registered = name is None or label in label_of(name)
+        # A label that is none of the field's is the token rule's fault; beside a field that is not
+        # registered, one no field has (the comment at `ORDER`).
+        registered = label in label_of(name)
         # declarations.md:388-389 "the build refuses it at build unless the requirement for its field names
         # that `label` and holds `review: "reviewed"`"; declarations.md:148-149 "for a waiver naming a `label`
         # that section 4.1 item 4 refuses, that waiver's `label`". Item 4 and the token rule name one member,
@@ -993,7 +1023,7 @@ class DeclarationCheck:
         value = typed.get("value")
         if "value" not in typed or value == "any":
             return
-        if isinstance(value, dict) and "status" in value:
+        if is_status_object(value):
             status = self.shaped(value, at(pointer, "value"), SHAPES["status object"])
             if status and "status" in status:
                 self.token(status["status"], at(pointer, "value", "status"), STATUS_TOKENS)
@@ -1006,13 +1036,13 @@ class DeclarationCheck:
         if "space" in typed:
             self.token(typed["space"], at(pointer, "space"), SPACES)
         token = typed.get("distribution")
-        if not ("distribution" in typed and self.token(token, at(pointer, "distribution"), DISTRIBUTIONS)):
-            return  # Open point: member_judged_beside_a_faulty_one.
+        known = "distribution" in typed and self.token(token, at(pointer, "distribution"), DISTRIBUTIONS)
         parameters = typed.get("distribution_parameters")
         if not isinstance(parameters, dict):
             return
-        if sorted(parameters) != sorted(DISTRIBUTION_PARAMETERS[str(token)]):
-            # declarations.md:140 "a distribution's parameters other than its token's"
+        if known and sorted(parameters) != sorted(DISTRIBUTION_PARAMETERS[str(token)]):
+            # declarations.md:140 "a distribution's parameters other than its token's". Beside a token that
+            # is none, the names stand aside, each value's type is still judged (the comment at `ORDER`).
             self.fault(at(pointer, "distribution_parameters"))
         for parameter, number in parameters.items():
             if not isinstance(number, float):
@@ -1044,25 +1074,36 @@ class DeclarationCheck:
             # declarations.md:134 "names a field its model does not list in `reads`"
             self.fault(at(pointer, "field"))
         for where in sorted(entry.keys() & {"record", "region", "interval"}):
-            # declarations.md:134-135 "or a `trainable` entry a location its model is not checked over"
+            # declarations.md:134-135 "or a `trainable` entry a location its model is not checked over". Over
+            # records the location is the record read (declarations.md:241 "Over records the location is the
+            # record read"), so a region or an interval is not a location, nor is a record over a domain or a
+            # path (a ruling of 2026-10-26); whether a region or an interval lies in the domain or the path is
+            # the scene suite's.
             if over == "scene" and where != "record":
                 self.unplace(SHAPE, "whether a region or interval lies where its model is checked over (S7b)")
-            elif over is not None and (over == "scene" or where != "record" or entry[where] not in over):
-                self.fault(at(pointer, where))  # Open point: trainable_location_in_a_scene.
-            if where != "record" and self.lacks(
-                "scene_documents", "a trainable entry at a region or an interval under the scene suite (S7b)"
-            ):
-                # declarations.md:205 "an acceptance or `trainable` entry located"
-                self.fault(pointer, "BC-051")
+            elif over is not None and (over == "scene" or where != "record" or unlisted(entry[where], over)):
+                self.fault(at(pointer, where))
+        if members(value).keys() & {"region", "interval"} and self.lacks(
+            "scene_documents", "a trainable entry at a region or an interval under the scene suite (S7b)"
+        ):
+            # declarations.md:205 "an acceptance or `trainable` entry located": the entry at a region or an
+            # interval of whatever type, as an acceptance is.
+            self.fault(pointer, "BC-051")
 
     def trainable_twice(self, typed: JsonObject, pointer: str) -> None:
         # declarations.md:132-133 "two `trainable` entries for one field at one location"
-        seen: list[JsonObject] = []
+        # A name is the field and the location: a record's reference, a region's name or an interval as
+        # given. An entry whose field is no string, or whose location is no well-formed name, has none.
+        seen: list[tuple[str, str, object]] = []
         for at_index, value in self.entries(typed, "trainable", pointer):
             held = members(value)
             locations = held.keys() & {"record", "region", "interval"}
-            if "field" in held and len(locations) == 1:
-                key = {name: held[name] for name in ("field", *locations)}
+            if isinstance(held.get("field"), str) and len(locations) == 1:
+                (where,) = locations
+                location = reference_of(held[where]) if where == "record" else held[where]
+                if location is None or (where == "region" and not isinstance(location, str)):
+                    continue
+                key = (str(held["field"]), where, location)
                 if given_before(key, seen):
                     self.fault(at_index)
                 seen.append(key)
@@ -1146,10 +1187,21 @@ class DeclarationCheck:
                         self.fault(at(pointer, name), "BC-051")
 
 
-def label_of(name: str) -> tuple[str, ...]:
+def label_of(name: str | None) -> tuple[str, ...]:
+    """The labels registered for a field, or for every field where there is no registered one."""
     # record_format.md:161 "| Section.field | Unit | Forms | Requires | Label |"
+    if name is None:
+        return tuple(sorted({row.label for row in FIELDS.values() if row.label}))
     label = FIELDS[name].label
     return (label,) if label else ()
+
+
+def unlisted(record: JsonValue, records: Iterable[JsonValue]) -> bool:
+    """Whether a `trainable` entry's record is none of those a model is checked over, by reference. A record
+    that is no well-formed reference names no record, so it is not compared with the listed ones (the comment
+    at `ORDER`)."""
+    name = reference_of(record)
+    return name is not None and name not in {reference_of(held) for held in records}
 
 
 def uberon(value: JsonValue) -> bool:
