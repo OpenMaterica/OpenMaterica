@@ -2262,16 +2262,18 @@ cuts run:
 |---|---|---|---|---|---|---|---|---|
 | `table_alternatives` (S4d) | 29 | 93 | 15 | 72, 6 | 5 | 5 | 284 to 342 s | 103 to 369 s |
 | `extrapolation` (S3c) | 64 | 213 | 56 | 127, 30 | 6 | 19 | 77 to 147 s | 16 to 107 s |
-| `declarations` (S7a-1), 4 cuts run | 432 | 2,079 | 1 | 0, 3 | 9 | 30 | 159 to 161 s | 32 s |
+| `declarations` (S7a-1), 4 cuts run | 434 | 2,086 | 1 | 0, 3 | 9 | 30 | 159 to 161 s | 32 s |
 
 S7a-1's selection (`declarations`, HP41's and HP42's properties and their mutant searches, over
 `declaration_strategies.py`, which draws no other module's strategy) was listed on 2026-10-25 and four of its
-2,070 runnable cuts run for a first look, on four workers a cut, two cuts at once: a version that is the empty
+then 2,070 runnable cuts run for a first look, on four workers a cut, two cuts at once (its counts above are of
+its recording on 2026-10-26, 2,077 runnable): a version that is the empty
 string, a text of one space and a hash of another form dropped are not held, each an equivalent; the engine
-value without its `reason` or `basis` kept off is held, by `engine_value_refused_at_the_value`. Its other cuts,
-about 46 hours of one machine at these times (an estimate), run on the CI matrix once the input coverage's
-cut kind is there; the baseline lists its empty cuts and its 30 uncut draws, among them the way of HP41's
-strata (29 ways across the strata) and `every_fault`'s and HP42's planters beside (34 and 32), each above the
+value without its `reason` or `basis` kept off is held, by `engine_value_refused_at_the_value`. Its other cuts
+run on the CI matrix in the cut kind: its baseline `timing` plans 133 slices, from one cut of 231.6 s on two
+workers locally times 1.97, S4d's ratio of its cut on CI to its local one, an estimate until that dispatch
+measures it; the baseline lists its empty cuts and its 30 uncut draws, among them the way of HP41's
+strata (30 ways across the strata) and `every_fault`'s and HP42's planters beside (34 and 32), each above the
 24 values a site may hold to be cut. Every cut of S4d's ran on 2026-10-24, after the owner rule; of S3c's, the 80 whose sites the rule left with
 the same calls keep their results of 2026-10-23, and the other 127 ran on 2026-10-24. Under the rule, S4d's
 own sites reach only the draws its own tests make, and the operating range's upper end above the double

@@ -9719,13 +9719,16 @@ def test_the_measure_jobs_are_wired_as_the_readme_says(
 
 # The longest recording of each selection in a cut job on CI (the pull request's first run of the cut kind,
 # four workers), in seconds: the request job records every selection that a change to a module scopes, one
-# after the other, to count the cuts the scope holds (`scripts/measure.py` `scope_cuts`).
-RECORDING_SECONDS = {"table_alternatives": 411.7, "extrapolation": 128.1}
+# after the other, to count the cuts the scope holds (`scripts/measure.py` `scope_cuts`). The declaration's
+# (S7a-1p) is its local recording on four workers (`record_seconds`, 2026-10-26), until its cut dispatch
+# records it on CI; the request job's 50 minutes hold it at twice that too, as a runner may take (S4d's
+# longest cut took 1.97 times its local time there).
+RECORDING_SECONDS = {"table_alternatives": 411.7, "extrapolation": 128.1, "declarations": 216.6}
 REQUEST_MARGIN = 3
 
 
 def test_the_request_job_has_three_times_the_time_to_record_every_selection_a_change_scopes() -> None:
-    """A declared 30 minutes, held to what was measured: the recordings of both selections, with a margin for
+    """A declared 50 minutes, held to what was measured: the recordings of every selection, with a margin for
     a slower runner and the checkout."""
     assert set(RECORDING_SECONDS) == set(measure.baseline_of(REPOSITORY))
     minutes = as_number(setting(workflow(MEASURE)["jobs"]["request"].get("timeout-minutes"), {}))
@@ -9916,7 +9919,7 @@ def test_a_pull_request_asks_for_what_its_base_and_head_change(tmp_path: Path, g
     ("selection", "slices"),
     [
         ("extrapolation", ["extrapolation"]),
-        ("all:whole", ["table_alternatives:whole", "extrapolation:whole"]),
+        ("all:whole", ["table_alternatives:whole", "extrapolation:whole", "declarations:whole"]),
     ],
 )
 def test_a_cut_dispatch_makes_the_slices_of_each_selection_its_timing_plans(
