@@ -12,7 +12,7 @@ collect them. Atheris ships no types, so `typings/atheris/` holds stubs for the 
 | `record_properties.py` | the record properties of `tests/property/` (the envelope checks, versions, the read's laws, step 8's over a constant, an interval and a composition, steps 9 and 10's, and the S2 design's HP1, HP2, HP4, HP6, HP10, HP11 and HP12, the agreement with the reference model) in the same way: structure-aware, since their strategies build records, stores and requests from the bytes Atheris gives | as above |
 | `read_field_bytes.py` | raw bytes into steps 7 to 13 of a read: the first byte picks a registered field, and the rest, read by `jsonio.parse`, stands in that field's place in a record valid otherwise, pinned by its recomputed hash, read at operating conditions with a tolerance or an accept list for each condition its row requires; seeded with every value field of every conformance input, with a dictionary of the member names and tokens a value field holds, a table's reserved `points` among them, that `--dict` writes from the schema and the vocabulary | a read raises anything but `NotImplementedError`; two reads differ; a result breaks HP1 or HP2 (a code of the table, of steps 7 to 13 only, each with its condition once and `condition` where section 2 item 2 puts it, the worst status, the members item 6 gives, `table` exactly beside a value read from a table: `field_oracle.check_table_member`); the read without the hash suite differs by more than the label `hash_not_checked`; the read under the `want` that gives the field's form (`value`, or `bounds` for an interval, `components` for a composition and `evidence` for evidence) and the reference model (`tests/reference/read_model.py`) disagree but as HP12 lists (`field_oracle.check_against_the_model`), which sees a refusal step 8 misses or gives wrongly, a condition holding a member of the other kind's shape among them (HP12's open point `members_of_the_other_kind`, which the target knew by its shape until the maintainer ruled it fail closed, 2026-10-19); step 8 lets through a constant, a table, an interval, a composition or evidence its row allows that the reader `$defs` refuse (`field_oracle.py`, T1's third relation); or steps 9 and 10 read such a field otherwise than their text: its units by code point, a table's `axis_unit` among them, and its conditions by HP7's oracle (`tests/property/condition_oracle.py`), a table that step 9 passes giving "not yet". A field holding alternatives is read by step 7 (S4a's rows, and S4d's for a table alternative whose read gives a reason at step 11), which the model decides too; `NotImplementedError`, "not yet", is a step not built, which no field the target writes reaches since S4d. A table is read to the end (S3b-2): its axis entry and step 11's reasons by the text (`field_oracle.table_steps_10_and_11`), and the table read again under `want: value` at the places table item 3 tells apart (`field_oracle.places`: its knots and edges, the readable range's ends, the double either side of each, a value beyond each end of `x`), each read held to the model, to steps 9 and 10 and to HP1 and HP2; a field holding table alternatives read again at their places too, as many in all as one table's (`field_oracle.alternative_places`, S4d), so that step 7 meets a table alternative read at an edge, outside its range and inside it beside the others |
 | `read_acceptance_bytes.py` | raw bytes as the one entry of a request's `acceptances` (S3c, the S3 design's `read_acceptance_bytes`): `jsonio.parse` reads them, and the entry stands in fixed reads of two conformance tables (`acceptance_oracle.PLACES`): the density table below, inside and above its range and below it under `want: bounds`, and the edge table narrowed to [275, 283] K at its edge outside the range, beyond it and between it and the range; seeded with every acceptance of every conformance case's request, its extrapolations located at both tables among them, with a dictionary of an acceptance's names, the kinds, an extrapolation's methods, the registered fields and conditions and the two records' references, that `--dict` writes | a read raises anything but `NotImplementedError` (a pick or an overlay, which S4 reads, or a `trainable` acceptance, which S7a-4 reads); two reads differ; an extrapolation that breaks its shape is not refused with `request_incomplete`, wherever it is located (`acceptance_oracle.check_shape_refused`); a result breaks HP1 and HP2 as an acceptance leaves them, an extrapolation's result `not_met` with `outside_range`, the value with the members beside it and the table, and its `assumption` the entry's own `method` and `law`, the law text of at least one character (`acceptance_oracle.check_acceptance_laws`), or holds `table` other than beside its value; the status is better than the same read without the entry (`acceptance_oracle.check_no_better`); or the read and the reference model disagree but as HP12 lists (`field_oracle.check_against_the_model`) |
-| `build_bytes.py` | raw bytes in place of one member of a build-check case's declaration (S7a-1, the S7 design's `build_bytes`): the first byte picks one of the 114 declarations the build-check cases read; the bytes up to the first newline are a JSON pointer to a member of it, to a member its object does not hold yet, or to the end of one of its lists; and the rest, read by `jsonio.parse`, stands in that member's place, `check_build` checking the declaration over the records that declaration's case reads. Seeded with every member of every such declaration at its pointer, roots included (7,597 inputs), with a dictionary of their names and strings, the kinds, the registered names and the vocabulary's tokens, that `--dict` writes | `check_build` raises anything but a `NotImplementedError` of what this version builds nothing past its check for (`NOT_BUILT`: the S7 design's 4.1, and what S7a-2's label trust, S7a-3 and S7a-4 read); a refusal's pointer names no member of the declaration (a missing member's names the object that should hold it); a refusal names a case outside the refusal paragraph's nine; the build's reference model (`tests/reference/build_model.py`) refuses the declaration, every rule's refusals placed, or takes it, passing its own check, and the check's refusals differ from its own (none, where it takes it) but as a known divergence says (`KNOWN_DIVERGENCES`, each an open point, below): the relations of `build_oracle.py`, which `tests/unit/test_fuzz_build_oracle.py` shows failing |
+| `build_bytes.py` | raw bytes in place of one member of a build-check case's declaration (S7a-1, the S7 design's `build_bytes`): the first byte picks one of the 162 declarations the build-check cases read; the bytes up to the first newline are a JSON pointer to a member of it, to a member its object does not hold yet, or to the end of one of its lists; and the rest, read by `jsonio.parse`, stands in that member's place, `check_build` checking the declaration over the records that declaration's case reads. Seeded with every member of every such declaration at its pointer, roots included (10,927 inputs), with a dictionary of their names and strings, the kinds, the registered names and the vocabulary's tokens, that `--dict` writes | `check_build` raises anything but a `NotImplementedError` of what this version builds nothing past its check for (`NOT_BUILT`: the S7 design's 4.1, and what S7a-2's label trust, S7a-3 and S7a-4 read); a refusal's pointer names no member of the declaration (a missing member's names the object that should hold it); a refusal names a case outside the refusal paragraph's nine; the build's reference model (`tests/reference/build_model.py`) refuses the declaration, every rule's refusals placed, or takes it, passing its own check, and the check's refusals differ from its own (none, where it takes it) but as a known divergence says (`KNOWN_DIVERGENCES`, empty now, below): the relations of `build_oracle.py`, which `tests/unit/test_fuzz_build_oracle.py` shows failing |
 
 ## Running
 
@@ -203,7 +203,7 @@ not; the implementation's BC-048 there shows beside it only where the model give
 for the model's BC-005 alone, and a line with the model's BC-005 at acceptance 0 or 1, which the fault leaves
 alone, is no find (`CONTROLS["declarations"]`'s `unless`, the control step's `declared_early`; a line holding
 it at acceptance 0 or 1 and at a later one as well needs a second difference beside the fault, and reads as
-none). The design's fault skipped every acceptance after a model's first: seven of the 114 seed declarations,
+none). The design's fault skipped every acceptance after a model's first: seven of the 162 seed declarations,
 BC-005's arms of a second acceptance without its `reason` or `basis`, show that one unchanged, so the fuzzer
 would find it at once and show nothing. No seed shows the narrowed one, and one change does: the seed that
 holds such an acceptance at `/models/0/acceptances/1` written at `/models/0/acceptances/2`, one byte of its
@@ -214,7 +214,7 @@ acceptance missing another member as well, which a find that also asked for the 
 as no find; each of the ten failing inputs passes the relations with no fault seeded. The ten with none found
 nothing in 9,071 s. With the find as above but for its `unless` (run 40275055796), each of ten runs with the
 fault found it, after 17 to 47 s, every line at acceptance 2 or 4, and each reads as a find with the `unless`
-too; four of the ten with none ended on the thirteenth divergence below, after 215 to 882 s. The rate is
+too; four of the ten with none ended on the thirteenth divergence (fixed on `main` since, below), after 215 to 882 s. The rate is
 measured again with this find, and CI's control step runs it meanwhile in four runs side by side, each of up
 to 900 s, the window of the bar the maintainer's ruling sets the fuzz controls, passing where any finds it;
 their number and length are set from the rate measured. By the S7 design's budget rule the target joins the
@@ -225,27 +225,26 @@ runs in a row of its own beside the fuzz controls' job, which lands with the con
 The relation to the model holds the check to the model in both directions: where the model refuses a
 declaration with every rule's refusals placed, the check gives its refusals, and where the model takes one
 (`build_oracle.TAKEN`, its own words for a declaration that passes its check), the check refuses nothing. It
-found, before any fuzzing, that the check and the model read a declaration apart in twelve ways no build-check
-case shows: by a sweep of every seed with each member replaced by a value of each JSON type, each string
-edited, each member taken out, a member added and a list's entry repeated (110,283 declarations), and a random
-sweep of one to three such changes (2,072,912). Each is an open point, listed in
-`build_oracle.KNOWN_DIVERGENCES` with what each side reads, and `tests/unit/test_fuzz_build_oracle.py` shows
-each failing the relation unlisted: a waiver's `label` of another JSON type (the check refuses it by item 4,
-the model by the shape table alone; the maintainer has ruled `null` the model's way, 2026-10-25); a waiver's
-`condition` beside a `code` missing or of another type; a waiver's `condition` of another type; a `trainable`
-entry's record beside a fault, or over a domain or a path; a name given twice beside a fault of an entry; an
-object holding `status` off a status object's shape, and a `within` that is an object; a requirement's `label`
-beside an unregistered field; the members inside a member at fault; the members inside one of two exclusive
-alternatives; a distribution's parameters beside a token at fault; a combination beside its fields at fault; a
-`region_conditions` of another type. With them listed, the sweeps' last rounds found nothing with no fault
-seeded (none of the 110,283, none of 416,098 random ones), and the control's fault still shows on the same 13
-single changes. A thirteenth is not listed: a nominal's `params` beside a `field` that names no registered
-field (misspelt, or `null`), which the check refuses at `params` and the model judged not. CI's fuzz runs with
-no fault found it (run 40275055796), and so does a sweep that adds a member of another kind beside a second
-change (20 of 22,086 declarations, all this pair); the model's fix makes it agree with the check, and the runs
-with no fault end on it until that fix is here. These are the divergences found so far, not all there are.
-With the relation held in both directions, the same sweeps find nothing more (none of 110,283 single changes,
-none of 107,775 pairs of changes to the members of one object, none of 944,773 random ones; 2026-10-26).
+found, before any fuzzing, that the check and the model read a declaration apart in thirteen ways no build-check
+case showed: by a sweep of every seed with each member replaced by a value of each JSON type, each string
+edited, each member taken out, a member added and a list's entry repeated, and a random sweep of one to three
+such changes; the thirteenth, by CI's fuzz runs with no fault seeded (run 40275055796, four of ten). They are
+fixed on `main`: the model's in #103 (the thirteenth among them) and the check's in #104, the refusal paragraph
+rewritten beside them, and `build_oracle.KNOWN_DIVERGENCES` is empty. `tests/unit/test_fuzz_build_oracle.py`
+holds each one's example and shows the check and the model giving the same refusals on it, with nothing
+listed: a waiver's `label` of another JSON type; a waiver's `condition` beside a `code` missing or of another
+type; a waiver's `condition` of another type; a `trainable` entry's record beside a fault, or over a domain or
+a path; a name given twice beside a fault of an entry; an object holding `status` off a status object's
+shape, and a `within` that is an object; a requirement's `label` beside an unregistered field; the members
+inside a member at fault; the members inside one of two exclusive alternatives; a distribution's parameters
+beside a token at fault; a combination beside its fields at fault; a `region_conditions` of another type; a
+nominal's `params` beside a `field` that names no registered field.
+
+The mapping and its mechanism stay, for the next divergence the target finds: a divergence is listed in
+`KNOWN_DIVERGENCES` only with its open point, a function that names, of the refusals one side gives and the
+other does not, those it explains, and an example in `tests/unit/test_fuzz_build_oracle.py` that the relation
+lets through with it listed and fails without it. These are the divergences found so far, not
+all there are.
 
 ## In CI
 
