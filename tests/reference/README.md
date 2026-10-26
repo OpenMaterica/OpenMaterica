@@ -467,14 +467,11 @@ fail-closed choice, each listed once in its `OPEN_POINTS` and named where it is 
 
 | Open point | The model's choice |
 |---|---|
-| `exactly_one_of` | a place holding none, or more than one, of the members it takes exactly one of is at fault at its own pointer, as for a missing member |
-| `member_judged_beside_a_faulty_one` | the refusal paragraph's three pairs apart, a member whose allowed values depend on another member at fault (a label beside an unregistered field, an implied condition's `token` beside an unknown fact, ...) is not judged |
+| `exactly_one_of` | a place holding none of the members it takes exactly one of is at fault at its own pointer, as for a missing member; one holding more than one is at fault itself, one fault with any other rule's at that pointer |
 | `reads_at_fault` | a `reads` at fault is the member itself; beside it no field is judged against it (a requirement's, as the text says; a combination's and a `trainable` entry's, by the same reading) |
-| `combination_sections` | a combination's fields are from pairwise different sections |
 | `chain_ends` | a chain's `from` and `to` hold `family`, a string, and `record`, a material reference; `state_mapping` maps names to strings |
 | `independence_fields` | an independence entry's `fields` each name a registered field and one location, as a `trainable` entry does |
 | `accepted_difference_basis` | an accepted difference's `value` may hold `basis` (`stated` or `inferred`) and `inferred_from` |
-| `trainable_location_in_a_scene` | whether a region or an interval lies in its model's domain or path is the scene suite's (unplaced); over records neither does, nor does a record over a domain or a path |
 | `interval_location` | an interval location's shape unplaced; refused by item 12 where the scene suite is not claimed |
 | `claimed_suite_hides_refusals` | a declaration holding a member a claimed suite checks gives no verdict, even where a certain refusal stands beside it, a `population_level` beside no `represents` or another one and a sampled requirement with no `sampling` block among them (a decision, maintainer, 2026-10-24) |
 | `item_7_beyond_the_declaration` | item 7 placed where the declaration decides it, one BC-040 a model at its `engine`; unplaced for an engine model over a domain, a crosswalk of `materica/` and the rest of a declared value's shape; a fault inside `engine`, or at a `want` that is no token, unplaced too |
@@ -524,6 +521,23 @@ fault two rules name only as the shape rule beside one other, BC-004, BC-005, BC
 reordering of a pair without the shape rule changes no answer it gives, and only that check kills it). They
 are the model's own tests, not shared evidence: the seeded faults run against them after the case files, so
 that a fault only they tell apart is a kill.
+
+The model reads a rule that judges one member against another as standing aside only as far as its verdict
+depends on the member at fault (ruling of 2026-10-26): what the faulty member's own type, shape or registered
+names settle is still judged, and an entry that is no well-formed name (a reference without string `id`,
+`version` and `content_hash`, a `field` that is no string) is neither the same as nor different from another.
+So a record is named by its reference, whatever else it holds, in `checked_over.records`, in a `trainable`
+entry's location and in the check for a name given twice; a `trainable` entry's record that is no reference is
+not compared with the listed ones; a label beside a field that is not registered is judged against every
+registered label; a distribution's parameter values are judged beside a token that is none, their names are
+not; `records` is judged beside another alternative of `checked_over` (a record listed twice is judged on
+neither side there). Three further points of the same ruling: a combination is refused where its registered
+fields are all of one section, not where two are; a waiver's `condition` of another JSON type is the member at
+fault and not also a missing one; and item 12 names `region_conditions`, and a `trainable` entry's `region` or
+`interval`, whatever JSON type it holds. A place holding two of the members it takes one of is at fault itself,
+one fault with any other rule's at its pointer. Over records a `trainable` entry's location is the record, so
+a region or an interval is refused at it, and a record over a domain or a path is too, beside item 12's
+refusal; whether a region or an interval lies in the domain or path is the scene suite's.
 
 **The mutant table.** `BUILD_MUTANTS` gives the build's model 114 faults, the hand mutants of the model's rules
 (a rule none of them names has no fault, and the table is no proof that every rule has one). Each is run against every build-check file by `test_seeded_faults.py` as the read model's are,
@@ -624,13 +638,13 @@ listing does not. The table says only whether a fault is killed or survives; a t
 | `build_order_005_before_004` | a fault two rules name carrying item 4's case before item 3's | killed |
 | `build_acceptance_at_a_region_taken` | an acceptance at a region taken without the scene suite; both legs pinned by direct checks, a pick naming a record and a region and a waiver at a region (with a record and without), each refused unclaimed and no verdict claimed | killed |
 | `build_acceptance_at_an_interval_taken` | an acceptance at an interval taken without the scene suite | survives |
-| `build_trainable_at_a_region_taken` | a `trainable` entry at a region or an interval taken without the scene suite | survives |
+| `build_trainable_at_a_region_taken` | a `trainable` entry at a region or an interval taken without the scene suite | killed |
 | `build_claimed_suite_beyond_unrecorded` | a member a claimed suite checks taken as if nothing were beyond the model, so that the declaration's other refusals stand | killed |
 | `build_claimed_suite_gives_the_refusals` | a declaration holding a member a claimed suite checks given the refusals of the model's own rules, not no verdict | killed |
 | `build_min_acceptance_one_refused` | a `min_acceptance` of 1 refused | survives |
 | `build_min_acceptance_zero_taken` | a `min_acceptance` of 0 taken | survives |
 | `build_any_difference_refused` | an accepted difference of value `"any"` refused | survives |
-| `build_trainable_twice_by_field` | two `trainable` entries for one field at two locations refused | survives |
+| `build_trainable_twice_by_field` | two `trainable` entries for one field at two locations refused | killed |
 | `build_engine_over_a_domain_refused` | an engine model over a domain refused by item 7 as certainly as one over records | killed |
 | `build_interval_location_placed` | an interval location's shape placed, its BC-048 given as for any member | survives |
 | `build_waiver_condition_token_unchecked` | a waiver's `condition` holding any string taken | survives |

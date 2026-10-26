@@ -175,6 +175,12 @@ SUITE_MEMBERS: Final[dict[str, tuple[frozenset[str], Refusals, JsonObject, dict[
 # A member another JSON type holds and item 12 names: one fault two rules name, so the shape rule's refusal
 # and item 12's are one, with item 12's case where the suite is not claimed (the order puts it first) and no
 # verdict where it is (maintainer, 2026-10-24).
+OF_ANOTHER_TYPE: Final[tuple[tuple[str, JsonValue], ...]] = (
+    ("a number", 1.0),
+    ("null", None),
+    ("a list", []),
+    ("an object", {}),
+)
 DOMAIN: Final = f"{MODEL}/checked_over/domain"
 PATH: Final = f"{MODEL}/checked_over/path"
 MISTYPED_GATING_MEMBERS: Final[tuple[tuple[str, frozenset[str], JsonObject, str], ...]] = (
@@ -197,6 +203,15 @@ MISTYPED_GATING_MEMBERS: Final[tuple[tuple[str, frozenset[str], JsonObject, str]
         PATH,
     ),
     ("a sampling that is a number", SAMPLING, declaration(sampling=5.0), "/sampling"),
+    *(
+        (
+            f"a model whose region_conditions is {what}",
+            SCENE,
+            declaration(entry(region_conditions=held)),
+            f"{MODEL}/region_conditions",
+        )
+        for what, held in (*OF_ANOTHER_TYPE, ("a string", "x"))
+    ),
 )
 
 
@@ -235,6 +250,304 @@ ACCEPTANCES_OF_NO_KIND: Final[tuple[tuple[str, JsonObject, str], ...]] = (
         "an acceptance lacking its kind, holding a record, a field and a reason",
         {"record": RECORD, "field": VISCOSITY, "reason": REASON},
         ACCEPTANCE,
+    ),
+)
+
+
+# The refusals the divergence triage settled for the model (the rulings of 2026-10-26): a rule that judges one
+# member against another stands aside only as far as its verdict depends on the member at fault, and a name
+# given twice is judged on well-formed names. Each is the answer the check gives, which the model now gives.
+REMANENCE: Final = "magnetic.remanence"
+SATURATION: Final = "magnetic.saturation_magnetisation"
+TRAINABLE: Final = f"{MODEL}/trainable/0"
+CHECKED_OVER: Final = f"{MODEL}/checked_over"
+SECOND_RECORD: Final[JsonObject] = {**RECORD, "id": "conformance/second_fixture"}
+RECORD_WITH_A_STRAY: Final[JsonObject] = {**RECORD, "x": 1.0}
+RECORD_WITHOUT_AN_ID: Final[JsonObject] = {**RECORD, "id": None}
+BAD_LABEL: Final = "materica.nobody.has.this.v1"  # a label registered for no field
+
+
+UNREGISTERED_FIELDS: Final[tuple[tuple[str, list[JsonValue], JsonObject, list[tuple[str, str]]], ...]] = (
+    (
+        "not registered",
+        ["nope.nope"],
+        {"field": "nope.nope"},
+        [
+            ("BC-048", f"{MODEL}/reads/0"),
+            ("BC-048", f"{REQUIREMENTS}/field"),
+            ("BC-048", f"{REQUIREMENTS}/label"),
+        ],
+    ),
+    (
+        "a number",
+        [VISCOSITY],
+        {"field": 1.0},
+        [("BC-048", f"{REQUIREMENTS}/field"), ("BC-048", f"{REQUIREMENTS}/label")],
+    ),
+)
+
+
+def accepted_difference(value: JsonValue) -> JsonObject:
+    return {
+        "acceptance": "accepted_difference",
+        "reason": REASON,
+        "section": "fluid",
+        "fact": "species",
+        "value": value,
+    }
+
+
+def refusing(what: str, held: JsonObject, *refusals: tuple[str, str]) -> Direct:
+    return Direct(what, held, BUILD, refused(*refusals))
+
+
+DIVERGENCES: Final[tuple[Direct, ...]] = (
+    # A waiver's `condition` of another JSON type is the member at fault and is not also missing.
+    *(
+        refusing(
+            f"a waiver whose condition is {what}",
+            declaration(entry(acceptances=[acceptance("waiver", code="condition_unstated", condition=held)])),
+            ("BC-048", f"{ACCEPTANCE}/condition"),
+        )
+        for what, held in OF_ANOTHER_TYPE
+    ),
+    # A `trainable` entry's record is a record its model is checked over by its reference, whatever else the
+    # record holds, and a record that is no reference is not compared with those listed.
+    refusing(
+        "a trainable entry at a listed record holding a stray member",
+        declaration(entry(trainable=[{"field": VISCOSITY, "record": RECORD_WITH_A_STRAY}])),
+        ("BC-048", f"{TRAINABLE}/record/x"),
+    ),
+    refusing(
+        "a trainable entry at a record listed with a stray member",
+        declaration(
+            entry(
+                checked_over={"records": [RECORD_WITH_A_STRAY]},
+                trainable=[{"field": VISCOSITY, "record": RECORD}],
+            )
+        ),
+        ("BC-048", f"{CHECKED_OVER}/records/0/x"),
+    ),
+    refusing(
+        "a trainable entry at a record that is no reference",
+        declaration(entry(trainable=[{"field": VISCOSITY, "record": RECORD_WITHOUT_AN_ID}])),
+        ("BC-048", f"{TRAINABLE}/record/id"),
+    ),
+    # A location kind the model's `checked_over` cannot have is refused at the location, beside item 12's
+    # refusal where the scene suite is not claimed.
+    refusing(
+        "a trainable entry at a record, its model checked over a domain",
+        declaration(
+            entry(checked_over={"domain": "lumen"}, trainable=[{"field": VISCOSITY, "record": RECORD}])
+        ),
+        DOMAIN_REFUSAL,
+        ("BC-048", f"{TRAINABLE}/record"),
+    ),
+    refusing(
+        "a trainable entry at a region, its model checked over records",
+        declaration(entry(trainable=[{"field": VISCOSITY, "region": "lumen"}])),
+        ("BC-051", TRAINABLE),
+        ("BC-048", f"{TRAINABLE}/region"),
+    ),
+    refusing(
+        "a trainable entry at an interval, its model checked over records",
+        declaration(entry(trainable=[{"field": VISCOSITY, "interval": {"path": "a", "index": 0.0}}])),
+        ("BC-051", TRAINABLE),
+        ("BC-048", f"{TRAINABLE}/interval"),
+    ),
+    # A name is a record's reference and a `trainable` entry's field at a location: given twice is judged on
+    # well-formed names, and a member that is no name is never given twice.
+    refusing(
+        "a record listed twice, the second holding a stray member",
+        declaration(entry(checked_over={"records": [RECORD, RECORD_WITH_A_STRAY]})),
+        ("BC-048", f"{CHECKED_OVER}/records/1"),
+        ("BC-048", f"{CHECKED_OVER}/records/1/x"),
+    ),
+    refusing(
+        "two records that are no references, alike",
+        declaration(entry(checked_over={"records": [RECORD_WITHOUT_AN_ID, RECORD_WITHOUT_AN_ID]})),
+        ("BC-048", f"{CHECKED_OVER}/records/0/id"),
+        ("BC-048", f"{CHECKED_OVER}/records/1/id"),
+    ),
+    refusing(
+        "two trainable entries for one field at one record, the second holding a stray member",
+        declaration(
+            entry(
+                trainable=[
+                    {"field": VISCOSITY, "record": RECORD},
+                    {"field": VISCOSITY, "record": RECORD_WITH_A_STRAY},
+                ]
+            )
+        ),
+        ("BC-048", f"{MODEL}/trainable/1"),
+        ("BC-048", f"{MODEL}/trainable/1/record/x"),
+    ),
+    Direct(
+        "two trainable entries for one field at two records",
+        declaration(
+            entry(
+                checked_over={"records": [RECORD, SECOND_RECORD]},
+                trainable=[
+                    {"field": VISCOSITY, "record": RECORD},
+                    {"field": VISCOSITY, "record": SECOND_RECORD},
+                ],
+            )
+        ),
+        BUILD,
+        None,
+    ),
+    refusing(
+        "two trainable entries that name no field, at one record",
+        declaration(entry(trainable=[{"field": 1.0, "record": RECORD}, {"field": 1.0, "record": RECORD}])),
+        ("BC-048", f"{TRAINABLE}/field"),
+        ("BC-048", f"{MODEL}/trainable/1/field"),
+    ),
+    # A status object is one whose only members are `status` and `reason`: an accepted difference's value
+    # that holds another member beside `status` is judged as the fact's shape.
+    refusing(
+        "an accepted difference whose value holds a status beside another member",
+        declaration(entry(acceptances=[accepted_difference({"status": "not_applicable", "x": 1.0})])),
+        ("BC-048", f"{ACCEPTANCE}/value"),
+        ("BC-048", f"{ACCEPTANCE}/value/status"),
+        ("BC-048", f"{ACCEPTANCE}/value/x"),
+    ),
+    Direct(
+        "an accepted difference whose value is a status object with a reason",
+        declaration(entry(acceptances=[accepted_difference({"status": "not_applicable", "reason": REASON})])),
+        BUILD,
+        None,
+    ),
+    # A label is judged against the labels of every field where the field it belongs to is not registered:
+    # one that no field has is refused, one registered for another field is not.
+    *(
+        refusing(
+            f"a requirement with a label no field has, its field {what}",
+            declaration(entry(reads=reads, requirements=[requirement(**{"label": BAD_LABEL, **members})])),
+            *refusals,
+        )
+        for what, reads, members, refusals in UNREGISTERED_FIELDS
+    ),
+    refusing(
+        "a requirement with a label registered for another field, its field not registered",
+        declaration(
+            entry(reads=["nope.nope"], requirements=[requirement(field="nope.nope", label=MAGNETIC)])
+        ),
+        ("BC-048", f"{MODEL}/reads/0"),
+        ("BC-048", f"{REQUIREMENTS}/field"),
+    ),
+    refusing(
+        "a waiver with a label no field has, its field not registered and its requirement naming it",
+        declaration(
+            entry(
+                reads=["nope.nope"],
+                requirements=[requirement(field="nope.nope", label=BAD_LABEL, review="reviewed")],
+                acceptances=[waiver(field="nope.nope", label=BAD_LABEL)],
+            )
+        ),
+        ("BC-048", f"{MODEL}/reads/0"),
+        ("BC-048", f"{REQUIREMENTS}/field"),
+        ("BC-048", f"{REQUIREMENTS}/label"),
+        ("BC-048", f"{ACCEPTANCE}/field"),
+        ("BC-048", f"{ACCEPTANCE}/label"),
+    ),
+    # `records` is judged beside the other alternative of `checked_over`; two alternatives are the object's
+    # own fault, and a duplicate beside another alternative is judged on neither side.
+    refusing(
+        "a model checked over records and a path, a record holding a stray member",
+        declaration(entry(checked_over={"records": [RECORD_WITH_A_STRAY], "path": "tube"})),
+        ("BC-048", CHECKED_OVER),
+        ("BC-051", f"{CHECKED_OVER}/path"),
+        ("BC-048", f"{CHECKED_OVER}/records/0/x"),
+    ),
+    refusing(
+        "a model checked over an empty list of records and a domain",
+        declaration(entry(checked_over={"records": [], "domain": "lumen"})),
+        ("BC-048", CHECKED_OVER),
+        DOMAIN_REFUSAL,
+        ("BC-048", f"{CHECKED_OVER}/records"),
+    ),
+    # A distribution's parameter names stand aside beside a token that is none, their values do not.
+    refusing(
+        "a distribution of no token, a parameter that is no number",
+        declaration(
+            entry(
+                acceptances=[
+                    {**DISTRIBUTION, "distribution": "nope", "distribution_parameters": {"mean": "x"}}
+                ]
+            )
+        ),
+        ("BC-048", f"{ACCEPTANCE}/distribution"),
+        ("BC-048", f"{ACCEPTANCE}/distribution_parameters/mean"),
+        ("BC-051", ACCEPTANCE),
+    ),
+    refusing(
+        "a distribution of no token, parameter names that are none of any",
+        declaration(
+            entry(
+                acceptances=[{**DISTRIBUTION, "distribution": "nope", "distribution_parameters": {"a": 1.0}}]
+            )
+        ),
+        ("BC-048", f"{ACCEPTANCE}/distribution"),
+        ("BC-051", ACCEPTANCE),
+    ),
+    # A combination is refused where its registered fields are all of one section, not where two are.
+    Direct(
+        "a combination of three fields, two of one section",
+        declaration(
+            entry(
+                requirements=[],
+                reads=[REMANENCE, SATURATION, DENSITY],
+                combinations=[[REMANENCE, SATURATION, DENSITY]],
+            )
+        ),
+        BUILD,
+        None,
+    ),
+    refusing(
+        "a combination of two fields of one section",
+        declaration(
+            entry(requirements=[], reads=[REMANENCE, SATURATION], combinations=[[REMANENCE, SATURATION]])
+        ),
+        ("BC-048", f"{MODEL}/combinations/0"),
+    ),
+    refusing(
+        "a combination of two fields of one section and a number",
+        declaration(
+            entry(requirements=[], reads=[REMANENCE, SATURATION], combinations=[[REMANENCE, SATURATION, 1.0]])
+        ),
+        ("BC-048", f"{MODEL}/combinations/0"),
+        ("BC-048", f"{MODEL}/combinations/0/2"),
+    ),
+    refusing(
+        "a combination of a field and a name that is no field, of one section",
+        declaration(entry(requirements=[], reads=[REMANENCE], combinations=[[REMANENCE, "magnetic.nope"]])),
+        ("BC-048", f"{MODEL}/combinations/0/1"),
+    ),
+    # An object holding two of the alternatives it takes one of is at fault itself, with the case of the
+    # rule that also names it: a `trainable` entry at a record and a region is item 12's refusal alone at the
+    # entry.
+    refusing(
+        "a trainable entry at a record and a region",
+        declaration(entry(trainable=[{"field": VISCOSITY, "record": RECORD, "region": "lumen"}])),
+        ("BC-051", TRAINABLE),
+        ("BC-048", f"{TRAINABLE}/region"),
+    ),
+    # Item 12 names a `trainable` entry's region or interval whatever its type, as an acceptance's.
+    *(
+        refusing(
+            f"a trainable entry whose region is {what}{beside}",
+            declaration(entry(trainable=[{"field": VISCOSITY, "region": held, **extra}])),
+            ("BC-048", f"{TRAINABLE}/region"),
+            ("BC-051", TRAINABLE),
+        )
+        for what, held in OF_ANOTHER_TYPE
+        for beside, extra in (("", {}), (", beside a record", {"record": RECORD}))
+    ),
+    refusing(
+        "a waiver whose region is null",
+        declaration(entry(acceptances=[waiver(region=None)])),
+        ("BC-048", f"{ACCEPTANCE}/region"),
+        ("BC-051", ACCEPTANCE),
     ),
 )
 
@@ -616,6 +929,7 @@ CHECKS: Final[tuple[Direct, ...]] = (
         BUILD,
         refused(ITEM_7_REFUSAL, ("BC-051", PATH)),
     ),
+    *DIVERGENCES,
 )
 
 
