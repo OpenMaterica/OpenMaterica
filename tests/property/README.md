@@ -694,7 +694,7 @@ hold yet passes `--check`, so that a stacked branch's older commits stand, and f
 run.
 
 <!-- kill points summary (scripts/gen_kill_counts.py) -->
-`kill_points.json` records 1,484 searches, 742 mutants each at both sizes; the latest kill is at the 487th example (`upper_none_as_infinity`, original size).
+`kill_points.json` records 1,498 searches, 749 mutants each at both sizes; the latest kill is at the 487th example (`upper_none_as_infinity`, original size).
 <!-- end of kill points summary -->
 
 Three searches were planned because their kill sat in a long tail. With the pin, a search's kill is fixed by
@@ -2013,12 +2013,12 @@ three).
 | `range_order_unchecked` | a `range` whose `lo` is above its `hi` taken | `_holds` | HP41, shape | `breaks_holds` | 3, 3 |
 | `number_below_zero_taken` | a tolerance or a `fraction_sum_tolerance` below zero taken | `_holds` | HP41, shape | `breaks_holds` | 3, 3 |
 | `index_not_whole_taken` | a pick's `index` with a fractional part, or below zero, taken | `_holds` | HP41, shape | `breaks_holds` | 7, 7 |
-| `status_object_taken` | a status object as a target's fact or an implied condition's value taken | `_holds` | HP41, shape | `breaks_holds` | 5, 31 |
+| `status_object_taken` | a status object as a target's fact or an implied condition's value taken | `_holds` | HP41, shape | `breaks_holds` | 5, 32 |
 | `params_taken` | a nominal's `params` for a field whose row allows no parameter set taken | `_tokens` | HP41, shape | `breaks_holds` | 7, 7 |
 | `distribution_parameters_unchecked` | a distribution's parameters other than its token's taken | `_tokens` | HP41, shape | `breaks_holds` | 3, 7 |
-| `basis_on_any_kind_taken` | a `basis` on a waiver, an implied condition, an accepted difference, a pick or an overlay taken | `_shape` | HP41, shape | `unknown`, `slip` | 96, 100 |
-| `chains_unchecked` | a chain's members unchecked | `_shape` | HP41, shape | `unknown`, `slip` | 11, 71 |
-| `model_name_and_version_unchecked` | a `model` missing `name` or `version`, holding another member or of another type, taken | `_shape` | HP41, shape | `unknown`, `slip` | 19, 5 |
+| `basis_on_any_kind_taken` | a `basis` on a waiver, an implied condition, an accepted difference, a pick or an overlay taken | `_shape` | HP41, shape | `unknown`, `slip` | 94, 27 |
+| `chains_unchecked` | a chain's members unchecked | `_shape` | HP41, shape | `unknown`, `slip` | 9, 9 |
+| `model_name_and_version_unchecked` | a `model` missing `name` or `version`, holding another member or of another type, taken | `_shape` | HP41, shape | `unknown`, `slip` | 7, 3 |
 | `boolean_taken_as_a_number` | a boolean taken where the table asks for another type | `_holds` | HP41, shape | `not_a_number` | 1, 1 |
 | `difference_of_any_refused` | an accepted difference of value `"any"` refused | `_shape` | HP41, locations | `unlocated`, `accepted_difference_unlocated` | 2, 2 |
 | `difference_judged_beside_its_fact_at_fault` | an accepted difference's `value` judged beside its `fact` at fault | `_shape` | HP41, tokens | `outside_list`, `other_members_token` | 1, 1 |
@@ -2042,7 +2042,7 @@ three).
 | `trainable_for_a_field_not_read_taken` | a `trainable` entry for a field not in `reads` taken | `_names` | HP41, names | `trainable_unread` | 2, 2 |
 | `trainable_at_an_unlisted_record_taken` | a `trainable` entry at a record its model is not checked over taken | `_names` | HP41, names | `trainable_unlisted` | 2, 2 |
 | `trainable_twice_by_field` | two `trainable` entries for one field at two locations refused | `_names` | HP41, precedence | `not_json`, `not_object` | 78, 123 |
-| `combination_unchecked` | a combination of one field, or of fields of one section, taken | `_names` | HP41, shape | `breaks_holds` | 25, 7 |
+| `combination_unchecked` | a combination of one field, or of fields of one section, taken | `_names` | HP41, shape | `breaks_holds` | 66, 7 |
 | `repeated_accepts_taken` | an `accepts` token given twice taken | `_names` | HP41, names | `twice` | 1, 1 |
 | `label_beside_an_unregistered_field_unjudged` | a waiver's `label` beside a `field` that is not registered left to the field's own fault | `_labels` | HP41, names | `label_unreviewed` | 64, 7 |
 | `label_waiver_taken_without_review` | a label-resting waiver taken without its requirement's `review` | `_labels` | HP41, names | `label_unreviewed` | 1, 1 |
@@ -2078,9 +2078,16 @@ three).
 | `trainable_location_taken_without_the_scene_suite` | a `trainable` entry at a region or an interval taken without the scene suite | `_suite_members` | HP42 | `domain`, `path` | 3, 3 |
 | `fail_closed_on_any_claimed_suite` | a build claiming the scene suite, USD read or the sampling suite failing closed for a declaration that holds no member of it | `_fail_closed` | HP42 | `domain`, `path` | 1, 1 |
 | `waiver_condition_judged_beside_a_refused_code` | a waiver's missing `condition` refused beside its never-waived `code` | `_kind_tokens` | HP41, tokens | `outside_list`, `other_members_token` | 1, 1 |
-| `combination_field_unread_taken` | a combination naming a registered field its model does not list in `reads` taken | `_names` | HP41, shape | `breaks_holds` | 43, 25 |
-| `params_beside_an_unregistered_field_taken` | a nominal's `params` beside a `field` that names no registered field taken | `_kind_tokens` | HP41, shape | `breaks_holds` | 25, 9 |
+| `combination_field_unread_taken` | a combination naming a registered field its model does not list in `reads` taken | `_names` | HP41, shape | `breaks_holds` | 39, 26 |
+| `params_beside_an_unregistered_field_taken` | a nominal's `params` beside a `field` that names no registered field taken | `_kind_tokens` | HP41, shape | `breaks_holds` | 39, 9 |
 | `trainable_field_name_unchecked` | a `trainable` entry's `field` that names no registered field taken beside a `reads` at fault | `_tokens` | HP41, shape | `empty_list` | 3, 7 |
+| `condition_beside_a_missing_code_unjudged` | a waiver's `condition` left unjudged beside a `code` taken out | `_kind_tokens` | HP41, shape | `missing` | 133, 183 |
+| `condition_beside_a_retyped_code_unjudged` | a waiver's `condition` left unjudged beside a `code` of another JSON type | `_kind_tokens` | HP41, shape | `breaks_holds` | 22, 18 |
+| `condition_beside_a_slipped_code_unjudged` | a waiver's `condition` left unjudged beside a `code` written as a slip of its name | `_kind_tokens` | HP41, shape | `slip` | 5, 5 |
+| `trainable_record_beside_a_scene_taken` | a `trainable` entry at a record taken where its model is checked over a domain or a path | `_names` | HP42 | `domain`, `path` | 5, 5 |
+| `within_of_another_status_refused_at_the_object` | a `within` of a status other than `none` refused at the object, not at its `status` | `_tokens` | HP42 | `sampling` | 109, 7 |
+| `label_of_another_type_judged_by_item_4` | a waiver's `label` of another JSON type judged by item 4, BC-050 in front of the shape table's BC-048 | `_labels` | HP41, precedence | `two_rules` | 83, 258 |
+| `combination_sections_judged_beside_an_unregistered_entry` | a combination judged for its sections beside an entry that names no registered field | `_names` | HP41, tokens | `slip_of_token`, `misspelt_name` | 48, 50 |
 
 ## Audits
 

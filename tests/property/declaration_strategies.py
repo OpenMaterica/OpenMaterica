@@ -1161,6 +1161,33 @@ def rests_on(p: Planting, site: Site, member: str) -> bool:
     return site.place == "waiver" and member in ("field", "label") and "label" in site.value
 
 
+def condition_without_a_code(p: Planting, at: str, waiver: Json) -> None:
+    """A waiver whose `code` is at fault (missing, of another type, or a slip's leaving it missing) beside a
+    `condition` it holds: "a waiver whose `code` is no reason names no `condition`" is a rule the text states
+    for a member at fault, so that it still applies (the refusal paragraph's second exception): the
+    `condition` is refused, at itself, beside the `code`."""
+    if "condition" in waiver:
+        p.plant("holds", at + pointer("condition"))
+
+
+def append_waiver_with_a_condition(p: Planting) -> tuple[str, Json] | None:
+    """A waiver appended to a model that reads a registered field, whose `code` names a condition and which
+    holds that `condition`; None where no model reads one. The draw that gives a waiver's `code` a fault
+    beside a `condition`, which the base declaration holds in about one draw in sixteen."""
+    models = p.declaration.get("models")
+    readers = [
+        m
+        for m, model in enumerate(models if isinstance(models, list) else [])
+        if isinstance(model, dict) and isinstance(model.get("reads"), list) and registered_reads(model)
+    ]
+    if not readers:
+        return None
+    at, held = append_acceptance(p, readers[p.index(len(readers))], "waiver")
+    held["code"] = p.choose(WAIVED_CONDITION_CODES)
+    held["condition"] = p.choose(CONDITIONS)
+    return at, held
+
+
 def removed(p: Planting, site: Site, member: str) -> None:
     """`member` taken out of `site`, and the faults that leaves: a required member missing; none of a place's
     exclusive alternatives; an acceptance's or a requirement condition's `reason` (items 4 and 3); a `basis`
@@ -1188,6 +1215,8 @@ def removed(p: Planting, site: Site, member: str) -> None:
             p.plant("missing_member", at, "condition")
     elif member in REQUIRED.get(place, ()):
         p.plant("missing_member", at, member)
+    if place == "waiver" and member == "code":
+        condition_without_a_code(p, at, value)
 
 
 def removable(p: Planting, site: Site, *, texts: bool) -> list[str]:
@@ -1238,6 +1267,15 @@ def plant_missing(p: Planting) -> None:
             for m, model in enumerate(models if isinstance(models, list) else [])
             if isinstance(model, dict) and isinstance(model.get("reads"), list) and registered_reads(model)
         ]
+        if turn == 1 and first == 1 and "waiver" not in places and readers:
+            # A waiver's `code` taken out beside its `condition`: the `condition` names no reason's.
+            appended = append_waiver_with_a_condition(p)
+            assert appended is not None
+            at, held = appended
+            p.kinds.append("waiver: code")
+            removed(p, Site("waiver", at, held), "code")
+            places.add("waiver")
+            continue
         if turn == 1 and first == 0 and "waiver" not in places and readers:
             # At a model the first turn left its `reads`: a waiver covers a field it reads.
             at, held = append_acceptance(p, readers[p.index(len(readers))], "waiver")
@@ -1265,7 +1303,16 @@ def plant_other_type(p: Planting) -> None:
     other types are `not_a_number`'s), refused at it and nothing inside it checked; in about half the draws an
     entry of another type appended to a list whose entries something rests on (`reads`,
     `checked_over.records`) or none (`consumer_parameters`)."""
-    if p.draw(st.integers(0, 4)) == 0:
+    way = p.draw(st.integers(0, 4))
+    if way == 1 and (appended := append_waiver_with_a_condition(p)) is not None:
+        # A waiver's `code` of another type beside its `condition`, which the `code` no longer explains.
+        at, held = appended
+        held["code"] = p.draw(other_type("string"))
+        p.kinds.append("waiver: code")
+        p.plant("holds", at + pointer("code"))
+        condition_without_a_code(p, at, held)
+        return
+    if way == 0:
         name = p.choose(("reads", "records", "consumer_parameters"))
         m = p.model_index()
         model = p.models[m]
@@ -1294,6 +1341,8 @@ def plant_other_type(p: Planting) -> None:
     p.kinds.append(f"{site.place}: {member}")
     site.value[member] = p.draw(other_type(kind))
     p.plant("holds", site.pointer + pointer(member))
+    if site.place == "waiver" and member == "code":
+        condition_without_a_code(p, site.pointer, site.value)
 
 
 def plant_range_upside_down(p: Planting) -> None:
@@ -1466,7 +1515,8 @@ def plant_params(p: Planting) -> None:
     """A nominal's `params`, "only for a field whose row allows the form `parameter_set`", which no field
     registered here allows; in about half the draws beside a `field` itself at fault, a registered field
     misspelt or `null`, which no row registers, so that none allows `params` there either (the rule that
-    stands aside keeps judging it: a default of 2026-10-26, which the maintainer has yet to confirm)."""
+    stands aside keeps judging it: the first exception of the refusal paragraph, the maintainer's ruling of
+    2026-10-26)."""
     at, held = append_acceptance(p, p.model_index(), "nominal")
     del held["value"]
     held["params"] = {"a": 1.0}
@@ -1652,14 +1702,19 @@ def plant_slip(p: Planting) -> None:
     kinds of slip by chance: a slip is a member not named at its place, refused at it, and the member it
     stands for is missing, where its absence is a fault."""
     places: set[str] = set()
-    for _ in range(2):
-        candidates = [
-            (site, member)
-            for site in changeable(p.declaration)
-            if site.place not in places
-            for member in unplanted(p, site, removable(p, site, texts=True))
-        ]
-        site, member = candidates[p.index(len(candidates))]
+    # In about one draw in eight the first is a waiver's `code`, beside the `condition` it names.
+    waiver = append_waiver_with_a_condition(p) if p.draw(st.integers(0, 4)) == 1 else None
+    for turn in range(2):
+        if turn == 0 and waiver is not None:
+            site, member = Site("waiver", waiver[0], waiver[1]), "code"
+        else:
+            candidates = [
+                (site, member)
+                for site in changeable(p.declaration)
+                if site.place not in places
+                for member in unplanted(p, site, removable(p, site, texts=True))
+            ]
+            site, member = candidates[p.index(len(candidates))]
         kind = p.choose(SLIP_KINDS)
         slipped = slip_of(member, kind)
         if slipped in NAMED.get(site.place, ()) or slipped in site.value:
@@ -2030,19 +2085,20 @@ def write_requirement_field(p: Planting, bad: Bad) -> str:
 
 
 def write_combination_entry(p: Planting, bad: Bad) -> str:
-    """A combination of the name and a field of `reads` of a section other than the name's, so that its
-    sections stay different (such a field appended to `reads` where none is read); a field not registered is
-    not in `reads` either, one member at fault."""
+    """A combination of the name and a field of `reads`, of the name's section or another by chance (such a
+    field appended to `reads` where none is read): the sections rule judges the entries against each other
+    and stands aside where one is no registered field, which has no section, so that this entry is the one
+    fault whichever section the other holds (the refusal paragraph)."""
     m = p.model_index()
     model = p.models[m]
     token = bad(FIELDS)
     reads = reads_of(model)
-    others = [field for field in registered_reads(model) if section_of(field) != section_of(token)]
-    if not others:
-        others = [next(field for field in FIELDS if section_of(field) != section_of(token))]
-        reads.append(others[0])
+    registered = registered_reads(model)
+    if not registered:
+        registered = [p.choose(FIELDS)]
+        reads.append(registered[0])
     listed = cast(list[JsonValue], model["combinations"])
-    listed.append([token, p.choose(others)])
+    listed.append([token, p.choose(registered)])
     return pointer("models", m, "combinations", len(listed) - 1, 0)
 
 
@@ -2370,8 +2426,8 @@ NAMES_PART: dict[str, Callable[[Planting], None]] = {
 def plant_two_rules(p: Planting) -> None:
     """A fault two rules name, which pair by chance: an acceptance without its `reason` or `basis` (item 4 and
     the shape table), a tolerance or accept list without its `reason` (item 3 and the table), a pick naming no
-    record (the location rule and the table), a waiver's `label` registered for another field or of another
-    type (item 4 and the table)."""
+    record (the location rule and the table), a waiver's `label` registered for another field (item 4 and the
+    table), or of another type (the table alone)."""
     pair = p.choose(("item 4", "item 3", "location", "label"))
     p.kinds.append(pair)
     m = p.model_index()
@@ -2390,9 +2446,10 @@ def plant_two_rules(p: Planting) -> None:
         at, held = append_acceptance(p, m, "waiver")
         field = p.choose(sorted(LABELS))
         held["field"] = field
-        # Not `null`, which names no label, so that item 4 does not judge it (maintainer, 2026-10-25): the
-        # check refuses it by item 4 but beside a reviewed requirement naming no label, where
-        # `plant_label_unreviewed` draws it. The other types here it refuses by item 4 too (an open point).
+        # Not `null`, which names no label, so that item 4 does not judge it (maintainer, 2026-10-25), which
+        # `plant_label_unreviewed` draws. A label that is no string names none either: BC-048 alone, at
+        # itself, whatever the requirement holds, so only a string of another field's label is a fault two
+        # rules name.
         held["label"] = p.draw(
             st.one_of(
                 st.sampled_from([label for label in ANY_LABEL if label != LABELS[field]]),
@@ -2401,7 +2458,7 @@ def plant_two_rules(p: Planting) -> None:
                 ),
             )
         )
-        p.plant("waiver_label", at + "/label")
+        p.plant("waiver_label" if isinstance(held["label"], str) else "holds", at + "/label")
 
 
 def plant_not_json(p: Planting) -> None:
@@ -2589,12 +2646,19 @@ BESIDE = tuple(name for name in sorted(LOCAL) if name not in ("trainable_unliste
 
 
 def plant_checked_over(p: Planting, m: int, member: str) -> None:
-    """`checked_over` a domain or a path in place of records (item 12: the scene suite's), refused at it; a
-    member beside the records stays."""
+    """`checked_over` a domain or a path in place of records (item 12: the scene suite's), refused at it, and
+    each `trainable` entry at a record refused at that record; a member beside the records stays."""
     checked_over = cast(Json, p.models[m]["checked_over"])
     del checked_over["records"]
     checked_over[member] = p.draw(st.sampled_from(("lumen", "wall", "path_1")))
     p.plant("scene_member", pointer("models", m, "checked_over", member))
+    # A `trainable` entry's location is judged against the model, not the field ("a `record` where it is
+    # checked over a domain or a path": section 1): every entry at a record is refused at it, whatever else
+    # the entry holds, the scene suite's item 12 refusing the `checked_over` beside it.
+    trainable = p.models[m].get("trainable")
+    for position, entry in enumerate(trainable if isinstance(trainable, list) else []):
+        if isinstance(entry, dict) and "record" in entry:
+            p.plant("unlisted", pointer("models", m, "trainable", position, "record"))
 
 
 def plant_trainable_in_a_scene(p: Planting, m: int) -> None:
@@ -2762,11 +2826,12 @@ def plant_sampling(p: Planting, m: int) -> None:
         if level:
             held["population_level"] = p.draw(population_level())
             if p.draw(st.booleans()) and p.draw(st.booleans()):
-                # `within` is "<level> or {"status": "none"}" (`uncertainty.md` section 1).
+                # `within` is "<level> or {"status": "none"}" (`uncertainty.md` section 1): a status object of
+                # another status is refused at its `status`, the member at fault.
                 status = p.choose([token for token in STATUS_TOKENS if token != "none"])
                 held["population_level"] = {"level": p.choose(LEVELS), "within": {"status": status}}
                 p.kinds.append("a within of another status")
-                p.plant("holds", at + "/population_level/within")
+                p.plant("holds", at + "/population_level/within/status")
         requirements.append((at, represents, level))
     elif which == "distribution":
         at, _ = append_acceptance(p, m, "distribution")
