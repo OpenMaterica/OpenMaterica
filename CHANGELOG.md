@@ -20,7 +20,8 @@ every family entry goes in `families/CHANGELOG.md`.
   it). `tests/property/test_declaration_properties.py` holds `Declaration.from_json` to an oracle written from
   `declarations.md` section 1 (each planted fault's rules by its name, the refusal paragraph's order for a
   member two rules name, one refusal per case and pointer, none for a fault a rule judges against a member
-  itself at fault or inside an acceptance of no known kind), over the declarations
+  itself at fault, an accepted difference's `value` beside its `fact` at fault among them, or inside an
+  acceptance of no known kind), over the declarations
   `tests/property/declaration_strategies.py` draws from the text alone, never from `SHAPE`, with faults planted
   by name at their pointers: HP41 in seven parts, each in strata of at most two ways, each stratum a test
   drawing its way first among its own, but `every_fault`, and HP42, in three strata, the scene, engine and
@@ -29,22 +30,25 @@ every family entry goes in `families/CHANGELOG.md`.
   and failing closed where a build claims the member's suite. Every part checks first that the declaration drawn
   is taken and that the check never raises. A waiver's `label` of `null` beside a reviewed requirement naming
   no label is refused by the shape table alone: `null` names no label, so item 4 does not judge it (maintainer,
-  2026-10-25). 74 mutants (`test_declaration_mutants.py`), the design's 35 and 39 more that the build's
+  2026-10-25). 75 mutants (`test_declaration_mutants.py`), the design's 35 and 40 more: those the build's
   reference model's listed survivors, S7a-1b's review, the refusal paragraph's last round and that ruling
-  name, each killed at both sizes at its way and its assertion, over the stratum that draws it, their kill
-  points recorded; an audit control for each drawing part. A sixth Atheris target, `tests/fuzz/build_bytes.py`:
-  raw bytes in place of one member of a build-check case's declaration, failing where `check_build` raises
+  name, and an accepted difference's `value` judged beside its `fact` at fault; each killed at both sizes at
+  its way and its assertion, over the stratum that draws it, their kill points recorded; an audit control
+  for each drawing part. A sixth Atheris target, `tests/fuzz/build_bytes.py`: raw bytes in place of one
+  member of a build-check case's declaration, failing where `check_build` raises
   anything but a `NotImplementedError` of what this version builds nothing past the declaration's check for,
   where a refusal's pointer names no member, where a refusal's case is none of the refusal paragraph's, or
   where the build's reference model refuses the declaration with every rule's refusals placed and the check
   refuses otherwise, but as one of twelve known divergences says, each an open point
   (`tests/fuzz/build_oracle.py`, each relation and each divergence shown failing by
   `tests/unit/test_fuzz_build_oracle.py`). Its seeded fault (`MATERICA_FUZZ_SEEDED_FAULT=declarations`), which
-  only the relation to the model sees, runs in CI's fuzz control step, four runs side by side of up to 900 s
-  until its rate is measured, and as `measure.yml`'s fuzz control `declarations`; the fuzz job's timeout is
-  raised by those 15 minutes, to 344. The input coverage's selection `declarations` gains its `timing`, which
-  plans its cuts in 133 slices on CI (an estimate from one local cut until the cut kind measures it), and
-  `measure.yml`'s request job 50 minutes, three times the recordings of every selection.
+  only the relation to the model sees, found as the model's BC-005 at an acceptance that the check does not
+  give, runs in CI's fuzz control step, four runs side by side of up to 900 s until its rate is measured, and
+  as `measure.yml`'s fuzz control `declarations`, whose report flags a run that ended on another failure with
+  its own words; the fuzz job's timeout is raised by those 15 minutes, to 344. The input coverage's
+  selection `declarations` gains its `timing`, which plans its cuts in 133 slices on CI (an estimate from one
+  local cut until the cut kind measures it), and `measure.yml`'s request job 50 minutes, three times the
+  recordings of every selection.
 - The build's own reasons, its verdict and its report (S7a-2b; `declarations.md` sections 2 and 4.2).
   `check_build` gives the report of a declaration that passes its own check. The build's own reasons join the
   read's (section 2 item 8): `no_requirement` for a field read with no requirement; `label_mismatch` where the
