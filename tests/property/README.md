@@ -453,8 +453,10 @@ check's reader (the last bullet).
   basis's absence, an empty string), `locations` (acceptances of the kinds that need a location naming none,
   an accepted difference, an overlay or an `overlay_scope` naming none, one located, at a region or an
   interval among them), `shape` (two required members missing at objects of two places, an accepted
-  difference's kind among them in about one draw in eight and a waiver's `condition` in about half, a value
-  its Holds column refuses, of another JSON type or breaking constraints the column states, a combination's
+  difference's kind among them in about one draw in eight and a waiver's `condition` in about half, or its
+  `code` in about one draw in eight, whose `condition` the rule on a `code` that is no reason refuses then,
+  a value its Holds column refuses, of another JSON type (a waiver's `code` beside its `condition` among them)
+  or breaking constraints the column states, a combination's
   field not in `reads` and a nominal's `params` beside a `field` at fault among them, a member whose row holds
   a number holding another JSON type, a boolean among them, in a stratum of its own (`not_a_number`: a check
   that takes a boolean anywhere may raise for one in an object or a list first), members no place names or
@@ -1942,7 +1944,7 @@ seeded faults of its step-11 rows, each killed by a case file (`tests/reference/
 it runs (a rule's function, `_precedence`, `_holds`, `_suite_members`, `_join`, `TOKENS`, `ORDER`,
 `_in_unit_interval`, `_ANY_KIND`, `_ITEM_7_MEMBERS`, `_kind_tokens`, `_fail_closed`), and each dying at a way
 it names and at the assertion it names: the S7 design's 35 mutants of HP41 and HP42 (its section 6.4;
-`test_declaration_mutant_table.py` holds each to the row that stands for it), and 54 more, the rules the
+`test_declaration_mutant_table.py` holds each to the row that stands for it), and 61 more, the rules the
 build's reference model's listed survivors and S7a-1b's and S7a-1p's reviews' hand mutants leave to these
 properties, where the draws reach them: blank text refused, an empty condition reason given item 3's case, an
 empty `reads` or `accepts`, two exclusive alternatives, a `consumer`'s or a `model`'s shape, a range upside
@@ -1965,7 +1967,13 @@ list, a waiver's missing `condition` beside its never-waived `code`), item 8 ove
 after item 12 for a member both name, a `within` of another status, an engine model over a path (item 7), a
 `trainable` entry at a region or an interval (item 12), a claimed suite no member needs, a combination's field
 not in `reads`, a condition's name in `region_conditions`, a `trainable` entry's field misspelt beside an
-empty `reads`, and a nominal's `params` beside a `field` at fault. Every one is searched over the draws of the
+empty `reads`, and a nominal's `params` beside a `field` at fault; and the five readings the check took when
+the maintainer ruled the refusal paragraph's exceptions (2026-10-26), each now drawn: a waiver's `condition`
+beside a `code` taken out, of another JSON type or written as a slip, which the rule that a `code` that is no
+reason names no `condition` still refuses; a `trainable` entry at a record beside a model checked over a
+domain or a path, refused at its `record`; a `within` of another status refused at its `status`; a waiver's
+`label` of another JSON type judged by the shape table alone; a combination's entry that is no registered
+field, beside a field of its own section, which the sections rule leaves be. Every one is searched over the draws of the
 one stratum of its part that holds the ways it names: none needs a planned search. The three that refuse what
 the text takes and that a planter's fault can show as well (blank text, a waiver's `basis`, two `trainable`
 entries of one field at two records) are searched over the `precedence` part's stratum of a text that is not
@@ -1979,11 +1987,12 @@ declaration tells the value's type apart (`tests/spec_sync/test_declaration_shap
 JSON type or shape, and an independence entry's members: HP41's declarations hold no sampling member, and HP42
 draws those members for items 8 and 12 and the `population_level` rule, with a `represents` of no list and a
 `within` of another status of the shape table's faults inside them and no others, so that the spec-sync test
-of `SHAPE`'s rows alone holds these (an open point); a waiver's `label` of `null` beside any other
-requirement, which the check refuses by item 4 where the ruling has item 4 not judge it (an open point). A
-waiver's `label` of another JSON type is drawn as the check reads it, refused by item 4 (BC-050), where the
-build's reference model refuses it by the shape table alone (an open point, which the fuzz target's relation
-to the model lists as a known divergence). Two rules are drawn thinly, in about one draw in 3,000 of HP41's
+of `SHAPE`'s rows alone holds these (an open point). A waiver's `label` of another JSON type, `null` among
+them, is drawn as the check and the model now read it (the refusal paragraph, the maintainer's rulings of
+2026-10-25 and 2026-10-26): refused by the shape table alone (BC-048), at the `label`, whatever its requirement
+holds, where item 4 judges a string only; the `precedence` part draws it in its pair of a `label` registered for
+another field (BC-050 in front of BC-048) and of one that is no string (BC-048 alone), and the `names` part
+beside a reviewed requirement naming no label. Two rules are drawn thinly, in about one draw in 3,000 of HP41's
 and HP42's (S7a-1p's review): a `consequence` of another JSON type and a `range` of other than two entries,
 each held by a test of its own too (the spec-sync test above, and `tests/unit/test_declarations.py`'s
 `test_a_value_breaking_its_holds_and_two_or_none_of_its_alternatives_are_refused`, a range of one and of

@@ -29,8 +29,9 @@ every family entry goes in `families/CHANGELOG.md`.
   member and under a claim of the suites no member needs, and failing closed where a build claims the member's
   suite. Every part checks first that the declaration drawn is taken and that the check never raises. A
   waiver's `label` of `null` beside a reviewed requirement naming no label is refused by the shape table
-  alone: `null` names no label, so item 4 does not judge it (maintainer, 2026-10-25). 89 mutants
-  (`test_declaration_mutants.py`), the design's 35 and 54 more: those the build's reference model's listed
+  alone: `null` names no label, so item 4 does not judge it (maintainer, 2026-10-25), nor a label of any
+  other type that is no string (the maintainer's ruling of 2026-10-26). 96 mutants
+  (`test_declaration_mutants.py`), the design's 35 and 61 more: those the build's reference model's listed
   survivors, S7a-1b's review, the refusal paragraph's last round and that ruling name, an accepted
   difference's `value` judged beside its `fact` at fault, and fourteen rules this piece's review found no draw
   decided, each drawn now (the `population_level` rule beside a `represents` of no list, a waiver's missing
@@ -38,7 +39,11 @@ every family entry goes in `families/CHANGELOG.md`.
   with a `min_acceptance` of another type, a `within` of another status, item 12 before the shape table, an
   engine model over a path, a `trainable` entry at a region or an interval, a claimed suite no member needs, a
   combination's field not read, a `region_conditions` name, a `trainable` entry's field misspelt beside an
-  empty `reads`, a nominal's `params` beside a field at fault); each killed at both sizes at its way and its
+  empty `reads`, a nominal's `params` beside a field at fault), and the five readings the check took by the
+  maintainer's rulings of 2026-10-26 (a waiver's `condition` beside a `code` taken out, of another type or
+  written as a slip, a records-located `trainable` entry beside a domain or a path, a `within` of another
+  status refused at its `status`, a waiver's `label` of another type, a combination's entry that is no
+  registered field beside a field of its own section); each killed at both sizes at its way and its
   assertion, over the stratum that draws it, their kill points recorded; an audit control for each drawing
   part. A sixth Atheris target, `tests/fuzz/build_bytes.py`: raw bytes in place of one member of a build-check
   case's declaration, failing where `check_build` raises anything but a `NotImplementedError` of what this

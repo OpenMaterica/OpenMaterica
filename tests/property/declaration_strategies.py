@@ -2446,16 +2446,13 @@ def plant_two_rules(p: Planting) -> None:
         at, held = append_acceptance(p, m, "waiver")
         field = p.choose(sorted(LABELS))
         held["field"] = field
-        # Not `null`, which names no label, so that item 4 does not judge it (maintainer, 2026-10-25), which
-        # `plant_label_unreviewed` draws. A label that is no string names none either: BC-048 alone, at
-        # itself, whatever the requirement holds, so only a string of another field's label is a fault two
-        # rules name.
+        # A label that is no string, `null` among them, names no label (maintainer, 2026-10-25 and
+        # 2026-10-26): BC-048 alone, at itself, whatever the requirement holds, so only a string of another
+        # field's label is a fault two rules name.
         held["label"] = p.draw(
             st.one_of(
                 st.sampled_from([label for label in ANY_LABEL if label != LABELS[field]]),
-                st.sampled_from([value for value in OTHER_TYPES["string"] if value is not None]).map(
-                    copy.deepcopy
-                ),
+                st.sampled_from(OTHER_TYPES["string"]).map(copy.deepcopy),
             )
         )
         p.plant("waiver_label" if isinstance(held["label"], str) else "holds", at + "/label")
