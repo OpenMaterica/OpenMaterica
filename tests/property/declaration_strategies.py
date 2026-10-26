@@ -487,8 +487,8 @@ def any_value() -> st.SearchStrategy[JsonValue]:
 @st.composite
 def numeric_value(draw: st.DrawFn, condition: str, *, implied: bool = False) -> Json:
     """`{"value", "unit"}` or `{"range": [lo, hi], "unit"}` in the condition's registered unit, `lo` not above
-    `hi` (equal in about one draw in eight); for an implied condition's value, a `basis` beside it in one draw
-    in four, which section 4.1's row ignores."""
+    `hi` (equal in about two ranges in five, measured); for an implied condition's value, a `basis` beside it
+    in about two draws in five, which section 4.1's row ignores."""
     low, high = scale(condition)
     held: Json
     if draw(st.booleans()):
@@ -511,9 +511,9 @@ def operating_conditions(draw: st.DrawFn) -> Json:
 
 @st.composite
 def requirement_condition(draw: st.DrawFn, condition: str) -> Json:
-    """A requirement condition (the shape table's row): a tolerance, not below zero (zero in about one draw in
-    four), in the condition's unit, for a numeric condition; an accept list of the row's tokens for a token
-    one; its `reason`; and a `consequence` or none."""
+    """A requirement condition (the shape table's row): a tolerance, not below zero (zero in about half the
+    draws, measured), in the condition's unit, for a numeric condition; an accept list of the row's tokens for
+    a token one; its `reason`; and a `consequence` or none."""
     held: Json
     if condition in NUMERIC:
         low, high = scale(condition)
@@ -1211,11 +1211,12 @@ def unplanted(p: Planting, site: Site, members: list[str]) -> list[str]:
 def plant_missing(p: Planting) -> None:
     """Two required members missing, each at an object of another place, which by chance from the shape
     table, or none of a place's exclusive alternatives, each refused at the object that should hold it. The
-    first is `target` in about one draw in six (the design's mutant "a required member's absence taken
-    (`target`)"), and an accepted difference's `acceptance` in about one in six, which leaves an acceptance
+    first is `target` in about half the draws (the design's mutant "a required member's absence taken
+    (`target`)"), and an accepted difference's `acceptance` in about one in eight, which leaves an acceptance
     of no kind whose `value` no kind's Holds judges; the second is a waiver's `condition`, where its code
-    names one, in about one in six. Two, at two places, so that a check taking one would still refuse the
-    declaration, rather than build its typed result of a model that lacks the member."""
+    names one, in about half (`st.integers(0, 5)` draws its 0 in about half the draws and its 1 in about one
+    in eight, measured). Two, at two places, so that a check taking one would still refuse the declaration,
+    rather than build its typed result of a model that lacks the member."""
     places: set[str] = set()
     for turn in range(2):
         first = p.draw(st.integers(0, 5))
@@ -1261,7 +1262,7 @@ def plant_missing(p: Planting) -> None:
 
 def plant_other_type(p: Planting) -> None:
     """A member of another JSON type than its row's, a string, an object or a list by chance (a number's
-    other types are `not_a_number`'s), refused at it and nothing inside it checked; in one draw in five an
+    other types are `not_a_number`'s), refused at it and nothing inside it checked; in about half the draws an
     entry of another type appended to a list whose entries something rests on (`reads`,
     `checked_over.records`) or none (`consumer_parameters`)."""
     if p.draw(st.integers(0, 4)) == 0:
@@ -1336,23 +1337,37 @@ def plant_index_off(p: Planting) -> None:
 
 
 def plant_combination(p: Planting) -> None:
-    """ "a combination of fewer than two fields or of fields of one section", each in `reads`."""
+    """ "a combination of fewer than two fields or of fields of one section", each in `reads`; or one of two
+    registered fields of two sections, the second not in `reads` (the Holds column: "lists of two or more
+    fields in `reads`, from different sections"), refused at that field."""
     m = p.model_index()
     model = p.models[m]
     reads = reads_of(model)
-    if p.draw(st.booleans()):
-        combined: list[JsonValue] = [p.choose(registered_reads(model))]
-        p.kinds.append("a combination of one field")
-    else:
+    way = p.choose(("one field", "one section", "a field not read"))
+    pairs = [
+        (read, field)
+        for read in registered_reads(model)
+        for field in unread(model)
+        if section_of(field) != section_of(read)
+    ]
+    listed = cast(list[JsonValue], model["combinations"])
+    if way == "a field not read" and pairs:
+        listed.append(list(pairs[p.index(len(pairs))]))
+        p.kinds.append("a combination of a field not read")
+        p.plant("unread", pointer("models", m, "combinations", len(listed) - 1, 1))
+        return
+    if way == "one section":
         sections = [
             section for section in SECTIONS if sum(section_of(field) == section for field in FIELDS) > 1
         ]
         section = p.choose(sections)
         pair = [field for field in FIELDS if section_of(field) == section][:2]
         reads += [field for field in pair if field not in reads]
-        combined = list(pair)
+        combined: list[JsonValue] = list(pair)
         p.kinds.append("a combination of one section")
-    listed = cast(list[JsonValue], model["combinations"])
+    else:
+        combined = [p.choose(registered_reads(model))]
+        p.kinds.append("a combination of one field")
     listed.append(combined)
     p.plant("holds", pointer("models", m, "combinations", len(listed) - 1))
 
@@ -1432,8 +1447,8 @@ def plant_status_object(p: Planting) -> None:
 
 
 def plant_waiver_condition(p: Planting) -> None:
-    """A waiver's `condition` against its code: missing where the code names one (two draws in three), held
-    where it names none."""
+    """A waiver's `condition` against its code: missing where the code names one (about two draws in five),
+    held where it names none."""
     at, held = append_acceptance(p, p.model_index(), "waiver")
     if p.draw(st.integers(0, 2)) > 0:
         held["code"] = p.choose(WAIVED_CONDITION_CODES)
@@ -1449,12 +1464,22 @@ def plant_waiver_condition(p: Planting) -> None:
 
 def plant_params(p: Planting) -> None:
     """A nominal's `params`, "only for a field whose row allows the form `parameter_set`", which no field
-    registered here allows."""
+    registered here allows; in about half the draws beside a `field` itself at fault, a registered field
+    misspelt or `null`, which no row registers, so that none allows `params` there either (the rule that
+    stands aside keeps judging it: a default of 2026-10-26, which the maintainer has yet to confirm)."""
     at, held = append_acceptance(p, p.model_index(), "nominal")
     del held["value"]
     held["params"] = {"a": 1.0}
     p.kinds.append("params")
     p.plant("holds", at + "/params")
+    if p.draw(st.booleans()):
+        if p.draw(st.booleans()):
+            held["field"] = None
+            p.plant("holds", at + "/field")
+        else:
+            held["field"] = misspelt_field(p)
+            p.plant("token", at + "/field")
+        p.kinds.append("beside a field at fault")
 
 
 def plant_distribution_parameters(p: Planting) -> None:
@@ -1489,9 +1514,9 @@ CONSTRAINTS: dict[str, Callable[[Planting], None]] = {
 
 def plant_breaks_holds(p: Planting) -> None:
     """A value its row's Holds column refuses, refused at that member: a string, an object or a list given
-    another JSON type (in one draw in three); or constraints the column states (section 1's list of
-    departures), each in about half the draws and one at least, at places apart, so that each constraint's
-    check is met in about one draw of the stratum in eight."""
+    another JSON type (in about three draws in five); or constraints the column states (section 1's list of
+    departures), each in about half those draws and one at least, at places apart, so that each constraint's
+    check is met often in the stratum's draws."""
     if p.draw(st.integers(0, 2)) == 0:
         plant_other_type(p)
         return
@@ -1544,8 +1569,8 @@ DEPTHS: dict[str, tuple[str, ...]] = {
 def plant_unknown(p: Planting) -> None:
     """Members the shape table does not name at their places, one at each depth (an acceptance appended
     where the declaration holds none), each depth in about half the draws and one at least: a name of no
-    place, or one another place names; at an acceptance, in two draws in three one of a kind, a member another
-    kind names, a `basis` on a kind item 4 does not give one in two of three such draws."""
+    place, or one another place names; at an acceptance, in about two draws in five one of a kind, a member
+    another kind names, a `basis` on a kind item 4 does not give one in about two of five such draws."""
     depths = tuple(DEPTHS)
     for depth in included(p, depths):
         every = [site for site in changeable(p.declaration) if site.place in DEPTHS[depth]]
@@ -1571,7 +1596,7 @@ def add_unknown(p: Planting, site: Site) -> None:
         if name not in NAMED.get(site.place, ()) and name not in site.value and name != "status"
     ]
     if site.place in KINDS and "basis" in elsewhere and p.draw(st.integers(0, 2)) > 0:
-        # A `basis` on a kind item 4 gives none, in two draws in three at such an acceptance.
+        # A `basis` on a kind item 4 gives none, in about two draws in five at such an acceptance.
         name = "basis"
     elif p.draw(st.booleans()):
         name = p.choose(UNKNOWN_NAMES)
@@ -1616,6 +1641,12 @@ def slip_of(name: str, kind: str) -> str:
     return name[:1] + "_" + name[1:]
 
 
+def misspelt_field(p: Planting) -> str:
+    """A registered field one slip away (section 10), and no registered field itself."""
+    slipped = slip_of(p.choose(FIELDS), p.choose(SLIP_KINDS))
+    return slipped if slipped not in FIELDS else slipped + "q"
+
+
 def plant_slip(p: Planting) -> None:
     """Two members, each one slip from a named one (section 10) in place of it, at objects of two places, the
     kinds of slip by chance: a slip is a member not named at its place, refused at it, and the member it
@@ -1642,22 +1673,26 @@ def plant_slip(p: Planting) -> None:
 
 
 def plant_empty_list(p: Planting) -> None:
-    """An empty list where the table asks for one entry or more: `models` alone, in one draw in four; or of
-    `reads`, `checked_over.records`, an `overlay_scope`'s `accepts` and a token condition's accept list, each
-    in about half the draws and one at least. A model's requirements, `trainable` entries and combinations
-    stay beside its emptied `reads`: "a requirement's `field` against a `reads` at fault (an empty one too)"
-    is not judged (the refusal paragraph), and neither is a `trainable` entry's: so a model whose `reads` is
-    emptied holds a requirement first in three draws in four where it holds neither (one for a field it
-    reads, which the text takes). Before the records are emptied, the `trainable` entries that rest on them
-    go; and no accept list is set in a model whose `reads` is emptied, whose requirement for it would add a
-    field to `reads`."""
-    # Two booleans, each drawn about evenly, where `st.integers(0, 3)` draws its 0 about half the time.
+    """An empty list where the table asks for one entry or more: `models` alone, in about one draw in seven;
+    or of `checked_over.records`, `reads`, an `overlay_scope`'s `accepts` and a token condition's accept list,
+    each in about half the draws and one at least. A model's requirements, `trainable` entries and
+    combinations stay beside its emptied `reads`: "a requirement's `field` against a `reads` at fault (an
+    empty one too)" is not judged (the refusal paragraph), and neither is a `trainable` entry's: so a model
+    whose `reads` is emptied holds a requirement first in most draws where it holds neither (one for a field
+    it reads, which the text takes). Beside the emptied `reads`, in about half the draws, a `trainable` entry
+    (a requirement, where the model's records are emptied too) names a registered field misspelt: its name
+    is judged whatever `reads` holds ("a registered name", the members table), where nothing else refuses
+    it. The records are emptied first, and the `trainable` entries that rest on them go with them; and no
+    accept list is set in a model whose `reads` is emptied, whose requirement for it would add a field to
+    `reads`."""
+    # Two booleans, both true in about one draw in seven (measured), where `st.integers(0, 3)` draws its 0
+    # about half the time.
     if p.draw(st.booleans()) and p.draw(st.booleans()):
         p.kinds.append("models")
         p.declaration["models"] = []
         p.plant("holds", "/models")
         return
-    lists = ("reads", "records", "accepts", "accept")
+    lists = ("records", "reads", "accepts", "accept")
     emptied: set[int] = set()
     for which in included(p, lists):
         m = p.model_index()
@@ -1670,6 +1705,8 @@ def plant_empty_list(p: Planting) -> None:
             model["reads"] = []
             emptied.add(m)
             p.plant("holds", pointer("models", m, "reads"))
+            if p.draw(st.booleans()):
+                plant_misspelt_beside_no_reads(p, m)
         elif which == "records":
             model.pop("trainable", None)
             cast(Json, model["checked_over"])["records"] = []
@@ -1686,6 +1723,26 @@ def plant_empty_list(p: Planting) -> None:
             condition["accept"] = []
             p.plant("holds", at + "/accept")
         p.kinds.append(which)
+
+
+def plant_misspelt_beside_no_reads(p: Planting, m: int) -> None:
+    """A `trainable` entry for a registered field misspelt, at a record model `m` lists, or a requirement for
+    one where it lists none: its `field` refused as no registered name, though its model's `reads` is at
+    fault."""
+    model = p.models[m]
+    listed_records = records_of(model)
+    if listed_records:
+        listed = entries(model, "trainable")
+        listed.append({"field": misspelt_field(p), "record": copy.deepcopy(listed_records[0])})
+        p.kinds.append("a trainable entry's field misspelt")
+        p.plant("token", pointer("models", m, "trainable", len(listed) - 1, "field"))
+        return
+    held = p.draw(requirement(FIELDS[0], labelled=False))
+    held["field"] = misspelt_field(p)
+    listed = entries(model, "requirements")
+    listed.append(held)
+    p.kinds.append("a requirement's field misspelt")
+    p.plant("token", pointer("models", m, "requirements", len(listed) - 1, "field"))
 
 
 SHAPE: dict[str, Callable[[Planting], None]] = {
@@ -1828,10 +1885,15 @@ def write_waiver_code(p: Planting, bad: Bad) -> str:
 
 def write_never_waived(p: Planting, bad: Bad) -> str:
     """Section 4.2: "A waiver whose `code` is `condition_unknown_name` is refused at build, at its `code`",
-    beside a condition, which the code names (the shape table's own members cell)."""
+    beside a condition, which the code names (the shape table's own members cell), or, in about half the
+    draws, none: "a waiver's missing `condition` beside a `code` that is refused" is not judged (the refusal
+    paragraph)."""
     at, held = fresh("waiver")(p)
     held["code"] = NEVER_WAIVED
-    held["condition"] = p.choose(CONDITIONS)
+    if p.draw(st.booleans()):
+        held["condition"] = p.choose(CONDITIONS)
+    else:
+        held.pop("condition", None)
     return at + "/code"
 
 
@@ -2425,7 +2487,8 @@ PARTS: dict[str, dict[str, Callable[[Planting], None]]] = {
 # over CI's 20 streams 6.6 times a binomial count's on average (2.6 to 12.5 by way), and 7 of the 34 ways fell
 # below their floor (110, or 160 among four) with a probability above 1e-6 at the least share and the variance
 # measured. Drawn among two, at a floor of 440, a way is so flagged in about one measurement of 20 streams in
-# 500 at that variance, and among five in one in five (a simulation; the figures in the property README).
+# 300 at that average variance (one in 23 at 9 times; the strata's ratios measured since, 3.6 to 9.6), and
+# among five in one in five (a simulation, per way; the figures in the property README).
 STRATA: dict[str, tuple[tuple[str, ...], ...]] = {
     "reasons": (("tolerance_reason", "accept_reason"), ("acceptance_reason", "basis"), ("empty_text",)),
     "locations": (("unlocated", "accepted_difference_unlocated"), ("overlay_unlocated", "located")),
@@ -2534,12 +2597,37 @@ def plant_checked_over(p: Planting, m: int, member: str) -> None:
     p.plant("scene_member", pointer("models", m, "checked_over", member))
 
 
+def plant_trainable_in_a_scene(p: Planting, m: int) -> None:
+    """A `trainable` entry for a field model `m` reads, at a region or an interval: item 12 refuses it at the
+    entry where the build does not claim the scene suite."""
+    model = p.models[m]
+    where = p.choose(("region", "interval"))
+    listed = entries(model, "trainable")
+    listed.append({"field": p.choose(registered_reads(model)), where: "lumen" if where == "region" else 0.0})
+    p.kinds.append(
+        f"a trainable entry at an {where}" if where == "interval" else "a trainable entry at a region"
+    )
+    p.plant("scene_member", pointer("models", m, "trainable", len(listed) - 1))
+
+
 def plant_region_conditions(p: Planting, m: int) -> None:
+    """`region_conditions` (item 12: the scene suite's), refused at it; in about half the draws one region
+    holds a numeric condition's name misspelt, "registered condition to ... for a numeric condition", which
+    is judged inside it."""
     regions = p.draw(
         st.lists(st.sampled_from(("lumen", "wall", "heated")), min_size=1, max_size=2, unique=True)
     )
-    p.models[m]["region_conditions"] = {region: p.draw(operating_conditions()) for region in regions}
+    held = {region: p.draw(operating_conditions()) for region in regions}
+    p.models[m]["region_conditions"] = cast(JsonValue, held)
     p.plant("scene_member", pointer("models", m, "region_conditions"))
+    if p.draw(st.booleans()):
+        name = p.choose(NUMERIC)
+        slipped = slip_of(name, p.choose(SLIP_KINDS))
+        misspelt = slipped if slipped not in NUMERIC else slipped + "q"
+        region = p.choose(regions)
+        held[region][misspelt] = {"value": scale(name)[0], "unit": UNITS[name]}
+        p.kinds.append("a region's condition misspelt")
+        p.plant("token", pointer("models", m, "region_conditions", region, misspelt))
 
 
 @st.composite
@@ -2567,7 +2655,7 @@ def engine(draw: st.DrawFn) -> Json:
 
 
 def plant_engine(p: Planting, m: int) -> None:
-    """A model with `engine`, over a domain or over its records (by chance); and item 7's other reasons to
+    """A model with `engine`, over a domain, its records or a path (by chance); and item 7's other reasons to
     refuse it: none in about half the draws, where what the model is over alone tells whether item 7 refuses
     it; an unexplained value alone in about a quarter; and in the rest each in about half, one at least: its
     crosswalk pinned (and never passed to this version's build); one of its values, in `values` or
@@ -2577,9 +2665,9 @@ def plant_engine(p: Planting, m: int) -> None:
     The oracle reads item 7 from what the model is over, its crosswalk, its values and its requirements'
     `want`s; a missing crosswalk is the shape table's fault."""
     model = p.models[m]
-    over = p.choose(("domain", "records"))
-    if over == "domain":
-        plant_checked_over(p, m, "domain")
+    over = p.choose(("domain", "records", "path"))
+    if over != "records":
+        plant_checked_over(p, m, over)
     held = p.draw(engine())
     reasons: list[str] = []
     if not p.draw(st.booleans()):
@@ -2628,30 +2716,44 @@ def population_level(draw: st.DrawFn) -> Json:
     return {"level": level, "balanced_over": draw(st.sampled_from(LEVELS))}
 
 
+# `represents` tokens of no list: a token in another case, a plural slip, one character dropped.
+NO_REPRESENTS = ("Population", "populations", "measurment")
+
+
 def plant_sampling(p: Planting, m: int) -> None:
     """A sampling member, which by chance: a requirement's `represents`, of `population` with its level or
-    without, or another; a `population_level` beside another `represents` or none; `sampling` alone; a
-    `distribution` acceptance. Beside it, `sampling` with a `min_acceptance` outside (0, 1] (0 among them),
-    missing `independence` (in two draws in three) or `reason`, valid (`min_acceptance` 1 among them), or
-    absent, by chance. The oracle reads items 8 and 12 and the `population_level` rule from what is
-    planted."""
+    without, or another; a `population_level` beside a token of no list (in about half those draws), another
+    `represents` or none; `sampling` alone; a `distribution` acceptance. A level drawn holds a `within` of a
+    status other than `none` in about a quarter of the draws, refused at it. Beside it, `sampling` with a
+    `min_acceptance` outside (0, 1] (0 among them) or, in about half those draws, of another JSON type;
+    missing `independence` (in about half the draws), `min_acceptance` or `reason`; of another JSON type;
+    valid (`min_acceptance` 1 among them); or absent, by chance. The oracle reads items 8 and 12 and the
+    `population_level` rule from what is planted."""
     which = p.choose(("represents", "population", "no_level", "level_beside", "sampling", "distribution"))
     block = p.choose(
-        ("outside", "incomplete", "valid")
+        ("outside", "incomplete", "valid", "other_type")
         if which == "sampling"
-        else ("outside", "incomplete", "valid", "absent")
+        else ("outside", "incomplete", "valid", "other_type", "absent")
     )
     p.kinds.append(f"{which}, sampling {block}")
     requirements: list[tuple[str, str | None, bool]] = []
     distributions: list[str] = []
     if which in ("represents", "population", "no_level", "level_beside"):
         j, held = some_requirement(p, m)
+        at = pointer("models", m, "requirements", j)
+        others = [token for token in REPRESENTS if token != "population"]
         represents: str | None = {
-            "represents": p.choose([token for token in REPRESENTS if token != "population"]),
+            "represents": p.choose(others),
             "population": "population",
             "no_level": "population",
-            "level_beside": p.choose([*(token for token in REPRESENTS if token != "population"), "none"]),
+            "level_beside": "no token" if p.draw(st.booleans()) else p.choose([*others, "none"]),
         }[which]
+        if represents == "no token":
+            # "the `population_level` rule beside a `represents` that is no token" stands aside (the refusal
+            # paragraph): the `represents` is the one fault, of the shape table and of item 12.
+            represents = p.choose(NO_REPRESENTS)
+            p.kinds.append("a represents of no list")
+            p.plant("token", at + "/represents")
         if represents == "none":
             represents = None
         else:
@@ -2659,17 +2761,30 @@ def plant_sampling(p: Planting, m: int) -> None:
         level = which in ("population", "level_beside")
         if level:
             held["population_level"] = p.draw(population_level())
-        requirements.append((pointer("models", m, "requirements", j), represents, level))
+            if p.draw(st.booleans()) and p.draw(st.booleans()):
+                # `within` is "<level> or {"status": "none"}" (`uncertainty.md` section 1).
+                status = p.choose([token for token in STATUS_TOKENS if token != "none"])
+                held["population_level"] = {"level": p.choose(LEVELS), "within": {"status": status}}
+                p.kinds.append("a within of another status")
+                p.plant("holds", at + "/population_level/within")
+        requirements.append((at, represents, level))
     elif which == "distribution":
         at, _ = append_acceptance(p, m, "distribution")
         p.planted = [fault for fault in p.planted if fault.pointer != at]
         distributions.append(at)
-    if block != "absent":
+    missing: str | None = None
+    if block == "other_type":
+        p.declaration["sampling"] = p.draw(other_type("object"))
+        p.plant("holds", "/sampling")
+    elif block != "absent":
         bounds = (1.0, 0.95, 5.0e-324) if block != "outside" else (0.0, -0.5, 1.0000000000000002, 2.0)
-        least = p.draw(st.sampled_from(bounds))
+        least: JsonValue = p.draw(st.sampled_from(bounds))
+        if block == "outside" and p.draw(st.booleans()):
+            # "a number in (0, 1]": a value of another JSON type is none, a boolean among them.
+            least = p.draw(other_type("number"))
         sampling: Json = {"min_acceptance": least, "reason": p.draw(TEXTS), "independence": []}
         if block == "incomplete":
-            missing = p.choose(("independence", "independence", "reason"))
+            missing = "independence" if p.draw(st.booleans()) else p.choose(("min_acceptance", "reason"))
             del sampling[missing]
             p.plant("missing_member", "/sampling", missing)
         p.declaration["sampling"] = sampling
@@ -2677,7 +2792,12 @@ def plant_sampling(p: Planting, m: int) -> None:
         "sampling",
         "",
         None,
-        (("block", block), ("requirements", tuple(requirements)), ("distributions", tuple(distributions))),
+        (
+            ("block", block),
+            ("missing", missing),
+            ("requirements", tuple(requirements)),
+            ("distributions", tuple(distributions)),
+        ),
     )
 
 
@@ -2705,6 +2825,8 @@ def hp42(draw: st.DrawFn, size: Size, ways: Sequence[str]) -> Drawn:
     m = p.model_index()
     if way in ("domain", "path"):
         plant_checked_over(p, m, way)
+        if p.draw(st.booleans()):
+            plant_trainable_in_a_scene(p, m)
     elif way == "region_conditions":
         plant_region_conditions(p, m)
     elif way == "engine":

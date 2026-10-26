@@ -14,9 +14,9 @@ draws of `declaration_strategies.py`, against an oracle written here from the te
   `every_fault` (two to five faults at once, across models).
 - HP42: what a build cannot check (item 12), against items 7 and 8 and the `population_level` rule, which come
   first, member by member: a declaration with one scene, engine or sampling member planted is refused with
-  the cases T4's order gives, one per fault at its pointer, and otherwise refused exactly as without it; and a
-  build that claims the member's suite raises `NotImplementedError` for it (a claimed suite fails closed:
-  maintainer, 2026-10-24).
+  the cases T4's order gives, one per fault at its pointer, and otherwise refused exactly as without it, and
+  alike under a claim of the suites item 12 names that no member of it needs; and a build that claims the
+  member's suite raises `NotImplementedError` for it (a claimed suite fails closed: maintainer, 2026-10-24).
 
 The oracle: each planted fault's rules, by its name (`RULES`, each from its sentence); a fault more than one
 rule names (one member at fault: maintainer, 2026-10-24) carries the case first in the refusal paragraph's
@@ -39,7 +39,17 @@ from materica.core.declarations import Declaration
 from materica.core.jsonio import JsonValue
 from materica.shapes import Suite
 from tests.property import declaration_strategies as strategies
-from tests.property.declaration_strategies import FACTS, KINDS, Drawn, Planted, model_of
+from tests.property.declaration_strategies import (
+    FACTS,
+    KINDS,
+    REPRESENTS,
+    SAMPLING,
+    SCENE,
+    USD,
+    Drawn,
+    Planted,
+    model_of,
+)
 from tests.property.strategies import SIZE
 from tests.property.support import feature
 
@@ -110,36 +120,51 @@ def item_7(facts: Mapping[str, object]) -> frozenset[str]:
 
 
 def sampling(facts: Mapping[str, object]) -> Iterator[tuple[str, str | None, frozenset[str]]]:
-    """Item 8: "A declaration in which a requirement samples, without [`sampling.min_acceptance`] or with one
-    outside (0, 1], is refused at build"; "A requirement samples where it holds `represents`". The
-    `population_level` rule: present "where `represents` is `population`, and only there". Item 12, "where it
-    does not claim the sampling suite, `sampling`, a requirement's `represents` or `population_level`, and a
-    `distribution` acceptance", except that "where item 8 or that rule refuses the declaration over a
-    requirement, that requirement gives none"."""
-    block = facts["block"]
+    """Item 8: "`sampling.min_acceptance` is a number in (0, 1]"; "A declaration in which a requirement
+    samples, without it or with one outside (0, 1], is refused at build"; "A requirement samples where it
+    holds `represents`". The `population_level` rule: present "where `represents` is `population`, and only
+    there", standing aside beside "a `represents` that is no token" (the refusal paragraph). Item 12, "where
+    it does not claim the sampling suite, `sampling`, a requirement's `represents` or `population_level`, and
+    a `distribution` acceptance", except that "where item 8 or that rule refuses the declaration over a
+    requirement, that requirement gives none". A fault the planter records at the same member (the shape
+    table's: `sampling` or `min_acceptance` of another type, `min_acceptance` missing, a `represents` of no
+    list) joins the rules named here there."""
+    block, missing = facts["block"], facts["missing"]
     requirements = cast(tuple[tuple[str, str | None, bool], ...], facts["requirements"])
     distributions = cast(tuple[str, ...], facts["distributions"])
     sampled = [at for at, represents, _ in requirements if represents is not None]
+    # Item 8 refuses where a requirement samples and `sampling` is missing, no object, without
+    # `min_acceptance`, or with one that is no number in (0, 1].
+    item_8 = bool(sampled) and (
+        block in ("absent", "outside", "other_type")
+        or (block == "incomplete" and missing == "min_acceptance")
+    )
     if sampled and block == "absent":
         # The member missing: the declaration should hold `sampling`.
         yield "", "sampling", frozenset({"BC-044", "BC-048"})
     if block == "outside":
         # `min_acceptance`, "a number in (0, 1]", breaks its row's Holds, and item 8's rule where one samples.
         yield "/sampling/min_acceptance", None, frozenset({"BC-044", "BC-048"} if sampled else {"BC-048"})
+    if item_8 and block == "other_type":
+        yield "/sampling", None, frozenset({"BC-044"})
+    if item_8 and block == "incomplete":
+        yield "/sampling", "min_acceptance", frozenset({"BC-044"})
     if block != "absent":
         yield "/sampling", None, frozenset({"BC-051"})
-    spared = set(sampled) if sampled and block in ("absent", "outside") else set[str]()
+    spared = set(sampled) if item_8 else set[str]()
     for at, represents, level in requirements:
         if represents == "population" and not level:
             yield at, "population_level", frozenset({"BC-043", "BC-048"})
             spared.add(at)
-        elif level and represents != "population":
+        elif level and represents != "population" and (represents is None or represents in REPRESENTS):
             yield at + "/population_level", None, frozenset({"BC-043", "BC-051"})
             spared.add(at)
     for at, represents, level in requirements:
         if at not in spared:
             yield from (
-                (at + "/" + name, None, frozenset({"BC-051"})) for name in ("represents",) if represents
+                (at + "/" + name, None, frozenset({"BC-051"}))
+                for name in ("represents",)
+                if represents is not None
             )
             yield from ((at + "/population_level", None, frozenset({"BC-051"})) for _ in range(int(level)))
     for at in distributions:
@@ -181,8 +206,9 @@ def kindless_and_unread(declaration: JsonValue | bytes) -> tuple[list[str], set[
 
 def unshaped(declaration: JsonValue | bytes) -> list[str]:
     """The `value`s of the accepted differences of `declaration` that no fact's shape judges, by pointer: an
-    object holding no `status` beside a `fact` at fault (missing, no string, or no fact of `provenance.md`
-    section 6.2)."""
+    object that is no status object (`status` and, optionally, `reason`, alone: `provenance.md` section 1,
+    which is judged as one whatever the `fact`) beside a `fact` at fault (missing, no string, or no fact of
+    `provenance.md` section 6.2)."""
     found: list[str] = []
     models = declaration.get("models") if isinstance(declaration, dict) else None
     for m, model in enumerate(models if isinstance(models, list) else []):
@@ -191,7 +217,10 @@ def unshaped(declaration: JsonValue | bytes) -> list[str]:
             if not (isinstance(held, dict) and held.get("acceptance") == "accepted_difference"):
                 continue
             value, fact = held.get("value"), held.get("fact")
-            if isinstance(value, dict) and "status" not in value and fact not in FACTS:
+            status_object = (
+                isinstance(value, dict) and "status" in value and set(value) <= {"status", "reason"}
+            )
+            if isinstance(value, dict) and not status_object and fact not in FACTS:
                 found.append(f"/models/{m}/acceptances/{k}/value")
     return found
 
@@ -268,9 +297,20 @@ def check_declaration(drawn: Drawn) -> None:
     check_refusals(drawn)
 
 
+# The suite each planted member item 12 names needs.
+SUITE_OF: Mapping[str, Suite] = {
+    "scene_member": SCENE,
+    "engine": USD,
+    "sampling": SAMPLING,
+    "sampling_member": SAMPLING,
+}
+
+
 def check_unbuilt(drawn: Drawn) -> None:
-    """HP42: the member's refusals beside the others', and the others as without it; and a build claiming the
-    member's suite fails closed."""
+    """HP42: the member's refusals beside the others', and the others as without it; a build claiming as well
+    the suites item 12 names of which the declaration holds no member refuses it alike, since item 12 refuses
+    a member where its suite is not claimed and a claimed suite fails closed only over a member it checks
+    (maintainer, 2026-10-24); and a build claiming the member's suite fails closed."""
     check_valid(drawn)
     check_refusals(drawn)
     suite = drawn.suite
@@ -282,6 +322,12 @@ def check_unbuilt(drawn: Drawn) -> None:
     assert found == without | member, (
         f"refused otherwise than without the member: {sorted(found)}, without it {sorted(without)} and the"
         f" member's {sorted(member)}"
+    )
+    held = {SUITE_OF[fault.fault] for fault in drawn.planted if fault.fault in SUITE_OF}
+    quiet = frozenset(SUITE_OF.values()) - held
+    beside = set(refusals_of(drawn.declaration, drawn.claims | quiet) or ())
+    assert beside == found, (
+        f"refused otherwise under a claim of {sorted(quiet)}, which no member needs: {sorted(beside)}"
     )
     claimed: frozenset[Suite] = drawn.claims.union((suite,))
     try:
