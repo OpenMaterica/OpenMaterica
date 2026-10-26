@@ -520,8 +520,11 @@ def requirement_condition(draw: st.DrawFn, condition: str) -> Json:
         tolerance = draw(st.one_of(st.just(0.0), floats(0.0, (high - low) / 10)))
         held = {"tolerance": {"value": tolerance, "unit": UNITS[condition]}}
     else:
+        # At most three tokens, and no more than the row holds (`density_kind` holds two): a unique list
+        # bound to more than its row has is an impossible draw once a cut holds it to its greatest size.
         tokens = CONDITION_TOKENS[condition]
-        held = {"accept": list(draw(st.lists(st.sampled_from(tokens), min_size=1, max_size=3, unique=True)))}
+        accept = st.lists(st.sampled_from(tokens), min_size=1, max_size=min(3, len(tokens)), unique=True)
+        held = {"accept": list(draw(accept))}
     held["reason"] = draw(TEXTS)
     if draw(st.booleans()):
         held["consequence"] = draw(NAMES)
@@ -682,16 +685,22 @@ def chain(draw: st.DrawFn) -> Json:
 
 @st.composite
 def combinations(draw: st.DrawFn, reads: Sequence[str], size: Size) -> list[JsonValue]:
-    """Combinations of two or more fields in `reads`, each from a different section."""
+    """Combinations of two or more fields in `reads`, each from a different section. Where the model reads
+    two sections, both, in either order (a permutation): a list of two or three of the two draws the same, but
+    one section cut from it would leave one to draw for a list of two."""
     by_section: dict[str, list[str]] = {}
     for field in reads:
         by_section.setdefault(section_of(field), []).append(field)
     if len(by_section) < 2:
         return []
+    sections = sorted(by_section)
     found: list[JsonValue] = []
     for _ in range(draw(st.integers(0, 1 if size.members <= 3 else 2))):
-        sections = draw(st.lists(st.sampled_from(sorted(by_section)), min_size=2, max_size=3, unique=True))
-        found.append([draw(st.sampled_from(by_section[section])) for section in sections])
+        if len(sections) == 2:
+            combined = draw(st.permutations(sections))
+        else:
+            combined = draw(st.lists(st.sampled_from(sections), min_size=2, max_size=3, unique=True))
+        found.append([draw(st.sampled_from(by_section[section])) for section in combined])
     return found
 
 
@@ -749,8 +758,9 @@ def model_entry(draw: st.DrawFn, name: str, size: Size) -> Json:
             },
         }
     if draw(st.booleans()):
+        # Two pairs at most, and no more than there are (one field read at one record gives one), as above.
         pairs = [(field, json.dumps(reference)) for field in reads for reference in listed]
-        chosen = draw(st.lists(st.sampled_from(pairs), max_size=2, unique=True))
+        chosen = draw(st.lists(st.sampled_from(pairs), max_size=min(2, len(pairs)), unique=True))
         entry["trainable"] = [
             {"field": field, "record": json.loads(reference)} for field, reference in chosen
         ]
