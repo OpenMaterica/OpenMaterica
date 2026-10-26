@@ -325,6 +325,20 @@ def _label_waiver_taken_without_review(declaration: JsonObject) -> list[Finding]
     return found
 
 
+def _null_label_judged(declaration: JsonObject) -> list[Finding]:
+    """Item 4 judging a waiver's `label` of `null` as one it names, beside a reviewed requirement naming no
+    label, where `null` names none (maintainer, 2026-10-25): the check's reading beside any other
+    requirement."""
+    found = LABELS(declaration)
+    for index, model in ENTRIES(declaration, "models"):
+        for position, waiver in ENTRIES(model, "acceptances"):
+            at = f"/models/{index}/acceptances/{position}/label"
+            if waiver.get("acceptance") == "waiver" and "label" in waiver and waiver["label"] is None:
+                if all(finding.pointer != at for finding in found):
+                    found.append(Finding("BC-050", at, "a label of null judged"))
+    return found
+
+
 def _label_beside_an_unregistered_field_unjudged(declaration: JsonObject) -> list[Finding]:
     """Item 4 not judging a waiver's `label` beside a `field` that is not registered, left to the field's own
     fault."""
@@ -758,7 +772,7 @@ MUTANTS = [
         "_holds",
         "HP41 shape",
         replacing("_holds", _boolean_taken),
-        ("breaks_holds",),
+        ("not_a_number",),
         REFUSALS,
         "a boolean taken where the table asks for another type",
     ),
@@ -1010,6 +1024,15 @@ MUTANTS = [
         ("label_unreviewed",),
         REFUSALS,
         "a label-resting waiver taken without its requirement's `review`",
+    ),
+    Mutant(
+        "null_label_judged",
+        "_labels",
+        "HP41 names",
+        replacing("_labels", _null_label_judged),
+        ("label_unreviewed",),
+        REFUSALS,
+        "a waiver's `label` of `null` judged by item 4 beside a reviewed requirement naming no label",
     ),
     # `_precedence` and the search (the design's six).
     Mutant(
