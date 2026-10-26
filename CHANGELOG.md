@@ -423,10 +423,14 @@ every family entry goes in `families/CHANGELOG.md`.
   workflow validation error (a pending dispatch of the same inputs on the same ref is replaced by a newer one).
   The draw-time ownership the maintainer ruled on 2026-10-24 follows as a piece of its own,
   before the whole-repository run.
-- The build's reference model of a declaration follows the divergence triage of the points where it and the
-  declaration check read the specification apart (rulings of 2026-10-26; the check's side follows in
-  its own pull request). A rule that judges one member against another stands aside only as far as its verdict
-  depends on the member at fault, and an entry that is no well-formed name is never the same as another. The
+- The build's reference model of a declaration is changed at the points where it and the declaration check
+  read the specification apart (defaults of 2026-10-26, which the maintainer has yet to confirm; the check's side
+  follows in its own pull request, which also moves the check's comparison of a `trainable` entry's record, now
+  of the record whole, to the model's, by its reference). A rule that judges one member against another stands
+  aside only as far as its verdict depends on the member at fault: what the judged member's own type, shape or
+  registered names settle, whichever value the member at fault holds, is still judged. An entry that is no
+  well-formed name (a reference without string `id`, `version` and `content_hash`, a `field` that is no string)
+  is neither the same as nor different from another, and no rule compares it. The
   model now names a record by its reference (`id`, `version`, `content_hash`) in `checked_over.records`, in a
   `trainable` entry's location and in the check for a name given twice, and compares a `trainable` entry's
   record by it, a record that is no reference compared with none; judges `records` beside another alternative of
@@ -437,12 +441,14 @@ every family entry goes in `families/CHANGELOG.md`.
   or `interval` for item 12 whatever JSON type it holds; refuses a combination only where its registered fields
   are all of one section; and gives an object holding two of the members it takes one of the object's own fault,
   so that a `trainable` entry at a record and a region is item 12's refusal alone at the entry. Three open
-  points are retired (`member_judged_beside_a_faulty_one`, `combination_sections`,
-  `trainable_location_in_a_scene`) and `exactly_one_of` is restated. `tests/reference/direct.py` holds 49 new
-  direct checks, 36 of which the model of `main` fails (counted by running them against it); the other 13 are
-  controls (the cross-kind location rule of a `trainable` entry, already held, and arms on which the sides
-  already agreed). Two seeded faults the new checks kill are no longer listed as survivors
-  (`build_trainable_at_a_region_taken`, `build_trainable_twice_by_field`).
+  points are retired on those defaults (`member_judged_beside_a_faulty_one`, `combination_sections`,
+  `trainable_location_in_a_scene`) and `exactly_one_of` is restated. `tests/reference/direct.py` holds 66 new
+  direct checks, 40 of which the model of `main` fails (counted by running them against it); the other 26 pin
+  what the model of `main` already held (the cross-kind location rule of a `trainable` entry, the parts of a
+  record's name, a name given twice with another between, a record listed twice beside another alternative of
+  `checked_over`, a `nominal` holding neither `value` nor `params`) and arms on which the sides already agreed,
+  and each fails on a hand mutant of the model that drops what it pins. Two seeded faults the new checks kill are
+  no longer listed as survivors (`build_trainable_at_a_region_taken`, `build_trainable_twice_by_field`).
 
 ## [0.1.0.dev3] - 2026-10-22
 

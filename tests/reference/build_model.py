@@ -127,10 +127,11 @@ OPEN_POINTS: Final[Mapping[str, str]] = {
 # another missing member's: `Fault.apart` names which. A rule that judges one member against another does not
 # judge it where the other is at fault (declarations.md:156-157 "A rule that judges one member against
 # another stands aside where the other is itself at fault"): the rules that do so are marked "Stands aside".
-# It stands aside only as far as its verdict depends on the member at fault; what the faulty member's own
-# type, shape or registered names settle is still judged, and an entry that is no well-formed name (a
-# reference without string `id`, `version` and `content_hash`, a `field` that is no string) is neither the
-# same as nor different from another, and no rule compares it (ruling of 2026-10-26).
+# It stands aside only as far as its verdict depends on the member at fault: what the judged member's own
+# type, shape or registered names settle, whichever value the member at fault holds, is still judged. An
+# entry that is no well-formed name (a reference without string `id`, `version` and `content_hash`, a `field`
+# that is no string) is neither the same as nor different from another, and no rule compares it (a default
+# of 2026-10-26).
 ORDER: Final = ("BC-004", "BC-005", "BC-040", "BC-044", "BC-043", "BC-037", "BC-050", "BC-051", "BC-048")
 SHAPE: Final = "BC-048"
 # What the model gives a declaration that passes its own check: the build's results model
@@ -751,7 +752,7 @@ class DeclarationCheck:
     def combination(self, combination: JsonValue, pointer: str, reads: list[str] | None) -> None:
         # declarations.md:98 "lists of two or more fields in `reads`, from different sections"; refused where
         # the Holds list refuses, declarations.md:139 "fewer than two fields or of fields of one section": the
-        # registered fields among the entries are all of one section (a ruling of 2026-10-26). A name that
+        # registered fields among the entries are all of one section (a default of 2026-10-26). A name that
         # is no field has no section.
         if not isinstance(combination, list):
             self.fault(pointer)
@@ -1077,8 +1078,8 @@ class DeclarationCheck:
             # declarations.md:134-135 "or a `trainable` entry a location its model is not checked over". Over
             # records the location is the record read (declarations.md:241 "Over records the location is the
             # record read"), so a region or an interval is not a location, nor is a record over a domain or a
-            # path (a ruling of 2026-10-26); whether a region or an interval lies in the domain or the path is
-            # the scene suite's.
+            # path (a default of 2026-10-26); whether a region or an interval lies in the domain or the path
+            # is the scene suite's.
             if over == "scene" and where != "record":
                 self.unplace(SHAPE, "whether a region or interval lies where its model is checked over (S7b)")
             elif over is not None and (over == "scene" or where != "record" or unlisted(entry[where], over)):
