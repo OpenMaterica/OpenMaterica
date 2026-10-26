@@ -159,8 +159,8 @@ fault, so that one fault is one refusal: the `population_level` rule beside a `r
 requirement's `field` against a `reads` at fault (an empty one too), and a waiver's missing `condition`
 beside a `code` that is refused; an acceptance that names no known kind is refused at itself, and none of its
 other members is judged. A rule that judges one member against another stands aside only as far as its verdict
-depends on the member at fault; what the faulty member's own type, shape or registered names settle whichever
-value it holds is still judged. An entry that is no well-formed name (a reference without string `id`,
+depends on the member at fault: what the judged member's own type, shape or registered names settle,
+whichever value the member at fault holds, is still judged. An entry that is no well-formed name (a reference without string `id`,
 `version` and `content_hash`, a `field` that is no string) is neither the same as nor different from another,
 and no rule compares it. A fault more than one rule names carries the case of the first of: items 3, 4, 7 and 8, the
 `population_level` rule and section 4.1's location rule [BC-004] [BC-005] [BC-040] [BC-044] [BC-043] [BC-037];
