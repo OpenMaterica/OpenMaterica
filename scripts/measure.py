@@ -1571,6 +1571,12 @@ def report_fuzz(records: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
             for run in runs
             if run["limit"] != control.seconds
         ]
+        # A run that ended early on another failure is a miss in the counts above; its own words say why.
+        flags += [
+            f"{name}{' with no fault seeded' if fault == NO_FAULT else ''}, run {run.get('run')}: {problem}"
+            for run in runs
+            for problem in run.get("problems", [])
+        ]
     return lines, flags
 
 

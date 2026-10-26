@@ -195,6 +195,22 @@ def test_the_fastest_control_finds_its_fault_and_finds_nothing_with_none_seeded(
     assert "properties with no fault seeded found one: IndexError: x" in measure.report_fuzz([missed])[1]
 
 
+def test_a_run_that_ended_on_another_failure_is_flagged_with_its_problem() -> None:
+    """A run that stopped at another failure before its seconds counts as a miss, and the report says why, so
+    that the miss is not read as a run that ran its seconds and found nothing."""
+    ended = "the target ended with status 77 after 44 s of its 180, without the control's find (see fuzz.log)"
+    run: dict[str, Any] = {"control": "properties", "fault": "1", "line": "", "inputs": 10, "limit": 180}
+    runs: list[dict[str, Any]] = [
+        run | {"run": 1, "found": False, "seconds": 44.0, "problems": [ended]},
+        run | {"run": 0, "found": True, "seconds": 9.0, "problems": list[str]()},
+    ]
+    _, flags = measure.report_fuzz(runs)
+    assert flags[0] == "properties: 1 of 2 runs found no fault within 180 s"
+    assert f"properties, run 1: {ended}" in flags
+    runs[0]["fault"] = "none"
+    assert f"properties with no fault seeded, run 1: {ended}" in measure.report_fuzz(runs)[1]
+
+
 def test_a_find_spoiled_by_its_exception_is_no_find() -> None:
     tables = CONTROLS["tables"]
     implementation = "AssertionError: the implementation gives ['form_invalid'], the model "
