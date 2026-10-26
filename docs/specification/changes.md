@@ -640,3 +640,22 @@ faults. An engine value without its `reason` or `basis` is likewise one
 fault, which item 7 and the shape's required members both name: one refusal, BC-040 at the model's `engine`,
 and none at the value. Before, the paragraph did not say, and a second implementation could read each of these
 cases as a second refusal (BC-005, BC-040, BC-043, BC-048).
+
+Settled after a comparison of the declaration check with the build's reference model (maintainer, 2026-10-26, as
+recommended): a rule that judges one member against another stands aside only as far as its verdict depends on
+the member at fault (`declarations.md` section 1, the refusal paragraph). What the faulty member's own type,
+shape or registered names settle, whichever value it holds, is still judged: a waiver's `condition` beside a
+`code` that is no string or is missing, which names no condition whichever it is; a combination's fields of one
+section beside an entry that is no registered field; a `trainable` entry's location beside a `field` that is no
+string. An entry that is no well-formed name (a reference without string `id`, `version` and `content_hash`, a
+`field` that is no string) is neither the same as nor different from another, and no rule compares it, so it is
+never given twice and a `trainable` entry's record is compared with the listed ones by reference. Before, the
+paragraph gave three examples of standing aside and did not say where the principle stops, so two
+implementations could stop it at different places (BC-048).
+
+Settled with the same comparison (maintainer, 2026-10-26, as recommended): a `trainable` entry at a `record` where
+its model is checked over a domain or a path, and one at a `region` or an `interval` where it is checked over
+`records`, is at a location its model is not checked over (`declarations.md` section 1, the shape's departures, and
+`declarations.md` section 2 item 2): BC-048 at the location, beside item 12's refusal at the entry where the build does not
+claim the scene suite. Before, the text did not say which location kinds a model checked over `records` or over
+a scene can have (BC-048).

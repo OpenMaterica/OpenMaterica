@@ -132,7 +132,8 @@ A declaration departs from its shape where:
   `checked_over`, a field twice in `reads`, two requirements for one field, two `trainable` entries for one
   field at one location;
 - a requirement or a `trainable` entry names a field its model does not list in `reads`, or a `trainable`
-  entry a location its model is not checked over;
+  entry a location its model is not checked over (a `record` where it is checked over a domain or a path, a
+  `region` or an `interval` where it is checked over `records`: section 2 item 2);
 - a `reason` or `basis` is not a string of at least one character;
 - a value breaks a constraint its row's Holds column states (a `range` whose `lo` is above its `hi`, a unit
   other than the registered one, a number below zero, an `index` with a fractional part, a combination of
@@ -157,7 +158,11 @@ declaration is. A rule that judges one member against another stands aside where
 fault, so that one fault is one refusal: the `population_level` rule beside a `represents` that is no token, a
 requirement's `field` against a `reads` at fault (an empty one too), and a waiver's missing `condition`
 beside a `code` that is refused; an acceptance that names no known kind is refused at itself, and none of its
-other members is judged. A fault more than one rule names carries the case of the first of: items 3, 4, 7 and 8, the
+other members is judged. A rule that judges one member against another stands aside only as far as its verdict
+depends on the member at fault; what the faulty member's own type, shape or registered names settle whichever
+value it holds is still judged. An entry that is no well-formed name (a reference without string `id`,
+`version` and `content_hash`, a `field` that is no string) is neither the same as nor different from another,
+and no rule compares it. A fault more than one rule names carries the case of the first of: items 3, 4, 7 and 8, the
 `population_level` rule and section 4.1's location rule [BC-004] [BC-005] [BC-040] [BC-044] [BC-043] [BC-037];
 section 4.1 item 4 [BC-050]; item 12 [BC-051]; this paragraph [BC-048]. Two faults with one case and one
 pointer are one refusal. The build reports every refusal it finds, and reads nothing for a declaration it

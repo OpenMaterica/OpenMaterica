@@ -2098,7 +2098,7 @@ MUTANTS: Mapping[str, Mutant] = {
     ),
     "implied_fills_any_condition": Mutant(
         "an implied condition fills a stated condition, or one held as another status object",
-        'declarations.md:369-371 "An implied condition never overrides a stated condition"',
+        'declarations.md:374-376 "An implied condition never overrides a stated condition"',
         {"unstated_or_absent": fills_anything},
     ),
     "disagreeing_implied_conditions_read": Mutant(
@@ -2313,17 +2313,17 @@ MUTANTS: Mapping[str, Mutant] = {
     ),
     "empty_law_accepted": Mutant(
         "an empty `law` accepted",
-        'declarations.md:361 "`law` (text of at least one character, which a reader does not judge)"',
+        'declarations.md:366 "`law` (text of at least one character, which a reader does not judge)"',
         {"is_law": any_string_a_law},
     ),
     "white_space_law_refused": Mutant(
         "a `law` of white space refused",
-        'declarations.md:361 "`law` (text of at least one character, which a reader does not judge)"',
+        'declarations.md:366 "`law` (text of at least one character, which a reader does not judge)"',
         {"is_law": white_space_no_law},
     ),
     "extrapolation_method_unchecked": Mutant(
         "an extrapolation's `method` unchecked",
-        'declarations.md:361 "`method` (`constant` or `consumer_law`)"',
+        'declarations.md:366 "`method` (`constant` or `consumer_law`)"',
         {"EXTRAPOLATION_METHODS": EveryMethod()},
     ),
     "assumption_with_its_basis": Mutant(
@@ -3155,14 +3155,14 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     # Not JSON, or not an object
     "build_array_checked_as_its_first_entry": Mutant(
         "a declaration that is a JSON array checked as its first entry",
-        'declarations.md:149-151 "for a text that is not valid JSON, or a declaration that is not an object, '
+        'declarations.md:150-152 "for a text that is not valid JSON, or a declaration that is not an object, '
         'the empty pointer, and nothing else is checked"',
         {"parse": first_of_an_array},
         module=build,
     ),
     "build_refused_text_pointed_at_a_member": Mutant(
         "a text that is not valid JSON, or not an object, refused at `/`, not at the empty pointer",
-        'declarations.md:149-151 "for a text that is not valid JSON, or a declaration that is not an object, '
+        'declarations.md:150-152 "for a text that is not valid JSON, or a declaration that is not an object, '
         'the empty pointer"',
         {"check_build": refused_text_at_a_member},
         module=build,
@@ -3182,13 +3182,13 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_missing_member_pointed_at_itself": Mutant(
         "a missing member's refusal pointed at the member, not at the object that should hold it",
-        'declarations.md:145-146 "for a missing member, the object that should hold it"',
+        'declarations.md:146-147 "for a missing member, the object that should hold it"',
         {"missing_at": build.at},
         module=build,
     ),
     "build_member_of_another_type_taken": Mutant(
         "a member of another JSON type taken",
-        'declarations.md:154-155 "A member deeper down that holds another JSON type is a member at fault '
+        'declarations.md:155-156 "A member deeper down that holds another JSON type is a member at fault '
         "like "
         'any other"',
         {"DeclarationCheck.shaped": reshaped(any_type)},
@@ -3202,7 +3202,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_exactly_one_unchecked": Mutant(
         "a place that takes exactly one of its alternatives holding none or two taken",
-        'declarations.md:139 "two of a member\'s mutually exclusive alternatives"',
+        'declarations.md:140 "two of a member\'s mutually exclusive alternatives"',
         {"DeclarationCheck.shaped": reshaped(requirement_relaxed("one", "no"))},
         module=build,
     ),
@@ -3235,7 +3235,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_review_unchecked": Mutant(
         "a requirement's `review` holding any string taken",
-        'declarations.md:197 "A requirement\'s `review` holds `reviewed`, the one token of schema 0.1.0"',
+        'declarations.md:202 "A requirement\'s `review` holds `reviewed`, the one token of schema 0.1.0"',
         {"REVIEWS": EVERY_STRING},
         module=build,
     ),
@@ -3300,34 +3300,34 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     # Holds
     "build_empty_reason_taken": Mutant(
         "an empty `reason`, `basis` or `law` taken",
-        'declarations.md:136 "a `reason` or `basis` is not a string of at least one character"',
+        'declarations.md:137 "a `reason` or `basis` is not a string of at least one character"',
         {"DeclarationCheck.texts": nothing},
         module=build,
     ),
     "build_unit_unchecked": Mutant(
         "a unit other than the registered one taken",
-        'declarations.md:137-138 "a unit other than the registered one"',
+        'declarations.md:138-139 "a unit other than the registered one"',
         {"DeclarationCheck.numeric": unit_unchecked},
         "no case gives a unit other than its condition's",
         module=build,
     ),
     "build_range_order_unchecked": Mutant(
         "a `range` whose `lo` is above its `hi` taken",
-        'declarations.md:137 "a `range` whose `lo` is above its `hi`"',
+        'declarations.md:138 "a `range` whose `lo` is above its `hi`"',
         {"DeclarationCheck.numeric": range_sorted},
         "no case gives a range upside down",
         module=build,
     ),
     "build_negative_number_taken": Mutant(
         "a tolerance or a `fraction_sum_tolerance` below zero taken",
-        'declarations.md:138 "other than the registered one, a number below zero"',
+        'declarations.md:139 "other than the registered one, a number below zero"',
         {"DeclarationCheck.shaped": reshaped(negatives_read_as_positive)},
         "no case gives a number below zero",
         module=build,
     ),
     "build_fractional_index_taken": Mutant(
         "a pick's `index` with a fractional part taken",
-        'declarations.md:138 "an `index` with a fractional part"',
+        'declarations.md:139 "an `index` with a fractional part"',
         {"DeclarationCheck.own_members": own_members_eased("pick", index_rounded)},
         "every pick in the cases has a whole index",
         module=build,
@@ -3340,14 +3340,14 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_distribution_parameters_unchecked": Mutant(
         "a distribution's parameters other than its token's taken",
-        "declarations.md:140 \"a distribution's parameters other than its token's\"",
+        "declarations.md:141 \"a distribution's parameters other than its token's\"",
         {"DeclarationCheck.distribution": parameters_as_the_token_s},
         "the one distribution in the cases holds its token's parameters",
         module=build,
     ),
     "build_repeated_accepts_taken": Mutant(
         "a repeated `accepts` token taken",
-        'declarations.md:140 "a repeated `accepts` token"',
+        'declarations.md:141 "a repeated `accepts` token"',
         {"DeclarationCheck.own_members": own_members_eased("overlay_scope", accepts_deduplicated)},
         "the one `overlay_scope` in the cases accepts one member",
         module=build,
@@ -3368,26 +3368,26 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     # Items 3 and 4, the location rule and section 4.1 item 4
     "build_item_3_unchecked": Mutant(
         "a tolerance or an accept list without its `reason` refused as a missing member alone (BC-048)",
-        'declarations.md:171 "A tolerance or accept list MUST carry its reason; the build refuses one '
+        'declarations.md:176 "A tolerance or accept list MUST carry its reason; the build refuses one '
         'without"',
         {"DeclarationCheck.shaped": reshaped(rule_dropped("BC-004"))},
         module=build,
     ),
     "build_item_3_on_tolerances_alone": Mutant(
         "an accept list without its `reason` refused as a missing member alone (BC-048)",
-        'declarations.md:171 "A tolerance or accept list MUST carry its reason"',
+        'declarations.md:176 "A tolerance or accept list MUST carry its reason"',
         {"DeclarationCheck.shaped": reshaped(rule_dropped("BC-004", "accept"))},
         module=build,
     ),
     "build_item_4_unchecked": Mutant(
         "an acceptance without its `reason` or `basis` refused as a missing member alone (BC-048)",
-        'declarations.md:173 "Every acceptance MUST carry a `reason`"',
+        'declarations.md:178 "Every acceptance MUST carry a `reason`"',
         {"DeclarationCheck.shaped": reshaped(rule_dropped("BC-005"))},
         module=build,
     ),
     "build_basis_unrequired": Mutant(
         "an extrapolation, a nominal and a distribution taken without `basis`",
-        'declarations.md:173-174 "an extrapolation, a nominal and a distribution also carry the `basis` of '
+        'declarations.md:178-179 "an extrapolation, a nominal and a distribution also carry the `basis` of '
         'their number"',
         {"NEEDS_BASIS": ()},
         module=build,
@@ -3406,13 +3406,13 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_location_rule_unchecked": Mutant(
         "an acceptance whose kind needs a location taken without one",
-        'declarations.md:367 "An acceptance whose kind needs a location and names none is refused"',
+        'declarations.md:372 "An acceptance whose kind needs a location and names none is refused"',
         {"DeclarationCheck.shaped": reshaped(requirement_relaxed("located", "no"))},
         module=build,
     ),
     "build_accepted_difference_needs_a_location": Mutant(
         "an accepted difference refused without a location",
-        'declarations.md:360 "| `accepted_difference` | optional: absent, every location the model is '
+        'declarations.md:365 "| `accepted_difference` | optional: absent, every location the model is '
         "checked "
         'over |"',
         {
@@ -3425,7 +3425,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_implied_condition_located_optionally": Mutant(
         "an implied condition taken without a location",
-        'declarations.md:359 "| `implied_condition` | `region`, `interval` or `record` |"',
+        'declarations.md:364 "| `implied_condition` | `region`, `interval` or `record` |"',
         {
             "KINDS": {
                 **build.KINDS,
@@ -3449,20 +3449,20 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_label_rule_unchecked": Mutant(
         "a waiver naming a label taken whatever its requirement names",
-        'declarations.md:388-389 "the build refuses it at build unless the requirement for its field names '
+        'declarations.md:393-394 "the build refuses it at build unless the requirement for its field names '
         'that `label` and holds `review: "reviewed"`"',
         {"DeclarationCheck.waiver": faults_dropped(_build_waiver, no_bc_050)},
         module=build,
     ),
     "build_label_rule_without_review": Mutant(
         "a waiver naming a label taken where its requirement names the label without `review`",
-        'declarations.md:388-389 "names that `label` and holds `review: "reviewed"`"',
+        'declarations.md:393-394 "names that `label` and holds `review: "reviewed"`"',
         {"DeclarationCheck.waiver": label_rule_without_review},
         module=build,
     ),
     "build_label_refusal_at_the_waiver": Mutant(
         "BC-050's refusal pointed at the waiver, not at its `label`",
-        'declarations.md:148-149 "for a waiver naming a `label` that section 4.1 item 4 refuses, that '
+        'declarations.md:149-150 "for a waiver naming a `label` that section 4.1 item 4 refuses, that '
         "waiver's `label`\"",
         {"DeclarationCheck.waiver": label_refusal_at_the_waiver},
         module=build,
@@ -3470,7 +3470,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     # Items 7, 8 and 12, and the population_level rule
     "build_item_8_unchecked": Mutant(
         "a requirement that samples taken without `sampling.min_acceptance`",
-        'declarations.md:189-190 "A declaration in which a requirement samples, without it or with one '
+        'declarations.md:194-195 "A declaration in which a requirement samples, without it or with one '
         "outside "
         '(0, 1], is refused at build"',
         {"DeclarationCheck.item_8": item_8_unchecked},
@@ -3487,47 +3487,47 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
         "a member the scene suite checks taken without it, which the arms for a domain, a path and "
         "`region_conditions` kill; the legs at a region or an interval are pinned by no case "
         "(`build_acceptance_at_a_region_taken`, `build_trainable_at_a_region_taken`)",
-        'declarations.md:204-205 "where it does not claim the scene suite, a model checked over a domain or '
+        'declarations.md:209-210 "where it does not claim the scene suite, a model checked over a domain or '
         'a path, `region_conditions`"',
         {"DeclarationCheck.lacks": lacks_but("scene_documents")},
         module=build,
     ),
     "build_sampling_members_taken": Mutant(
         "`sampling`, `represents`, `population_level` or a distribution taken without the sampling suite",
-        "declarations.md:206-208 \"where it does not claim the sampling suite, `sampling`, a requirement's "
+        "declarations.md:211-213 \"where it does not claim the sampling suite, `sampling`, a requirement's "
         '`represents` or `population_level`, and a `distribution`"',
         {"DeclarationCheck.lacks": lacks_but("sampling")},
         module=build,
     ),
     "build_distribution_taken": Mutant(
         "a distribution acceptance taken without the sampling suite",
-        'declarations.md:207-208 "`represents` or `population_level`, and a `distribution` acceptance"',
+        'declarations.md:212-213 "`represents` or `population_level`, and a `distribution` acceptance"',
         {"DeclarationCheck.acceptance": faults_dropped(_build_acceptance, no_bc_051_at_a_distribution)},
         module=build,
     ),
     "build_represents_taken": Mutant(
         "a requirement's `represents` taken without the sampling suite",
-        "declarations.md:207 \"sampling suite, `sampling`, a requirement's `represents` or "
+        "declarations.md:212 \"sampling suite, `sampling`, a requirement's `represents` or "
         '`population_level`"',
         {"DeclarationCheck.sampling": faults_dropped(_build_sampling, no_bc_051_at_represents)},
         module=build,
     ),
     "build_claimed_suite_lacking": Mutant(
         "a member a claimed suite checks refused as if the build did not claim it",
-        'declarations.md:204 "A build refuses at build what it cannot check"',
+        'declarations.md:209 "A build refuses at build what it cannot check"',
         {"DeclarationCheck.lacks": every_suite_lacking},
         module=build,
     ),
     "build_item_12_before_item_8": Mutant(
         "a requirement item 8 refuses the declaration over refused at its `represents` by item 12 too",
-        'declarations.md:210-211 "where item 8 or that rule refuses the declaration over a requirement, that '
+        'declarations.md:215-216 "where item 8 or that rule refuses the declaration over a requirement, that '
         'requirement gives none"',
         {"DeclarationCheck.sampling": item_12_before("BC-044")},
         module=build,
     ),
     "build_item_12_before_the_population_level_rule": Mutant(
         "a requirement the `population_level` rule refuses refused at its `represents` by item 12 too",
-        'declarations.md:210-211 "where item 8 or that rule refuses the declaration over a requirement, that '
+        'declarations.md:215-216 "where item 8 or that rule refuses the declaration over a requirement, that '
         'requirement gives none"',
         {"DeclarationCheck.sampling": item_12_before("BC-043")},
         module=build,
@@ -3535,13 +3535,13 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     "build_engine_withholds_every_member": Mutant(
         "an engine model item 7 refuses giving no refusal under item 12 for any member, its domain's "
         "included",
-        'declarations.md:209 "come first, member by member"',
+        'declarations.md:214 "come first, member by member"',
         {"DeclarationCheck.model_entry": engine_withholds_every_member},
         module=build,
     ),
     "build_item_7_refusal_dropped": Mutant(
         "an engine model checked over records taken",
-        'declarations.md:181-182 "one checked over a path or records, over a domain that includes the '
+        'declarations.md:186-187 "one checked over a path or records, over a domain that includes the '
         'background, or with another `want`, is refused at build"',
         {"DeclarationCheck.engine": item_7_refusal_dropped},
         module=build,
@@ -3554,20 +3554,20 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_item_7_values_unread": Mutant(
         "a declared engine value without its `reason` or `basis` not read as item 7's refusal of the model",
-        'declarations.md:182-183 "A declared engine value without `reason` and `basis`"',
+        'declarations.md:187-188 "A declared engine value without `reason` and `basis`"',
         {"DeclarationCheck.engine": item_7_without("values")},
         module=build,
     ),
     "build_item_7_want_unread": Mutant(
         "a requirement with a token of `want` other than `value` not read as item 7's refusal of the model",
-        'declarations.md:182 "or with another `want`, is refused at build"',
+        'declarations.md:187 "or with another `want`, is refused at build"',
         {"DeclarationCheck.engine": item_7_without("want")},
         module=build,
     ),
     "build_item_7_refusal_at_the_value": Mutant(
         "item 7's refusal of a declared engine value without its `reason` or `basis` given at the value, "
         "beside the model's",
-        'declarations.md:149-150 "for a model item 7 refuses, its `engine`, one refusal per model, '
+        'declarations.md:150-151 "for a model item 7 refuses, its `engine`, one refusal per model, '
         "whichever of that item's rules it breaks\"",
         {"DeclarationCheck.engine": item_7_refusal_per_rule},
         module=build,
@@ -3575,7 +3575,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     # Precedence
     "build_precedence_reversed": Mutant(
         "a fault two rules name carrying the last rule's case, not the first's",
-        'declarations.md:156-162 "A fault more than one rule names carries the case of the first of: '
+        'declarations.md:157-167 "A fault more than one rule names carries the case of the first of: '
         "items 3, "
         '4, 7 and 8, the"',
         {"first_rule": last_rule},
@@ -3583,7 +3583,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_every_rule_reported": Mutant(
         "a fault two rules name refused under both",
-        'declarations.md:160 "A fault more than one rule names carries the case of the first of"',
+        'declarations.md:165 "A fault more than one rule names carries the case of the first of"',
         {"refusals_of": every_rule},
         module=build,
     ),
@@ -3596,7 +3596,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_condition_missing_beside_a_refused_code": Mutant(
         "a waiver of `condition_unknown_name` naming no `condition` refused for the `condition` too",
-        'declarations.md:158-159 "a waiver\'s missing `condition` beside a `code` that is refused"',
+        'declarations.md:159-160 "a waiver\'s missing `condition` beside a `code` that is refused"',
         {"DeclarationCheck.waiver": condition_missing_beside_a_refused_code},
         module=build,
     ),
@@ -3624,7 +3624,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
         "two faults at one member, one from each rule that names it (a waiver's `label` that item 4 and the "
         "token rule both refuse, a `domain` of another JSON type that item 12 and the shape rule both name), "
         "given a refusal each",
-        'declarations.md:156-162 "A fault more than one rule names carries the case of the first of: items '
+        'declarations.md:157-167 "A fault more than one rule names carries the case of the first of: items '
         '3, 4, 7 and 8, the"',
         {"refusals_of": refused_apiece},
         module=build,
@@ -3632,7 +3632,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     "build_missing_members_merged": Mutant(
         "the faults at one pointer merged whatever they are about, so that two members missing from one "
         "object, or one missing and the object's own, give one refusal",
-        'declarations.md:162-163 "Two faults with one case and one pointer are one refusal"',
+        'declarations.md:167-168 "Two faults with one case and one pointer are one refusal"',
         {"refusals_of": missing_members_merged},
         module=build,
     ),
@@ -3669,7 +3669,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_pick_located_at_a_region": Mutant(
         "a pick naming a region or an interval and no record taken as located",
-        'declarations.md:357 "a pick that also names a `region` or an `interval` is not applied in a plain '
+        'declarations.md:362 "a pick that also names a `region` or an `interval` is not applied in a plain '
         'read"',
         {"KINDS": {**build.KINDS, "pick": {**build.LOCATIONS, "index": (float, "yes")}}},
         module=build,
@@ -3678,20 +3678,20 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
         "a pick naming a region and no record refused by item 12 beside the location rule, or taken as "
         "beyond "
         "the model where the build claims the scene suite",
-        'declarations.md:205-206 "an acceptance or `trainable` entry located at a region or an interval"',
+        'declarations.md:210-211 "an acceptance or `trainable` entry located at a region or an interval"',
         {"DeclarationCheck.acceptance": unlocated_pick_refused_by_item_12},
         module=build,
     ),
     "build_order_048_before_050": Mutant(
         "a fault two rules name carrying the shape rule's case before item 4's and item 12's",
-        'declarations.md:156-162 "A fault more than one rule names carries the case of the first of: items '
+        'declarations.md:157-167 "A fault more than one rule names carries the case of the first of: items '
         '3, 4, 7 and 8, the"',
         {"ORDER": ("BC-004", "BC-005", "BC-040", "BC-044", "BC-043", "BC-037", "BC-048", "BC-050", "BC-051")},
         module=build,
     ),
     "build_order_005_before_004": Mutant(
         "a fault two rules name carrying item 4's case before item 3's",
-        'declarations.md:156-162 "A fault more than one rule names carries the case of the first of: items '
+        'declarations.md:157-167 "A fault more than one rule names carries the case of the first of: items '
         '3, 4, 7 and 8, the"',
         {"ORDER": ("BC-005", "BC-004", "BC-040", "BC-044", "BC-043", "BC-037", "BC-050", "BC-051", "BC-048")},
         module=build,
@@ -3699,20 +3699,20 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     # Item 12's two legs at a region or an interval, and the claimed suite
     "build_acceptance_at_a_region_taken": Mutant(
         "an acceptance at a region taken without the scene suite",
-        'declarations.md:205-206 "an acceptance or `trainable` entry located at a region or an interval"',
+        'declarations.md:210-211 "an acceptance or `trainable` entry located at a region or an interval"',
         {"DeclarationCheck.acceptance": acceptance_at_taken("region")},
         module=build,
     ),
     "build_acceptance_at_an_interval_taken": Mutant(
         "an acceptance at an interval taken without the scene suite",
-        'declarations.md:205-206 "an acceptance or `trainable` entry located at a region or an interval"',
+        'declarations.md:210-211 "an acceptance or `trainable` entry located at a region or an interval"',
         {"DeclarationCheck.acceptance": acceptance_at_taken("interval")},
         "no case holds an acceptance at an interval, whatever the suite",
         module=build,
     ),
     "build_trainable_at_a_region_taken": Mutant(
         "a `trainable` entry at a region or an interval taken without the scene suite",
-        'declarations.md:205-206 "an acceptance or `trainable` entry located at a region or an interval"',
+        'declarations.md:210-211 "an acceptance or `trainable` entry located at a region or an interval"',
         {"DeclarationCheck.trainable": faults_dropped(_build_trainable, no_bc_051)},
         module=build,
     ),
@@ -3720,28 +3720,28 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
         "a member a claimed suite checks taken as if nothing were beyond the model, so that the "
         "declaration's "
         "other refusals stand",
-        'declarations.md:204 "A build refuses at build what it cannot check"',
+        'declarations.md:209 "A build refuses at build what it cannot check"',
         {"DeclarationCheck.lacks": claimed_suite_unrecorded},
         module=build,
     ),
     "build_claimed_suite_gives_the_refusals": Mutant(
         "a declaration holding a member a claimed suite checks given the refusals of the model's own rules, "
         "not no verdict",
-        'declarations.md:204 "A build refuses at build what it cannot check"',
+        'declarations.md:209 "A build refuses at build what it cannot check"',
         {"DeclarationCheck.verdict": claimed_suite_gives_the_refusals},
         module=build,
     ),
     # The rules the review found no fault for
     "build_min_acceptance_one_refused": Mutant(
         "a `min_acceptance` of 1 refused",
-        'declarations.md:188 "`sampling.min_acceptance` is a number in (0, 1]"',
+        'declarations.md:193 "`sampling.min_acceptance` is a number in (0, 1]"',
         {"in_unit_interval": in_open_interval},
         "no case gives a `min_acceptance` of 1",
         module=build,
     ),
     "build_min_acceptance_zero_taken": Mutant(
         "a `min_acceptance` of 0 taken",
-        'declarations.md:188 "`sampling.min_acceptance` is a number in (0, 1]"',
+        'declarations.md:193 "`sampling.min_acceptance` is a number in (0, 1]"',
         {"in_unit_interval": in_interval_from_zero},
         "no case gives a `min_acceptance` of 0",
         module=build,
@@ -3792,7 +3792,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_independence_entry_shape_unchecked": Mutant(
         "an independence entry's members, required and named, unchecked",
-        'declarations.md:191-192 "`sampling.independence` is a list of `{"fields": [<location and field>, '
+        'declarations.md:196-197 "`sampling.independence` is a list of `{"fields": [<location and field>, '
         '...], "reason", "basis"}`"',
         {"DeclarationCheck.shaped": shaped_unfaulted(is_an_independence_entry)},
         "no case holds an independence entry",
@@ -3800,7 +3800,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_independence_entry_texts_unchecked": Mutant(
         "an independence entry's empty `reason` or `basis` taken",
-        'declarations.md:136 "a `reason` or `basis` is not a string of at least one character"',
+        'declarations.md:137 "a `reason` or `basis` is not a string of at least one character"',
         {
             "DeclarationCheck.sampling": faults_dropped(
                 _build_sampling, not_at(r"^/sampling/independence/\d+/")
@@ -3818,7 +3818,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_space_unchecked": Mutant(
         "a distribution's `space` holding any string taken",
-        'declarations.md:427 "`space` is `identity` or `log` (natural"',
+        'declarations.md:432 "`space` is `identity` or `log` (natural"',
         {"SPACES": EVERY_STRING},
         "the one distribution in the cases holds a `space` of the text's",
         module=build,
@@ -3833,33 +3833,33 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     # against is at fault
     "build_requirement_judged_beside_a_reads_at_fault": Mutant(
         "a requirement's `field` judged against a `reads` at fault as against one that lists nothing",
-        'declarations.md:158 "requirement\'s `field` against a `reads` at fault (an empty one too)"',
+        'declarations.md:159 "requirement\'s `field` against a `reads` at fault (an empty one too)"',
         {"DeclarationCheck.requirements": judged_beside_a_reads_at_fault(_build_requirements)},
         module=build,
     ),
     "build_combination_judged_beside_a_reads_at_fault": Mutant(
         "a combination's fields judged against a `reads` at fault as against one that lists nothing",
-        'declarations.md:156-157 "A rule that judges one member against another stands aside where the '
+        'declarations.md:157-158 "A rule that judges one member against another stands aside where the '
         'other is itself at fault" (OPEN_POINTS: reads_at_fault)',
         {"DeclarationCheck.combination": judged_beside_a_reads_at_fault(_build_combination)},
         module=build,
     ),
     "build_trainable_judged_beside_a_reads_at_fault": Mutant(
         "a `trainable` entry's field judged against a `reads` at fault as against one that lists nothing",
-        'declarations.md:156-157 "A rule that judges one member against another stands aside where the '
+        'declarations.md:157-158 "A rule that judges one member against another stands aside where the '
         'other is itself at fault" (OPEN_POINTS: reads_at_fault)',
         {"DeclarationCheck.trainable": judged_beside_a_reads_at_fault(_build_trainable)},
         module=build,
     ),
     "build_population_level_rule_beside_a_non_token": Mutant(
         "the `population_level` rule refusing a `population_level` beside a `represents` that is no token",
-        'declarations.md:157 "the `population_level` rule beside a `represents` that is no token"',
+        'declarations.md:158 "the `population_level` rule beside a `represents` that is no token"',
         {"DeclarationCheck.population_level": population_level_beside_a_non_token},
         module=build,
     ),
     "build_acceptance_of_no_kind_judged": Mutant(
         "an acceptance of no known kind refused for its missing `reason` too",
-        'declarations.md:159-160 "an acceptance that names no known kind is refused at itself, and none of '
+        'declarations.md:160-161 "an acceptance that names no known kind is refused at itself, and none of '
         'its other members is judged"',
         {"DeclarationCheck.acceptance": acceptance_of_no_kind_judged},
         module=build,
@@ -3868,7 +3868,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     "build_population_level_rule_refused_under_a_claim": Mutant(
         "a requirement the `population_level` rule refuses given that refusal where the build claims the "
         "sampling suite",
-        "declarations.md:206-208 \"where it does not claim the sampling suite, `sampling`, a requirement's "
+        "declarations.md:211-213 \"where it does not claim the sampling suite, `sampling`, a requirement's "
         '`represents` or `population_level`, and a `distribution`" (OPEN_POINTS: '
         "claimed_suite_hides_refusals)",
         {"DeclarationCheck.sampling": refusals_under_a_claimed_sampling_suite("BC-043")},
@@ -3877,7 +3877,7 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     "build_missing_sampling_block_refused_under_a_claim": Mutant(
         "a requirement that samples with no `sampling` block given item 8's refusal where the build claims "
         "the sampling suite",
-        "declarations.md:206-208 \"where it does not claim the sampling suite, `sampling`, a requirement's "
+        "declarations.md:211-213 \"where it does not claim the sampling suite, `sampling`, a requirement's "
         '`represents` or `population_level`, and a `distribution`" (OPEN_POINTS: '
         "claimed_suite_hides_refusals)",
         {"DeclarationCheck.sampling": refusals_under_a_claimed_sampling_suite("BC-044")},
@@ -3912,14 +3912,14 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
     ),
     "build_blank_reason_refused": Mutant(
         "a `reason` or `basis` of whitespace alone refused",
-        'declarations.md:136 "a `reason` or `basis` is not a string of at least one character"',
+        'declarations.md:137 "a `reason` or `basis` is not a string of at least one character"',
         {"DeclarationCheck.texts": texts_refusing_blanks},
         "no case holds a `reason` of whitespace alone",
         module=build,
     ),
     "build_empty_condition_reason_is_item_3": Mutant(
         "an empty `reason` on a requirement condition refused as item 3, BC-004, not as BC-048",
-        'declarations.md:171-172 "(an empty `reason` breaks its row\'s Holds, BC-048)"',
+        'declarations.md:176-177 "(an empty `reason` breaks its row\'s Holds, BC-048)"',
         {"DeclarationCheck.requirement_condition": empty_condition_reason_as_item_3},
         "no case holds a requirement condition with an empty `reason`",
         module=build,
