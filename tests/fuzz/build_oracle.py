@@ -8,11 +8,11 @@ read and resolved, a member put in place at one, and the four relations a check 
 - every refusal's pointer names a member of the declaration (a missing member's names the object that should
   hold it, which is one);
 - every refusal's case is one of the refusal paragraph's (`declarations.md` section 1);
-- where the build's reference model (`tests/reference/build_model.py`) gives a verdict, a declaration it
-  refuses with every rule's refusals placed, the check gives exactly its refusals, but where the two differ
-  as a known divergence says (`KNOWN_DIVERGENCES`, each an open point). The model gives no verdict for a
-  declaration that passes its own check, nor where it does not place some rule's refusals
-  (`Refused.unplaced`), and there the check is held to the first three alone.
+- where the build's reference model (`tests/reference/build_model.py`) gives a verdict, the check gives
+  exactly its refusals, but where the two differ as a known divergence says (`KNOWN_DIVERGENCES`, each an open
+  point): a declaration it refuses with every rule's refusals placed, and one it takes, which passes its own
+  check (`TAKEN`), where the check refuses nothing. Where the model does not place some rule's refusals
+  (`Refused.unplaced`, or a `NoVerdict` naming such a rule), the check is held to the first three alone.
 """
 
 import copy
@@ -47,6 +47,11 @@ NOT_BUILT: Mapping[str, str] = {
     "want: fit on a field holding a fit record is not read yet": "the fits and reference data suite",
     "the waiver /acceptances/": "S7a-2's label trust",
 }
+
+# The model's words for a declaration that passes its own check (`DeclarationCheck.verdict`): no fault found
+# and none left unplaced, the build going on past the declaration, or to a pick or an overlay. The check must
+# then refuse nothing, as a refusal there is one the model does not give.
+TAKEN = frozenset({build_model.PAST_THE_DECLARATION, "a pick or an overlay acceptance (S7c)"})
 
 
 def tokens_of(pointer: str) -> list[str] | None:
@@ -434,9 +439,13 @@ def check_declaration(
             )
         found = frozenset((refusal.item, refusal.pointer) for refusal in report.refusals)
     verdict = model(json.dumps(declaration).encode(), BUILD)
-    if not isinstance(verdict, build_model.Refused) or verdict.unplaced:
+    wanted: Refusals
+    if isinstance(verdict, build_model.Refused) and not verdict.unplaced:
+        wanted = frozenset((refusal.item, refusal.pointer) for refusal in verdict.refusals)
+    elif isinstance(verdict, NoVerdict) and verdict.why in TAKEN:
+        wanted = frozenset()
+    else:
         return
-    wanted = frozenset((refusal.item, refusal.pointer) for refusal in verdict.refusals)
     explained: set[Refusal] = set()
     for explains in KNOWN_DIVERGENCES.values():
         explained |= explains(declaration, found, wanted)

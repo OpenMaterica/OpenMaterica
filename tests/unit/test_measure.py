@@ -219,6 +219,31 @@ def test_a_find_spoiled_by_its_exception_is_no_find() -> None:
     assert not measure.found_in(" " + implementation + "[]", tables)
 
 
+GIVES = "AssertionError: the implementation gives "
+AT = "'/models/{}/acceptances/{}'"
+
+
+@pytest.mark.parametrize(
+    ("line", "found"),
+    [
+        # Two forms of the ten finds of run 40275055796: the implementation's BC-048 there beside, and none.
+        (f"{GIVES}[('BC-048', {AT.format(0, 2)})], the model [('BC-005', {AT.format(0, 2)})]", True),
+        (f"{GIVES}[], the model [('BC-005', {AT.format(0, 4)})]", True),
+        (f"{GIVES}[], the model [('BC-005', {AT.format(0, 10)})]", True),
+        (f"{GIVES}[], the model [('BC-005', {AT.format(0, 0)})]", False),
+        (f"{GIVES}[('BC-048', {AT.format(1, 1)})], the model [('BC-005', {AT.format(1, 1)})]", False),
+        (f"{GIVES}[('BC-005', {AT.format(0, 2)})], the model []", False),
+        (f"{GIVES}[], the model [('BC-048', {AT.format(0, 2)})]", False),
+    ],
+)
+def test_the_declarations_find_is_the_model_s_bc_005_after_a_model_s_second_acceptance(
+    line: str, found: bool
+) -> None:
+    """The control's fault skips item 4 at acceptances 2 and after alone: the model's BC-005 that the check
+    does not give is its find there, and none at acceptance 0 or 1."""
+    assert bool(measure.found_in(line, CONTROLS["declarations"])) == found
+
+
 def control_step() -> str:
     """ci.yml's fuzz control step, its continued lines joined and its variables of one value written out."""
     start = CI.index("      - name: Control, the faults seeded")

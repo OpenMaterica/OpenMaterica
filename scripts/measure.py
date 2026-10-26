@@ -184,12 +184,15 @@ CONTROLS = {
     ),
     # The model's BC-005 at an acceptance that the implementation does not give, whatever else either gives:
     # the implementation's BC-048 at that acceptance shows beside it only where the model gives none there.
+    # The fault skips acceptances 2 and after alone, so a line with the model's BC-005 at acceptance 0 or 1 is
+    # no find of it (one that also holds it at a later acceptance needs a second difference beside the fault).
     "declarations": Control(
         "declarations",
         "build_bytes",
         900,
         "^AssertionError: the implementation gives .*, "
         "the model .*'BC-005', '/models/[0-9]*/acceptances/[0-9]*'",
+        "the model .*'BC-005', '/models/[0-9]*/acceptances/[01]'",
         corpus="declarations",
         dictionary="declaration.dict",
         ci_runs=4,

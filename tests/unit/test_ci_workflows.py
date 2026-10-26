@@ -8980,10 +8980,10 @@ def test_the_table_alternatives_control_check_can_fail(
 
 # `build_bytes.py`'s control (S7a-1; `MATERICA_FUZZ_SEEDED_FAULT=declarations`, `tests/fuzz/seeded_fault.py`):
 # item 4 skipping every acceptance after a model's second, which the target's relation to the build's
-# reference model finds, the model giving BC-005 at an acceptance where the implementation does not (it
-# refuses the missing member as BC-048). Until measure.yml's fuzz kind measures its rate with that find, four
-# runs side by side, each of up to 900 s, the window of the bar the maintainer's ruling sets the fuzz
-# controls. The step passes where any finds it.
+# reference model finds, the model giving BC-005 at an acceptance after a model's second where the
+# implementation does not (it refuses the missing member as BC-048). Until measure.yml's fuzz kind measures
+# its rate with that find, four runs side by side, each of up to 900 s, the window of the bar the maintainer's
+# ruling sets the fuzz controls. The step passes where any finds it.
 TARGET_BUILD, DECLARATIONS = "tests.fuzz.build_bytes", "declarations"
 DECLARATIONS_RUNS = 4
 DECLARATIONS_RUN_SECONDS = 900
@@ -9002,22 +9002,35 @@ DECLARATIONS_FINDING_ALONE = (
 ANOTHER_DECLARATIONS_FINDING = (
     "AssertionError: the implementation gives [], the model [('BC-048', '/models/0/acceptances/2')]"
 )
+# The model's BC-005 at an acceptance 0 or 1, which the fault leaves alone: the check dropping it at
+# acceptance 0, and giving BC-048 for it at acceptance 1 of a second model, are no find of the fault; at
+# acceptance 10, a later one, it is.
+DECLARATIONS_AT_THE_FIRST = (
+    "AssertionError: the implementation gives [], the model [('BC-005', '/models/0/acceptances/0')]"
+)
+DECLARATIONS_AT_THE_SECOND = (
+    "AssertionError: the implementation gives [('BC-048', '/models/1/acceptances/1')], the model "
+    "[('BC-005', '/models/1/acceptances/1')]"
+)
+DECLARATIONS_AT_THE_ELEVENTH = (
+    "AssertionError: the implementation gives [], the model [('BC-005', '/models/0/acceptances/10')]"
+)
 # The stub's environment where every case of another fault's control finds this fault in its first run.
 DECLARATIONS_FOUND = {
     "STUB_DECLARATIONS_FINDS": "declarations-1",
     "STUB_DECLARATIONS_FINDING": DECLARATIONS_FINDING,
 }
 # Each case: the corpora of the runs that report a finding, the finding, and whether the step passes.
+EVERY_DECLARATIONS_RUN = " ".join(f"declarations-{run}" for run in range(1, DECLARATIONS_RUNS + 1))
 DECLARATIONS_CASES = (
     ("declarations-1", DECLARATIONS_FINDING, True),
     (f"declarations-{DECLARATIONS_RUNS}", DECLARATIONS_FINDING, True),
     ("declarations-2", DECLARATIONS_FINDING_ALONE, True),
+    ("declarations-3", DECLARATIONS_AT_THE_ELEVENTH, True),
     ("", DECLARATIONS_FINDING, False),
-    (
-        " ".join(f"declarations-{run}" for run in range(1, DECLARATIONS_RUNS + 1)),
-        ANOTHER_DECLARATIONS_FINDING,
-        False,
-    ),
+    (EVERY_DECLARATIONS_RUN, DECLARATIONS_AT_THE_FIRST, False),
+    (EVERY_DECLARATIONS_RUN, DECLARATIONS_AT_THE_SECOND, False),
+    (EVERY_DECLARATIONS_RUN, ANOTHER_DECLARATIONS_FINDING, False),
 )
 
 
@@ -9082,6 +9095,9 @@ def declarations_control_problems(ci: Workflow, directory: Path) -> list[str]:
         found = {
             DECLARATIONS_FINDING: "the finding",
             DECLARATIONS_FINDING_ALONE: "the finding, the model's BC-005 alone",
+            DECLARATIONS_AT_THE_ELEVENTH: "the finding at acceptance 10",
+            DECLARATIONS_AT_THE_FIRST: "the model's BC-005 at acceptance 0",
+            DECLARATIONS_AT_THE_SECOND: "the model's BC-005 at acceptance 1",
         }.get(finding, "another finding")
         case = f"{finds or 'no run'} reporting {found}"
         if passes and status != 0:
@@ -9106,7 +9122,7 @@ done
 wait || true
 cat "$control"/declarations-[1-{DECLARATIONS_RUNS}].log > "$control/declarations.log"
 """
-DECLARATIONS_CHECK = 'if ! grep -q "$declared" "$control/declarations.log"; then\n'
+DECLARATIONS_CHECK = 'if ! grep -qv "$declared_early" <(grep "$declared" "$control/declarations.log"); then\n'
 DECLARATIONS_DICTIONARY = (
     f'"$control/declarations-$worker" -dict="$control/declaration.dict" '
     f"-max_total_time={DECLARATIONS_RUN_SECONDS}"
@@ -9142,6 +9158,10 @@ def with_the_declaration_s_runs_one_after_the_other(text: str) -> str:
     return text.replace(DECLARATIONS_RUN_END, DECLARATIONS_RUN_END.replace("2>&1 &", "2>&1"))
 
 
+def with_the_declaration_s_find_at_any_acceptance(text: str) -> str:
+    return text.replace(DECLARATIONS_CHECK, 'if ! grep -q "$declared" "$control/declarations.log"; then\n')
+
+
 def with_the_declaration_s_runs_without_the_dictionary(text: str) -> str:
     return text.replace(
         DECLARATIONS_DICTIONARY,
@@ -9170,8 +9190,21 @@ def with_the_declaration_s_runs_without_the_dictionary(text: str) -> str:
             with_the_declaration_s_runs_without_the_dictionary,
             "declaration's fault with the dictionaries [], not",
         ),
+        (
+            with_the_declaration_s_find_at_any_acceptance,
+            f"the step does not fail at the declaration's check where {EVERY_DECLARATIONS_RUN} reporting "
+            "the model's BC-005 at acceptance 0",
+        ),
     ],
-    ids=["runs-removed", "one-run-fewer", "shorter", "one-after-the-other", "check-removed", "no-dictionary"],
+    ids=[
+        "runs-removed",
+        "one-run-fewer",
+        "shorter",
+        "one-after-the-other",
+        "check-removed",
+        "no-dictionary",
+        "find-at-any-acceptance",
+    ],
 )
 def test_the_declaration_control_check_can_fail(
     tmp_path: Path, fault: Callable[[str], str], problem: str

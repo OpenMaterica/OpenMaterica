@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """`build_bytes.py`'s oracle (`tests/fuzz/build_oracle.py`), which the target, needing Atheris, cannot show
-here: a JSON pointer read, resolved and written to as RFC 6901 says; each of the three relations quiet on the
-check as it is and failing on a check broken for it; and, through the target's own `test_one_input` with
+here: a JSON pointer read, resolved and written to as RFC 6901 says; each of the four relations quiet on the
+check as it is and failing on a check broken for it, the model's where it refuses a declaration and where it
+takes one; and, through the target's own `test_one_input` with
 Atheris stubbed, every seed passing the target, with no fault seeded and with S7a-1's control fault, which
 no seed shows, one change to a seed's pointer does, and the design's unnarrowed fault seven seeds show at
 once."""
@@ -21,15 +22,16 @@ import pytest
 import materica
 from materica.core import declarations
 from materica.core.build import check_build
-from materica.core.declarations import Finding, JsonObject
+from materica.core.declarations import Finding, Holds, JsonObject
 from materica.core.jsonio import JsonValue
 from materica.core.record import RecordStore
 from materica.core.report import BuildRefusal, BuildReport
-from scripts.measure import CONTROLS
+from scripts.measure import CONTROLS, found_in
 from tests.fuzz import build_oracle
 from tests.fuzz.build_oracle import (
     KNOWN_DIVERGENCES,
     NOT_BUILT,
+    TAKEN,
     check_declaration,
     index_of,
     member_at,
@@ -40,11 +42,20 @@ from tests.fuzz.build_oracle import (
 from tests.fuzz.seeded_fault import faulty_reasons
 from tests.reference import build_model
 from tests.reference.direct import BUILD
+from tests.reference.read_model import NoVerdict
 
 BUILD_CHECKS = Path(materica.__file__).parent / "data" / "conformance" / "build_checks"
 # A declaration the check takes: BC-016's, one model over water with one waiver.
 VALID: JsonValue = json.loads(
     (BUILD_CHECKS / "inputs" / "bc016_waiver_at_one_of_two_records.json").read_bytes()
+)
+
+
+# An engine model over a domain, which item 7 may refuse (S11): the model places that rule's refusals not.
+OVER_A_DOMAIN = placed(
+    placed(VALID, "/models/0/checked_over", {"domain": "lumen"}),
+    "/models/0/engine",
+    {"crosswalk": {"id": "materica/crosswalk", "version": "1.0.0", "sha256": "f" * 64}, "values": {}},
 )
 
 
@@ -145,7 +156,7 @@ def test_a_not_implemented_error_of_no_piece_fails_the_relations() -> None:
 def test_a_refusal_at_no_member_fails_the_relations() -> None:
     with pytest.raises(AssertionError, match="which names no member"):
         check_declaration(VALID, store(), refused(BuildRefusal("BC-048", "/models/0/nothing")))
-    check_declaration(VALID, store(), refused(BuildRefusal("BC-048", "/models/0/model")))
+    check_declaration(OVER_A_DOMAIN, store(), refused(BuildRefusal("BC-048", "/models/0/model")))
 
 
 def test_a_refusal_of_another_case_fails_the_relations() -> None:
@@ -153,7 +164,8 @@ def test_a_refusal_of_another_case_fails_the_relations() -> None:
         check_declaration(VALID, store(), refused(BuildRefusal("BC-016", "")))
 
 
-# The model's relation: the check's refusals held to the model's where it refuses with every rule placed.
+# The model's relation: the check's refusals held to the model's where it refuses with every rule placed, and
+# to none where it takes the declaration.
 
 
 def test_the_model_s_relation_fails_where_the_check_refuses_otherwise() -> None:
@@ -169,19 +181,62 @@ def test_the_model_s_relation_fails_where_the_check_refuses_otherwise() -> None:
         check_declaration(WITHOUT_REASON, store(), raising(NotImplementedError(next(iter(NOT_BUILT)))))
 
 
-def test_the_model_s_relation_holds_nothing_where_the_model_gives_no_verdict() -> None:
-    """The model gives no verdict for a declaration that passes its own check, nor where it places some
-    rule's refusals not: an engine model over a domain, which item 7 may refuse (S11)."""
-    check_declaration(VALID, store(), refused(BuildRefusal("BC-048", "/models/0/model")))
-    over_a_domain = placed(VALID, "/models/0/checked_over", {"domain": "lumen"})
-    engine: JsonValue = {
-        "crosswalk": {"id": "materica/crosswalk", "version": "1.0.0", "sha256": "f" * 64},
-        "values": {},
-    }
-    over_a_domain = placed(over_a_domain, "/models/0/engine", engine)
-    verdict = build_model.check_build(json.dumps(over_a_domain).encode(), BUILD)
+def test_the_model_s_relation_holds_nothing_where_the_model_places_a_rule_s_refusals_not() -> None:
+    """An engine model over a domain, which item 7 may refuse (S11): the model gives no verdict on it."""
+    verdict = build_model.check_build(json.dumps(OVER_A_DOMAIN).encode(), BUILD)
     assert not isinstance(verdict, build_model.Refused) or verdict.unplaced, verdict
-    check_declaration(over_a_domain, store(), refused(BuildRefusal("BC-048", "/models/0/engine")))
+    assert not isinstance(verdict, NoVerdict) or verdict.why not in TAKEN, verdict
+    check_declaration(OVER_A_DOMAIN, store(), refused(BuildRefusal("BC-048", "/models/0/engine")))
+
+
+def test_the_model_s_words_for_a_declaration_it_takes_are_taken() -> None:
+    """`TAKEN` holds the model's own words for a declaration that passes its check, past it and a pick's or
+    an overlay's (S7c), so that the relation below does not fall quiet should the words change."""
+    said = set[str]()
+    for taken in (VALID, PICK_TAKEN):
+        verdict = build_model.check_build(json.dumps(taken).encode(), BUILD)
+        assert isinstance(verdict, NoVerdict), verdict
+        said.add(verdict.why)
+    assert said == set(TAKEN)
+
+
+def adding(refusal: BuildRefusal) -> Callable[[JsonValue, RecordStore], BuildReport]:
+    """`check_build` with `refusal` added to what it gives: a declaration it takes, refused with it alone."""
+
+    def check(declaration: JsonValue, records: RecordStore) -> BuildReport:
+        try:
+            report = check_build(declaration, records)
+        except NotImplementedError:
+            return BuildReport((refusal,), declaration)
+        return BuildReport((*report.refusals, refusal), declaration)
+
+    return check
+
+
+HOLDS = declarations._holds  # pyright: ignore[reportPrivateUsage]
+
+
+def zero_tolerance_refused(holds: Holds, value: JsonValue, pointer: str) -> list[Finding]:
+    """`_holds` refusing a tolerance of zero, which the text takes: its fault is "a number below zero"."""
+    found = HOLDS(holds, value, pointer)
+    if pointer.endswith("/tolerance/value") and value == 0.0:
+        found.append(Finding("BC-048", pointer, "zero"))
+    return found
+
+
+def test_the_model_s_relation_fails_where_the_check_refuses_a_declaration_the_model_takes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A refusal where the model takes the declaration is one too many: a check adding one to its own answer,
+    and the check with `_holds` refusing a tolerance of zero, which BC-016's declaration holds. The relation
+    is quiet on the check as it is, which takes that declaration."""
+    check_declaration(VALID, store())
+    with pytest.raises(AssertionError, match=re.escape("gives [('BC-048', '/consumer')], the model []")):
+        check_declaration(VALID, store(), adding(BuildRefusal("BC-048", "/consumer")))
+    at = "/models/0/requirements/0/conditions/shear_rate/tolerance/value"
+    monkeypatch.setattr(declarations, "_holds", zero_tolerance_refused)
+    with pytest.raises(AssertionError, match=re.escape(f"gives [('BC-048', '{at}')], the model []")):
+        check_declaration(VALID, store())
 
 
 @pytest.mark.parametrize(
@@ -233,6 +288,8 @@ def put(name: str, *changes: tuple[str, JsonValue]) -> JsonValue:
 
 
 WITHOUT_REASON = taken_out(VALID, "/models/0/acceptances/0", "reason")
+# A pick the model takes, BC-005's pick with its `reason`: past its check, the build's picks are S7c's.
+PICK_TAKEN = put("bc005_pick_without_reason.json", ("/models/0/acceptances/1/reason", "r"))
 TWO_ALTERNATIVES = put(
     "bc048_trainable_field_not_read.json",
     ("/models/0/checked_over/path", "lumen"),
@@ -357,6 +414,16 @@ def test_every_seed_passes_the_target_with_no_fault_and_with_the_control_fault(
         target.test_one_input(data)
 
 
+def test_the_readme_counts_the_target_s_seeds(target: ModuleType) -> None:
+    """`tests/fuzz/README.md`'s counts of the seed declarations and inputs, which a new build-check case
+    changes."""
+    text = (Path(__file__).parents[1] / "fuzz" / "README.md").read_text(encoding="utf-8")
+    declarations, inputs = len(seeds_of(target)), sum(1 for _ in target.seeds())
+    assert f"one of the {declarations} declarations the build-check cases read" in text
+    assert f"seven of the {declarations} seed declarations" in text
+    assert f"roots included ({inputs:,} inputs)" in text
+
+
 def test_no_seed_shows_the_control_fault_and_one_change_of_a_pointer_does(
     target: ModuleType, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -400,7 +467,7 @@ def test_the_control_s_fault_fails_the_model_s_relation_with_the_line_ci_reads_a
     monkeypatch.setattr(declarations, "_reasons", faulty_reasons)
     with pytest.raises(AssertionError) as found:
         check_declaration(changed, store())
-    assert re.search(CONTROLS["declarations"].found, f"AssertionError: {found.value}"), str(found.value)
+    assert found_in(f"AssertionError: {found.value}", CONTROLS["declarations"]), str(found.value)
 
 
 def test_the_control_s_fault_beside_another_missing_member_is_its_find_too(
@@ -423,7 +490,7 @@ def test_the_control_s_fault_beside_another_missing_member_is_its_find_too(
     alone = "the implementation gives [], the model [('BC-005', '/models/0/acceptances/2')]"
     with pytest.raises(AssertionError, match=re.escape(alone)) as found:
         check_declaration(changed, store())
-    assert re.search(CONTROLS["declarations"].found, f"AssertionError: {found.value}"), str(found.value)
+    assert found_in(f"AssertionError: {found.value}", CONTROLS["declarations"]), str(found.value)
 
 
 def test_seven_seeds_show_the_design_s_fault_unnarrowed(
