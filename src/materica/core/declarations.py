@@ -771,10 +771,17 @@ def _kind_tokens(kind: str, value: JsonObject, at: str) -> list[Finding]:
         check("section", VOCABULARY.sections, "a registered section")
         check("fact", VOCABULARY.facts, "a specimen fact")
     elif kind == "nominal" and "params" in value:
-        spec = (
-            VOCABULARY.fields.get(cast(str, value["field"])) if isinstance(value.get("field"), str) else None
+        # A registered field's own row decides. Beside a `field` that is missing, no string or no registered
+        # field, `params` is held to what it must be whichever value the field holds: refused unless some
+        # registered field's row allows the form `parameter_set` (none does in 0.1.0).
+        field = value.get("field")
+        spec = VOCABULARY.fields.get(field) if isinstance(field, str) else None
+        allowed = (
+            "parameter_set" in spec.forms
+            if spec is not None
+            else any("parameter_set" in row.forms for row in VOCABULARY.fields.values())
         )
-        if spec is None or "parameter_set" not in spec.forms:
+        if not allowed:
             found.append(Finding("BC-048", f"{at}/params", "params, for a field with no parameter set"))
     elif kind == "distribution":
         token, parameters = value.get("distribution"), value.get("distribution_parameters")
@@ -799,13 +806,14 @@ def _names(declaration: JsonObject) -> list[Finding]:
     `name`, a record listed twice in one `checked_over`, a field twice in `reads`, two requirements for one
     field, two `trainable` entries for one field at one location; an `accepts` token twice; a requirement, a
     `trainable` entry or a combination naming a field its model does not list in `reads`; a combination of
-    fewer than two fields, or of registered fields of one section (an entry that is no registered field has
-    no section); a `trainable` entry at a location its model is not checked over: a record its records do not
-    list, a record where the model is checked over a domain or a path, a region or an interval where it is
-    checked over records. A name given twice is a well-formed name: a `trainable` entry with a field that is
-    no string, or a location that is no reference, string or interval, is given twice never. Where a model is
-    checked over a domain or a path, which needs the scene, a `trainable` entry at a region or an interval is
-    not judged here: item 12 refuses it."""
+    fewer than two fields, or of fields all registered and all of one section (an entry that is no
+    registered field has no section, and the rule stands aside where there is one); a `trainable` entry at
+    a location its model is not checked over: a record its records do not list, a record where the model is
+    checked over a domain or a path, a region or an interval where it is checked over records. A name given
+    twice is a well-formed name: a `trainable` entry with a field that is no string, or a location that is no
+    reference, string or interval, is given twice never. Where a model is checked over a domain or a path,
+    which needs the scene, a `trainable` entry at a region or an interval is not judged here: item 12
+    refuses it."""
     found: list[Finding] = []
     models: set[str] = set()
     for index, model in _entries(declaration, "models"):
@@ -836,8 +844,10 @@ def _names(declaration: JsonObject) -> list[Finding]:
             )
             registered = [field for field in fields if field in VOCABULARY.fields]
             sections = {field.partition(".")[0] for field in registered}
+            # The sections rule judges the entries against each other: it stands aside where any entry is no
+            # registered field, which has no section (the refusal paragraph).
             if isinstance(combined, list) and (
-                len(combined) < 2 or (len(registered) > 1 and len(sections) < 2)
+                len(combined) < 2 or (len(registered) == len(combined) and len(sections) < 2)
             ):
                 found.append(Finding("BC-048", here, "not two or more fields of different sections"))
             for number, field in enumerate(_list(combined)):
@@ -875,7 +885,9 @@ def _names(declaration: JsonObject) -> list[Finding]:
 
 def _location_name(field: str, entry: JsonObject) -> str | None:
     """The name of a `trainable` entry of one location: its field and location, a record by its reference;
-    None where the location is no well-formed name (a record that is no reference, a region no string)."""
+    None where the location is no well-formed name (a record that is no reference, a region no string). A
+    region or an interval is item 12's, refused at the entry, which outranks a name given twice there; so
+    only a record's name can show today, and the rest waits for the scene suite."""
     (kind,) = (name for name in ("record", "region", "interval") if name in entry)
     held = entry[kind]
     if kind == "record":
