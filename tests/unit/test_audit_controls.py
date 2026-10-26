@@ -539,9 +539,9 @@ CONTROLS = [
     ),
     Control(
         build_properties.test_each_results_read_is_the_read_of_the_request_the_declaration_gives,
-        "nominal",
+        "operating_range",
         ("check_reads",),
-        (("ways", ("implied", "nominal")),),
+        (("ways", ("operating_value", "operating_range")),),
     ),
     Control(
         build_properties.test_the_results_are_one_per_model_listed_record_and_field_read,

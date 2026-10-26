@@ -1238,6 +1238,12 @@ def permuted_builds(size: Size) -> st.SearchStrategy[World]:
 # measured their counts: drawn among four or five alike, a way's count varied over 20 streams 6.6 times a
 # binomial count's on average, and a way drawn among five fell below its floor at the variance measured in
 # about one measurement in five (a simulation), among two in about one in 500.
+# HP44's `requests` draws `implied` and `nominal` apart. Drawn alike, `nominal` completed 0.30 of the examples
+# and `implied` 0.70 (a mean over 20 streams, CI's floors on the draft's head before this split; locally the
+# same, 0.30 over 2,000 and 0.29 over 6,000 examples, with the two ways in either order), so its least share
+# fell to a false failure of 3.2e-02 above the 1e-06 the rule allows; `nominal` and `extrapolation` drawn
+# alike completed 0.50 each. The cause of `implied` taking more is not established; the measured fix is the
+# split, which `extrapolation` shows already runs its 2,000 examples alone.
 STRATA: dict[str, tuple[tuple[str, ...], ...]] = {
     "waivers": (("matching", "code_differs"), ("condition_differs", "location_differs"), ("field_differs",)),
     "assumptions": (
@@ -1246,7 +1252,7 @@ STRATA: dict[str, tuple[tuple[str, ...], ...]] = {
         ("other_reason",),
     ),
     "never": (("unlisted_not_met", "no_pick"), ("label_mismatch", "unlisted_code"), ("at_edge",)),
-    "requests": (("operating_value", "operating_range"), ("implied", "nominal"), ("extrapolation",)),
+    "requests": (("operating_value", "operating_range"), ("implied",), ("nominal",), ("extrapolation",)),
     "coverage": (("unlisted_record", "no_requirement"), ("two_models", "absent_record")),
     "label": (("equal", "differs"), ("absent", "early_refusal"), ("no_stored_value",)),
     "review": (("reviewed", "not_checked"), ("unknown_result", "slip"), ("not_required",)),

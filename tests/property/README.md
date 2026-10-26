@@ -2199,17 +2199,17 @@ died by its 166th example, and every search of HP44 by its 142nd; the drift on C
 | `unused_lists_the_applied` | an acceptance a read applied, and that covered no reason, listed unused | `_unused` | HP43, indexes | `indexes` | 1, 1 |
 | `unused_named_after_the_first_model` | each unused acceptance named after the first model (R01) | `_unused` | HP43, indexes | `indexes` | 3, 3 |
 | `unused_shared_by_every_model` | one set of used acceptances shared by every model (R03) | `_unused` | HP43, indexes | `indexes` | 9, 9 |
-| `acceptance_at_another_record_given` | an acceptance given to a read wherever it is located | `_given` | HP44, requests | `nominal` | 14, 14 |
+| `acceptance_at_another_record_given` | an acceptance given to a read wherever it is located | `_given` | HP44, requests | `nominal` | 5, 5 |
 | `acceptance_of_another_field_of_the_section_given` | an acceptance for another field of the read's section given to it, and so counted applied where the result's `assumption` names one alike | `_given` | HP43, indexes | `indexes` | 9, 9 |
 | `requirement_label_and_review_given` | the requirement's `label` and `review` given in the read's request (`request_incomplete`) | `_request` | HP44, requests | `operating_value`, `operating_range` | 1, 1 |
 | `unnamed_operating_condition_dropped` | an operating condition the requirement does not name dropped from the request | `_request` | HP44, requests | `operating_value`, `operating_range` | 5, 5 |
 | `want_defaulted` | the request's `want` defaulted to `value` | `_request` | HP44, requests | `operating_value`, `operating_range` | 18, 18 |
-| `only_the_first_acceptance_given` | the first acceptance given alone, of several | `_request` | HP44, requests | `implied` | 7, 7 |
+| `only_the_first_acceptance_given` | the first acceptance given alone, of several | `_request` | HP44, requests | `implied` | 3, 3 |
 | `claims_dropped_from_the_read` | the build's own read made under the default claims, not the build's | `read` | HP44, requests | `operating_value`, `operating_range` | 7, 7 |
 | `every_record_in_the_store_read` | results for every record in the store, listed or not | `_results` | HP44, coverage | `unlisted_record` | 1, 1 |
 | `field_with_no_requirement_read` | a field with no requirement read for a value | `_requirement` | HP44, coverage | `unlisted_record`, `no_requirement` | 3, 3 |
 | `status_lowered_when_accepted` | the status of an accepted result made `met` | `BuildResult` | HP44, requests | `operating_value`, `operating_range` | 35, 35 |
-| `not_reviewed_status_unknown` | `not_reviewed` making the status `unknown` over a read's `not_met` (R05) | `BuildResult` | HP44, requests | `nominal` | 2, 2 |
+| `not_reviewed_status_unknown` | `not_reviewed` making the status `unknown` over a read's `not_met` (R05) | `BuildResult` | HP44, requests | `nominal` | 1, 1 |
 | `label_from_the_result_only` | the label read from the result's labels, which a refusal before step 12 leaves out | `_stored` | HP45, label | `early_refusal` | 2, 2 |
 | `label_of_the_section` | the section's `label` in place of the value's | `_stored` | HP45, label | `equal`, `differs` | 1, 1 |
 | `stored_under_the_default_claims` | the stored label read under the default claims, not the build's | `_stored` | HP45, label | `equal`, `differs` | 4, 4 |

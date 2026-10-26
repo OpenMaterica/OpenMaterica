@@ -31,7 +31,7 @@
       "waiting_reasons_dropped_where_refused": [77, 6]
     },
     "test_build_mutants.py::test_the_build_mutant_is_killed": {
-      "acceptance_at_another_record_given": [14, 14],
+      "acceptance_at_another_record_given": [5, 5],
       "acceptance_of_another_field_of_the_section_given": [9, 9],
       "acceptances_matched_by_position": [5, 7],
       "accepted_by_with_what_covered_nothing": [2, 2],
@@ -62,8 +62,8 @@
       "not_checked_with_a_reason_taken_as_reviewed": [2, 2],
       "not_reviewed_given_without_provenance": [5, 5],
       "not_reviewed_read_as_not_met": [2, 2],
-      "not_reviewed_status_unknown": [2, 2],
-      "only_the_first_acceptance_given": [7, 7],
+      "not_reviewed_status_unknown": [1, 1],
+      "only_the_first_acceptance_given": [3, 3],
       "refusal_at_steps_2_to_5_rests_on_the_field": [3, 3],
       "refused_read_from_the_first_model_only": [7, 28],
       "region_taken_at_a_record": [7, 7],
