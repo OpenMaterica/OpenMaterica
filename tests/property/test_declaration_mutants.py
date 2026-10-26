@@ -13,6 +13,7 @@ A fault is injected where the check looks a name up when it runs: a module-level
 """
 
 import copy
+import dataclasses
 import re
 from collections.abc import Callable, Collection
 from typing import Any, NamedTuple, cast
@@ -608,6 +609,97 @@ def _region_condition_name(finding: Finding, _: JsonObject) -> bool:
 
 def _trainable_field_name(finding: Finding, _: JsonObject) -> bool:
     return re.fullmatch(r"/models/[0-9]+/trainable/[0-9]+/field", finding.pointer) is not None
+
+
+def _condition_unjudged_beside_a_code_that(
+    states: Callable[[JsonObject], bool],
+) -> Callable[[str, JsonObject, str], list[Finding]]:
+    """`_kind_tokens` without a waiver's "names no condition" finding at its `condition`, where its `code` is
+    in the state `states` names: the check standing aside from the rule the text states for a member at fault
+    (the refusal paragraph's second exception, "a waiver whose `code` is no reason names no `condition`")."""
+
+    def faulty(kind: str, value: JsonObject, at: str) -> list[Finding]:
+        found = KIND_TOKENS(kind, value, at)
+        if kind == "waiver" and states(value):
+            return [finding for finding in found if finding.pointer != f"{at}/condition"]
+        return found
+
+    return faulty
+
+
+def _code_missing(waiver: JsonObject) -> bool:
+    """No `code`, and no member one slip from it: it was taken out."""
+    return "code" not in waiver and not any(one_slip(name, "code") is not None for name in waiver)
+
+
+def _code_slipped(waiver: JsonObject) -> bool:
+    return "code" not in waiver and any(one_slip(name, "code") is not None for name in waiver)
+
+
+def _code_retyped(waiver: JsonObject) -> bool:
+    return "code" in waiver and not isinstance(waiver["code"], str)
+
+
+def _trainable_record_beside_a_scene(finding: Finding, _: JsonObject) -> bool:
+    return re.fullmatch(r"/models/[0-9]+/trainable/[0-9]+/record", finding.pointer) is not None and (
+        "where the model is checked over" in finding.detail
+    )
+
+
+def _within_of_another_status_at_the_object(
+    tokens: Callable[..., list[Finding]],
+) -> Callable[..., list[Finding]]:
+    """A `within` of a status other than `none` refused at the object, not at its `status`."""
+
+    def faulty(declaration: JsonObject, *rest: Any) -> list[Finding]:
+        return [
+            dataclasses.replace(finding, pointer=finding.pointer.removesuffix("/status"))
+            if "the one status of a within" in finding.detail
+            else finding
+            for finding in tokens(declaration, *rest)
+        ]
+
+    return faulty
+
+
+def _label_of_another_type_judged_by_item_4(declaration: JsonObject) -> list[Finding]:
+    """Item 4 judging a waiver's `label` that is no string, `null` aside (maintainer, 2026-10-25), as one it
+    names: BC-050 at it, in front of the shape table's BC-048."""
+    found = LABELS(declaration)
+    models = declaration.get("models")
+    for index, model in enumerate(models if isinstance(models, list) else []):
+        acceptances = model.get("acceptances") if isinstance(model, dict) else None
+        for position, held in enumerate(acceptances if isinstance(acceptances, list) else []):
+            if (
+                isinstance(held, dict)
+                and held.get("acceptance") == "waiver"
+                and "label" in held
+                and held["label"] is not None
+                and not isinstance(held["label"], str)
+            ):
+                at = f"/models/{index}/acceptances/{position}/label"
+                found.append(Finding("BC-050", at, "a label of another type judged"))
+    return found
+
+
+def _combination_sections_judged_beside_an_unregistered_entry(
+    declaration: JsonObject,
+) -> list[Finding]:
+    """The sections rule judging a combination whose entries are not all registered fields, the entry that
+    is none counting as a section of its own name's first word, where the text has it stand aside."""
+    found = NAMES(declaration)
+    models = declaration.get("models")
+    for index, model in enumerate(models if isinstance(models, list) else []):
+        combinations = model.get("combinations") if isinstance(model, dict) else None
+        for position, combined in enumerate(combinations if isinstance(combinations, list) else []):
+            if not isinstance(combined, list) or len(combined) < 2:
+                continue
+            fields = [field for field in combined if isinstance(field, str)]
+            if len(fields) == len(combined) and len({field.partition(".")[0] for field in fields}) < 2:
+                found.append(
+                    Finding("BC-048", f"/models/{index}/combinations/{position}", "of one section", None)
+                )
+    return found
 
 
 # The ways of a stratum a mutant names whole: the token sweep's two ways of no slip, and the two ways where
@@ -1390,7 +1482,7 @@ MUTANTS = [
         "within_of_any_status_taken",
         "_tokens",
         "HP42",
-        replacing("_tokens", dropping(TOKENS, detail_says("a status object other than none"))),
+        replacing("_tokens", dropping(TOKENS, detail_says("the one status of a within"))),
         ("sampling",),
         REFUSALS,
         "a `population_level`'s `within` of a status other than `none` taken",
@@ -1476,6 +1568,70 @@ MUTANTS = [
         ("empty_list",),
         REFUSALS,
         "a `trainable` entry's `field` that names no registered field taken beside a `reads` at fault",
+    ),
+    Mutant(
+        "condition_beside_a_missing_code_unjudged",
+        "_kind_tokens",
+        "HP41 shape",
+        replacing("_kind_tokens", _condition_unjudged_beside_a_code_that(_code_missing)),
+        ("missing",),
+        REFUSALS,
+        "a waiver's `condition` left unjudged beside a `code` taken out",
+    ),
+    Mutant(
+        "condition_beside_a_retyped_code_unjudged",
+        "_kind_tokens",
+        "HP41 shape",
+        replacing("_kind_tokens", _condition_unjudged_beside_a_code_that(_code_retyped)),
+        ("breaks_holds",),
+        REFUSALS,
+        "a waiver's `condition` left unjudged beside a `code` of another JSON type",
+    ),
+    Mutant(
+        "condition_beside_a_slipped_code_unjudged",
+        "_kind_tokens",
+        "HP41 shape",
+        replacing("_kind_tokens", _condition_unjudged_beside_a_code_that(_code_slipped)),
+        ("slip",),
+        REFUSALS,
+        "a waiver's `condition` left unjudged beside a `code` written as a slip of its name",
+    ),
+    Mutant(
+        "trainable_record_beside_a_scene_taken",
+        "_names",
+        "HP42",
+        replacing("_names", dropping(NAMES, _trainable_record_beside_a_scene)),
+        ("domain", "path"),
+        REFUSALS,
+        "a `trainable` entry at a record taken where its model is checked over a domain or a path",
+    ),
+    Mutant(
+        "within_of_another_status_refused_at_the_object",
+        "_tokens",
+        "HP42",
+        replacing("_tokens", _within_of_another_status_at_the_object(TOKENS)),
+        ("sampling",),
+        REFUSALS,
+        "a `within` of a status other than `none` refused at the object, not at its `status`",
+    ),
+    Mutant(
+        "label_of_another_type_judged_by_item_4",
+        "_labels",
+        "HP41 precedence",
+        replacing("_labels", _label_of_another_type_judged_by_item_4),
+        ("two_rules",),
+        REFUSALS,
+        "a waiver's `label` of another JSON type judged by item 4, BC-050 in front of the shape table's "
+        "BC-048",
+    ),
+    Mutant(
+        "combination_sections_judged_beside_an_unregistered_entry",
+        "_names",
+        "HP41 tokens",
+        replacing("_names", _combination_sections_judged_beside_an_unregistered_entry),
+        ("slip_of_token", "misspelt_name"),
+        REFUSALS,
+        "a combination judged for its sections beside an entry that names no registered field",
     ),
 ]
 
