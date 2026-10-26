@@ -101,6 +101,7 @@
     "BC-048.field_twice_in_reads.json": "S7a-1",
     "BC-048.json_array.json": "S7a-1",
     "BC-048.member_of_another_type.json": "S7a-1",
+    "BC-048.nominal_params_beside_an_unregistered_field.json": "S7a-1",
     "BC-048.operating_condition_not_registered.json": "S7a-1",
     "BC-048.population_level_within_object_without_a_status.json": "S7a-1",
     "BC-048.population_level_within_status_object_with_a_reason_that_is_no_text.json": "S7a-1",
