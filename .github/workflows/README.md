@@ -306,7 +306,7 @@ a commit, an estimate to be read from the durations of the pull request that mad
 
 | | The head alone | With `commit` jobs at V | At the cap's ceiling of 60 |
 |---|---|---|---|
-| Runners one push holds | 30 | 30 + V (42 at V = 12) for the two minutes or so of the `commit` jobs | 90 where the pull request has 60 commits or more (150 with `site_commit` jobs, which run beside `commit`'s and are rare) |
+| Runners one push holds | 30 | 30 + V (42 at V = 12) for the two minutes or so of the `commit` jobs | 90 where 60 `commit` jobs run (150 with `site_commit` jobs, which run beside `commit`'s and are rare) |
 | Left of 60 at once | 30 | 30 - V (18 at V = 12) | none, and 30 wait (90 with `site_commit` jobs) |
 | Left of 20 at once | none, 10 wait | none, 10 + V wait (22 at V = 12) | none, 70 wait |
 
