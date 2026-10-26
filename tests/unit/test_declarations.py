@@ -665,7 +665,7 @@ BOUNDARIES: list[tuple[Callable[[Json], object], Refusals]] = [
     # A population level's `within`: a level, or the status object `none`.
     (within({"status": "none"}), LEVEL),
     (within("lot"), LEVEL),
-    (within({"status": "unstated"}), LEVEL | {("BC-048", f"{AT}/population_level/within")}),
+    (within({"status": "unstated"}), LEVEL | {("BC-048", f"{AT}/population_level/within/status")}),
     (within("lots"), LEVEL | {("BC-048", f"{AT}/population_level/within")}),
 ]
 
@@ -850,10 +850,15 @@ def test_a_waivers_label_another_fields_and_its_requirements_none_is_one_refusal
     assert refusals(label) == {("BC-050", "/models/0/acceptances/0/label")}
 
 
-def test_a_trainable_entry_at_a_record_and_a_region_is_one_refusal_of_item_12() -> None:
+def test_a_trainable_entry_at_a_record_and_a_region_is_one_refusal_of_item_12_and_a_region_over_records() -> (
+    None
+):
+    """Item 12 refuses the entry once, whichever locations it names; its region, where the model is checked
+    over records, is also a location the model is not checked over: BC-048 at the region."""
     entry: Json = {"field": "fluid.dynamic_viscosity", "record": WATER, "region": "lumen"}
     assert refusals(a_declaration(lambda d: model(d).update(trainable=[entry]))) == {
-        ("BC-051", "/models/0/trainable/0")
+        ("BC-051", "/models/0/trainable/0"),
+        ("BC-048", "/models/0/trainable/0/region"),
     }
 
 
@@ -861,12 +866,16 @@ def test_a_trainable_entry_at_a_record_and_a_region_is_one_refusal_of_item_12() 
 # holding a token, one holding a list of tokens and one keyed by names, each given a container of no tokens.
 
 
+def a_code_of_another_type_with_no_condition(declaration: Json) -> None:
+    """No `condition` beside the code: one beside a code that names none is refused whichever code it is."""
+    waiver = cast(Json, acceptances(declaration)[0])
+    waiver.update(code=["condition_unstate"])
+    waiver.pop("condition")
+
+
 OTHER_TYPES: list[tuple[Callable[[Json], object], str]] = [
     (lambda d: requirement(d).update(want={"status": "unstated"}), "/models/0/requirements/0/want"),
-    (
-        lambda d: cast(Json, acceptances(d)[0]).update(code=["condition_unstate"]),
-        "/models/0/acceptances/0/code",
-    ),
+    (a_code_of_another_type_with_no_condition, "/models/0/acceptances/0/code"),
     (lambda d: model(d).update(reads={"status": "unstated"}), "/models/0/reads"),
     (
         lambda d: conditions(d).update(test_method={"accept": {"method": "a_method"}, "reason": "a reason"}),
@@ -976,3 +985,317 @@ def test_item_7_finds_an_engine_values_missing_member_whatever_the_crosswalk() -
     assert refusals(without_crosswalk({}, {"lumen": {"mu": {"value": 1.0, "basis": "b"}}})) == around | {
         ("BC-040", ENGINE)
     }
+
+
+# The check beside the build's reference model (the rulings of 2026-10-26): where the two read the text apart,
+# and what the text now says. Each test holds a control, a declaration the same rule judges the other way, so
+# that it can fail.
+
+LABEL = "materica.fluid.newtonian.v1"
+UNLISTED: Json = {"id": "conformance/unlisted", "version": "1.0.0", "content_hash": "sha256:" + "0" * 64}
+WAIVER = "/models/0/acceptances/0"
+
+
+def waiver_of(declaration: Json) -> Json:
+    return cast(Json, acceptances(declaration)[0])
+
+
+def reviewed(named: bool) -> Callable[[Json], object]:
+    def change(declaration: Json) -> None:
+        requirement(declaration).update(review="reviewed")
+        if not named:
+            requirement(declaration).pop("label")
+
+    return change
+
+
+def unreviewed(named: bool) -> Callable[[Json], object]:
+    def change(declaration: Json) -> None:
+        if not named:
+            requirement(declaration).pop("label")
+
+    return change
+
+
+def no_requirement(declaration: Json) -> None:
+    model(declaration).pop("requirements")
+
+
+# A waiver's `label` beside the requirement for its field: in each of the five situations.
+LABEL_SITUATIONS: dict[str, tuple[Callable[[Json], object], bool]] = {
+    "reviewed, naming no label": (reviewed(False), False),
+    "unreviewed, naming no label": (unreviewed(False), False),
+    "reviewed, naming the label": (reviewed(True), True),
+    "unreviewed, naming the label": (unreviewed(True), False),
+    "no requirement": (no_requirement, False),
+}
+NO_STRING: list[JsonValue] = [None, 1.0, True, ["x"], {}]
+
+
+@pytest.mark.parametrize("label", NO_STRING, ids=["null", "number", "true", "list", "object"])
+@pytest.mark.parametrize("situation", list(LABEL_SITUATIONS))
+def test_a_waivers_label_that_is_no_string_names_no_label_and_is_bc_048_alone_in_every_situation(
+    situation: str, label: JsonValue
+) -> None:
+    """The member of another type is refused at itself and BC-050 judges nothing against it, beside a
+    requirement that names no label as beside one that does (maintainer, 2026-10-24)."""
+    change, _ = LABEL_SITUATIONS[situation]
+
+    def given(declaration: Json) -> None:
+        waiver_of(declaration).update(label=label)
+        change(declaration)
+
+    assert refusals(a_declaration(given)) == {("BC-048", f"{WAIVER}/label")}
+
+
+@pytest.mark.parametrize("situation", list(LABEL_SITUATIONS))
+def test_a_waivers_label_that_is_a_string_is_still_judged_in_every_situation(situation: str) -> None:
+    """The control of the test above: the same waiver with a label that is a string is BC-050's at the `label`
+    wherever the requirement does not name it and hold `review: "reviewed"`, and is taken where it does."""
+    change, taken = LABEL_SITUATIONS[situation]
+
+    def given(declaration: Json) -> None:
+        waiver_of(declaration).update(label=LABEL)
+        change(declaration)
+
+    declaration = a_declaration(given)
+    if taken:
+        assert isinstance(Declaration.from_json(declaration), Declaration)
+    else:
+        assert refusals(declaration) == {("BC-050", f"{WAIVER}/label")}
+
+
+@pytest.mark.parametrize("code", [None, 1.0, ["condition_unstated"], {}, "not_a_reason"])
+def test_a_condition_beside_a_code_that_names_none_is_refused_whichever_value_the_code_holds(
+    code: JsonValue,
+) -> None:
+    """What a faulty member's own type settles whichever value it holds is still judged (section 1): the
+    `condition` is refused at itself, and the `code` at fault is refused at itself."""
+    declaration = a_declaration(lambda d: waiver_of(d).update(code=code))
+    assert refusals(declaration) == {("BC-048", f"{WAIVER}/code"), ("BC-048", f"{WAIVER}/condition")}
+    assert isinstance(Declaration.from_json(a_declaration()), Declaration)  # the control: a code naming one
+
+
+def test_a_condition_beside_a_missing_code_is_refused_and_the_missing_code_too() -> None:
+    declaration = a_declaration(lambda d: waiver_of(d).pop("code"))
+    assert refusals(declaration) == {("BC-048", WAIVER), ("BC-048", f"{WAIVER}/condition")}
+
+
+@pytest.mark.parametrize("code", [None, 1.0, ["condition_unstated"]])
+def test_a_missing_condition_beside_a_code_that_is_no_string_is_not_judged(code: JsonValue) -> None:
+    """The other half of the stand-aside, which depends on the code: a code at fault is not judged to need a
+    condition, so the refusal is the `code`'s alone."""
+
+    def given(declaration: Json) -> None:
+        waiver_of(declaration).update(code=code)
+        waiver_of(declaration).pop("condition")
+
+    assert refusals(a_declaration(given)) == {("BC-048", f"{WAIVER}/code")}
+
+
+def entry_at(**location: JsonValue) -> Json:
+    return {"field": "fluid.dynamic_viscosity"} | location
+
+
+@pytest.mark.parametrize("field", [1.0, None, ["x"]], ids=["number", "null", "list"])
+def test_a_trainable_entrys_location_is_judged_beside_a_field_that_is_no_string(field: JsonValue) -> None:
+    """The location rule judges the record against `checked_over`, not against the field."""
+    at = "/models/0/trainable/0"
+    entry: Json = {"field": field, "record": UNLISTED}
+    declaration = a_declaration(lambda d: model(d).update(trainable=[entry]))
+    assert refusals(declaration) == {("BC-048", f"{at}/field"), ("BC-048", f"{at}/record")}
+    missing = a_declaration(lambda d: model(d).update(trainable=[{"record": UNLISTED}]))
+    assert refusals(missing) == {("BC-048", at), ("BC-048", f"{at}/record")}
+    # The control: a record the model is checked over is not refused, beside the same field at fault.
+    listed = a_declaration(lambda d: model(d).update(trainable=[{"field": field, "record": WATER}]))
+    assert refusals(listed) == {("BC-048", f"{at}/field")}
+
+
+def test_a_trainable_entry_with_no_name_is_never_given_twice() -> None:
+    """R1 (an entry that is no well-formed name is neither the same as nor different from another), for the
+    two members of an entry's name: the field and the reference."""
+    first, second = "/models/0/trainable/0", "/models/0/trainable/1"
+    no_field: list[JsonValue] = [{"field": 1.0, "record": WATER}, {"field": 1.0, "record": WATER}]
+    assert refusals(a_declaration(lambda d: model(d).update(trainable=no_field))) == {
+        ("BC-048", f"{first}/field"),
+        ("BC-048", f"{second}/field"),
+    }
+    no_reference: Json = cast(Json, WATER) | {"id": None}
+    unnamed: list[JsonValue] = [entry_at(record=no_reference), entry_at(record=no_reference)]
+    assert refusals(a_declaration(lambda d: model(d).update(trainable=unnamed))) == {
+        ("BC-048", f"{first}/record/id"),
+        ("BC-048", f"{second}/record/id"),
+    }
+    no_region: list[JsonValue] = [entry_at(region=1.0), entry_at(region=1.0)]
+    assert refusals(a_declaration(lambda d: model(d).update(trainable=no_region))) == {
+        ("BC-048", f"{first}/region"),
+        ("BC-048", f"{second}/region"),
+        ("BC-051", first),
+        ("BC-051", second),
+    }
+    # The control: two entries that are well-formed names and the same are given twice, at the later.
+    same: list[JsonValue] = [entry_at(record=WATER), entry_at(record=WATER)]
+    assert refusals(a_declaration(lambda d: model(d).update(trainable=same))) == {("BC-048", second)}
+
+
+def test_a_trainable_entrys_record_is_compared_by_its_reference() -> None:
+    """Two entries naming one field at one reference are given twice, though one copy of the record holds a
+    member the table does not name (refused at itself, nothing else inside it)."""
+    stray = cast(Json, WATER) | {"stray": 1.0}
+    entries: list[JsonValue] = [entry_at(record=WATER), entry_at(record=stray)]
+    assert refusals(a_declaration(lambda d: model(d).update(trainable=entries))) == {
+        ("BC-048", "/models/0/trainable/1"),
+        ("BC-048", "/models/0/trainable/1/record/stray"),
+    }
+    # A record the model is checked over, named with a member the table does not name, is checked over.
+    assert refusals(a_declaration(lambda d: model(d).update(trainable=[entry_at(record=stray)]))) == {
+        ("BC-048", "/models/0/trainable/0/record/stray")
+    }
+
+
+CHECKED_OVER = "/models/0/checked_over"
+TRAINABLE_0 = "/models/0/trainable/0"
+INTERVAL: JsonValue = [0.0, 1.0]
+
+
+@pytest.mark.parametrize("scene", [{"domain": "lumen"}, {"path": "vessel"}], ids=["domain", "path"])
+def test_a_trainable_entry_at_a_record_is_at_a_location_a_model_over_a_scene_is_not_checked_over(
+    scene: Json,
+) -> None:
+    """A record is the location over records (`declarations.md` section 2 item 2); over a scene it is a
+    location the model is not checked over: BC-048 at the record, beside item 12's refusal of the scene."""
+    (name,) = scene
+    declaration = a_declaration(
+        lambda d: model(d).update(checked_over=scene, trainable=[entry_at(record=WATER)])
+    )
+    assert refusals(declaration) == {
+        ("BC-051", f"{CHECKED_OVER}/{name}"),
+        ("BC-048", f"{TRAINABLE_0}/record"),
+    }
+    # The control: the same entry over records that list it is taken, and the scene alone is item 12's.
+    assert isinstance(
+        Declaration.from_json(a_declaration(lambda d: model(d).update(trainable=[entry_at(record=WATER)]))),
+        Declaration,
+    )
+    assert refusals(a_declaration(lambda d: model(d).update(checked_over=scene))) == {
+        ("BC-051", f"{CHECKED_OVER}/{name}")
+    }
+
+
+@pytest.mark.parametrize(("name", "held"), [("region", "lumen"), ("interval", INTERVAL)])
+def test_a_trainable_entry_at_a_region_or_an_interval_is_at_a_location_a_model_over_records_has_not(
+    name: str, held: JsonValue
+) -> None:
+    """Over records the location is the record read, neither a region nor an interval: BC-048 at the location,
+    beside item 12's refusal of the entry. The control: over a scene the same entry is item 12's alone (the
+    scene suite owns which regions and intervals the model is checked over)."""
+    declaration = a_declaration(lambda d: model(d).update(trainable=[entry_at(**{name: held})]))
+    assert refusals(declaration) == {("BC-051", TRAINABLE_0), ("BC-048", f"{TRAINABLE_0}/{name}")}
+    over_a_scene = a_declaration(
+        lambda d: model(d).update(checked_over={"domain": "lumen"}, trainable=[entry_at(**{name: held})])
+    )
+    assert refusals(over_a_scene) == {("BC-051", f"{CHECKED_OVER}/domain"), ("BC-051", TRAINABLE_0)}
+
+
+@pytest.mark.parametrize(
+    "checked_over",
+    [{"domain": "lumen", "records": [WATER]}, {}, {"records": "water"}],
+    ids=["two alternatives", "none", "another type"],
+)
+def test_a_model_checked_over_nothing_in_particular_has_no_location_kind_to_judge(checked_over: Json) -> None:
+    """`checked_over` holding two alternatives, none, or a member of another type is a member at fault, and a
+    `trainable` entry's location kind is not judged against it (the control: the tests above, where the model
+    is checked over a scene, refuse the same record)."""
+    declaration = a_declaration(
+        lambda d: model(d).update(checked_over=checked_over, trainable=[entry_at(record=WATER)])
+    )
+    found = refusals(declaration)
+    assert ("BC-048", f"{TRAINABLE_0}/record") not in found
+    assert any(pointer.startswith(CHECKED_OVER) for _, pointer in found)
+
+
+WITHIN = f"{AT}/population_level/within"
+WITHIN_OBJECTS: list[tuple[JsonValue, Refusals]] = [
+    ({"status": "none", "x": 1.0}, {("BC-048", f"{WITHIN}/x")}),
+    ({"status": "none", "reason": 1.0}, {("BC-048", f"{WITHIN}/reason")}),
+    ({"status": None}, {("BC-048", f"{WITHIN}/status")}),
+    ({"status": "other"}, {("BC-048", f"{WITHIN}/status")}),
+    ({"status": "unstated"}, {("BC-048", f"{WITHIN}/status")}),
+    ({"x": 1.0}, {("BC-048", WITHIN), ("BC-048", f"{WITHIN}/x")}),
+    ({}, {("BC-048", WITHIN)}),
+    ({"status": "none", "reason": "no level below"}, set()),
+    ({"status": "none"}, set()),
+]
+
+
+@pytest.mark.parametrize(("held", "expected"), WITHIN_OBJECTS)
+def test_a_within_object_is_a_status_object_whose_one_status_is_none(
+    held: JsonValue, expected: Refusals
+) -> None:
+    """`within` is a level or `{"status": "none"}` (`uncertainty.md` section 1), and a status object is an
+    object whose only members are `status` and, optionally, a `reason` that is a text (`provenance.md` section
+    1): a member of it that is none of these is refused at itself, as an accepted difference's value is."""
+    assert refusals(a_declaration(within(held))) == LEVEL | expected
+
+
+def test_the_member_of_a_condition_that_its_kind_does_not_take_is_refused_with_nothing_inside_it() -> None:
+    """`tolerance` is for a numeric condition and `accept` for a token one (the table's Holds): for the other
+    kind it is a member the table does not name here, refused at itself with nothing inside it checked."""
+    at = f"{AT}/conditions"
+    slab: Json = {"value": -1.0, "unit": "m", "slab": 1.0}
+    token = a_declaration(
+        lambda d: conditions(d).update(test_method={"tolerance": slab, "reason": "a reason"})
+    )
+    assert refusals(token) == {("BC-048", f"{at}/test_method/tolerance")}
+    numeric = a_declaration(lambda d: condition(d, "temperature").update(accept=[1.0]))
+    assert refusals(numeric) == {("BC-048", f"{at}/temperature"), ("BC-048", f"{at}/temperature/accept")}
+    # The controls: inside the member the kind does take, the same faults are found.
+    inside = a_declaration(
+        lambda d: conditions(d).update(
+            test_method={"accept": [1.0], "reason": "a reason"},
+            temperature={"tolerance": slab, "reason": "a reason"},
+        )
+    )
+    assert refusals(inside) == {
+        ("BC-048", f"{at}/test_method/accept/0"),
+        ("BC-048", f"{at}/temperature/tolerance/value"),
+        ("BC-048", f"{at}/temperature/tolerance/slab"),
+        ("BC-048", f"{at}/temperature/tolerance/unit"),
+    }
+
+
+COMBINABLE: list[JsonValue] = [
+    "fluid.dynamic_viscosity",
+    "bulk.density",
+    "magnetic.remanence",
+    "magnetic.saturation_magnetisation",
+]
+COMBINATIONS: list[tuple[list[JsonValue], Refusals]] = [
+    # Two registered fields of one section are refused whatever else the list holds.
+    (["magnetic.remanence", "magnetic.saturation_magnetisation"], {("BC-048", "/models/0/combinations/0")}),
+    (
+        ["magnetic.remanence", "magnetic.saturation_magnetisation", 1.0],
+        {("BC-048", "/models/0/combinations/0"), ("BC-048", "/models/0/combinations/0/2")},
+    ),
+    (
+        ["magnetic.remanence", "magnetic.saturation_magnetisation", "no.such_field"],
+        {("BC-048", "/models/0/combinations/0"), ("BC-048", "/models/0/combinations/0/2")},
+    ),
+    # An entry that is no registered field has no section: one registered field is not a combination of one.
+    (["magnetic.remanence", "magnetic.no_such_field"], {("BC-048", "/models/0/combinations/0/1")}),
+    (["bulk.density", 1.0], {("BC-048", "/models/0/combinations/0/1")}),
+    # A combination is refused only where all its registered fields are of one section.
+    (["bulk.density", "magnetic.remanence", "magnetic.saturation_magnetisation"], set()),
+    (["magnetic.remanence", "bulk.density"], set()),
+]
+
+
+@pytest.mark.parametrize(("combined", "expected"), COMBINATIONS)
+def test_a_combination_of_registered_fields_of_one_section_is_refused_beside_an_entry_at_fault(
+    combined: list[JsonValue], expected: Refusals
+) -> None:
+    declaration = a_declaration(lambda d: model(d).update(reads=COMBINABLE, combinations=[combined]))
+    if not expected:
+        assert isinstance(Declaration.from_json(declaration), Declaration)
+    else:
+        assert refusals(declaration) == expected

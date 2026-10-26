@@ -13,7 +13,9 @@ Each rule is one function, which finds every fault it names:
   alternatives, a value of another JSON type, a list shorter than its row asks, a value breaking its Holds;
 - `_tokens` (BC-048): every token, unit and registered name against its list, read from the vocabulary;
 - `_names` (BC-048): a name given twice; a requirement, `trainable` entry or combination naming a field its
-  model does not read; a combination of one section; a `trainable` entry at a record not checked over;
+  model does not read; a combination of one section; a `trainable` entry at a location its model is not
+  checked over (a record not listed, a record where the model is checked over a scene, a region or interval
+  where it is checked over records);
 - `_reasons` (BC-004, BC-005): a tolerance's, an accept list's and an acceptance's `reason`, and `basis`
   where the kind needs one; a `reason` or `basis` that is not a string of at least one character is BC-048's;
 - `_locations` (BC-037): an acceptance whose kind needs a location and names none;
@@ -26,11 +28,14 @@ missing member), and, for a missing member or a place's exclusive alternatives, 
 refusal per fault, of the case first in the refusal paragraph's order, and merges those of one case and
 pointer. A declaration that breaks no rule gives a `Declaration`.
 
-No rule is judged against a member that is itself at fault (section 1: one fault is one refusal), and the rest
-of the declaration is still checked for its own faults: a `population_level` beside a `represents` that is no
-token, a requirement against a `reads` at fault (an empty one too), and a waiver's missing `condition` beside
-a `code` refused as a token give no refusal of their own. An acceptance that names no known kind is refused at
-itself, and none of its other members is judged.
+A rule that judges one member against another stands aside only as far as its verdict depends on the member
+at fault (section 1: one fault is one refusal), and the rest of the declaration is still checked for its own
+faults: a `population_level` beside a `represents` that is no token, a requirement against a `reads` at fault
+(an empty one too), and a waiver's missing `condition` beside a `code` refused as a token give no refusal of
+their own; but a waiver's `condition` beside a `code` that is no string names no condition whichever it is,
+and is refused. An acceptance that names no known kind is refused at itself, and none of its other members is
+judged. An entry that is no well-formed name (a reference without string `id`, `version` and `content_hash`, a
+`field` that is no string) is neither the same as nor different from another, and no rule compares it.
 """
 
 import dataclasses
@@ -220,6 +225,8 @@ def _kind(
     )
 
 
+# The key `Visit` gives a population level's `within` object, which is visited as a status object.
+WITHIN = "within"
 _CONDITIONS = VOCABULARY.conditions
 _NUMERIC = tuple(name for name, spec in _CONDITIONS.items() if spec.shape == "numeric")
 _OPERATING = Map(dict.fromkeys(_NUMERIC, Object("operating condition")))
@@ -495,7 +502,8 @@ def _not_listed(value: str, allowed: Collection[str], what: str) -> str:
 @dataclass(frozen=True)
 class Visit:
     """An object at a place of `SHAPE`, its pointer, and the name the nearest map keys it by (a condition, a
-    fact, a region), if any."""
+    fact, a region), if any; for a population level's `within` object, `within`, the status object of that
+    place alone (`none` is its one status)."""
 
     place: str
     value: JsonObject
@@ -520,8 +528,10 @@ def _visit(place: str, value: JsonObject, pointer: str, key: str | None) -> Iter
     yield Visit(place, value, pointer, key)
     members = _members_of(place)
     for name, held in value.items():
-        if name in members:
+        if name in members and not _other_alternative(place, key, name):
             yield from _inside(members[name].holds, held, _join(pointer, name), key)
+    if place == "population level" and isinstance(value.get("within"), dict):
+        yield from _visit("status object", cast(JsonObject, value["within"]), f"{pointer}/within", WITHIN)
     difference, fact = value.get("value"), value.get("fact")
     if place == "accepted_difference" and isinstance(difference, dict):
         if _status_object(difference):
@@ -542,6 +552,15 @@ def _inside(holds: Holds, value: JsonValue, pointer: str, key: str | None) -> It
             held = holds.values.get(name) if isinstance(holds.values, dict) else holds.values
             if held is not None:
                 yield from _inside(held, item, _join(pointer, name), name)
+
+
+def _other_alternative(place: str, key: str | None, name: str) -> bool:
+    """Whether `name` is the member of a requirement condition that its kind does not take, `tolerance` for a
+    token condition and `accept` for a numeric one: `_tokens` refuses it at itself, and nothing inside it is
+    checked (section 1)."""
+    if place != "requirement condition" or key not in _CONDITIONS:
+        return False
+    return name == ("accept" if _CONDITIONS[key].shape == "numeric" else "tolerance")
 
 
 def _status_object(value: JsonObject) -> bool:
@@ -571,7 +590,8 @@ def _shape(declaration: JsonObject) -> list[Finding]:
         members, at = _members_of(visit.place), visit.pointer
         for name, held in visit.value.items():
             if name in members:
-                found += _holds(members[name].holds, held, _join(at, name))
+                if not _other_alternative(visit.place, visit.key, name):
+                    found += _holds(members[name].holds, held, _join(at, name))
             elif visit.place != "acceptance":  # one of no known kind is judged at its kind alone
                 found.append(Finding("BC-048", _join(at, name), _not_listed(name, members, "a member here")))
         for name, member in members.items():
@@ -689,10 +709,9 @@ def _tokens(declaration: JsonObject) -> list[Finding]:
         elif place == "implied token" and key in _CONDITIONS:
             check(value.get("token"), f"{at}/token", _CONDITIONS[key].tokens, f"a token of {key}")
         elif place == "population level":
-            within = value.get("within")
-            check(within, f"{at}/within", levels, "a level")
-            if isinstance(within, dict) and not (_status_object(within) and within.get("status") == "none"):
-                found.append(Finding("BC-048", f"{at}/within", "a status object other than none"))
+            check(value.get("within"), f"{at}/within", levels, "a level")
+        elif place == "status object" and key == WITHIN:
+            check(value.get("status"), f"{at}/status", ("none",), "none, the one status of a within")
         elif place == "acceptance" and "acceptance" in value:
             check(value["acceptance"], f"{at}/acceptance", KINDS, "a kind of acceptance")
         elif place in KINDS:
@@ -728,16 +747,14 @@ def _kind_tokens(kind: str, value: JsonObject, at: str) -> list[Finding]:
         check("condition", _CONDITIONS, "a registered condition")
         if "label" in value:
             check("label", _labels_of(value.get("field")), "a label of its field")
-        # A code names a condition where its reasons always carry one, and one that is no reason names none. A
-        # code refused as a token is a member at fault, and the condition it names is not judged against it.
-        if (
-            isinstance(code, str)
-            and code in CONDITION_CODES
-            and code in TOKENS["waiver", "code"]
-            and "condition" not in value
-        ):
+        # A code names a condition where its reasons always carry one, and one that is no reason, of whatever
+        # type, or none, names none. A code refused as a token is a member at fault, and the condition it
+        # would name is not judged missing against it; but a `condition` given beside a code that names none
+        # is refused whichever value that code holds.
+        names_one = isinstance(code, str) and code in CONDITION_CODES
+        if names_one and code in TOKENS["waiver", "code"] and "condition" not in value:
             found.append(Finding("BC-048", at, f"a waiver of {code} names its condition", "condition"))
-        elif isinstance(code, str) and code not in CONDITION_CODES and "condition" in value:
+        elif not names_one and "condition" in value:
             found.append(Finding("BC-048", f"{at}/condition", f"{code!r} names no condition"))
     elif kind == "implied_condition":
         with_token = [name for name, spec in VOCABULARY.facts.items() if spec.tokens]
@@ -782,9 +799,13 @@ def _names(declaration: JsonObject) -> list[Finding]:
     `name`, a record listed twice in one `checked_over`, a field twice in `reads`, two requirements for one
     field, two `trainable` entries for one field at one location; an `accepts` token twice; a requirement, a
     `trainable` entry or a combination naming a field its model does not list in `reads`; a combination of
-    fewer than two fields, or of fields of one section; a `trainable` entry at a record its model is not
-    checked over. Where a model is checked over a domain or a path, which needs the scene, a `trainable`
-    entry's location is not judged here, nor one at a region or an interval: item 12 refuses each."""
+    fewer than two fields, or of registered fields of one section (an entry that is no registered field has
+    no section); a `trainable` entry at a location its model is not checked over: a record its records do not
+    list, a record where the model is checked over a domain or a path, a region or an interval where it is
+    checked over records. A name given twice is a well-formed name: a `trainable` entry with a field that is
+    no string, or a location that is no reference, string or interval, is given twice never. Where a model is
+    checked over a domain or a path, which needs the scene, a `trainable` entry at a region or an interval is
+    not judged here: item 12 refuses it."""
     found: list[Finding] = []
     models: set[str] = set()
     for index, model in _entries(declaration, "models"):
@@ -813,24 +834,35 @@ def _names(declaration: JsonObject) -> list[Finding]:
                 f"{at}/combinations/{position}",
                 [field for field in _list(combined) if isinstance(field, str)],
             )
-            sections = {field.partition(".")[0] for field in fields}
+            registered = [field for field in fields if field in VOCABULARY.fields]
+            sections = {field.partition(".")[0] for field in registered}
             if isinstance(combined, list) and (
-                len(combined) < 2 or (len(fields) == len(combined) and len(sections) < 2)
+                len(combined) < 2 or (len(registered) > 1 and len(sections) < 2)
             ):
                 found.append(Finding("BC-048", here, "not two or more fields of different sections"))
             for number, field in enumerate(_list(combined)):
                 if isinstance(field, str):
                     found += _unread(field, read, f"{here}/{number}")
         trainable: set[str] = set()
+        kind = _checked_over_kind(model)
         for position, entry in _entries(model, "trainable"):
             here, field = f"{at}/trainable/{position}", entry.get("field")
             locations = [name for name in ("record", "region", "interval") if name in entry]
-            if not isinstance(field, str):
-                continue
-            found += _unread(field, read, f"{here}/field")
-            if len(locations) == 1:
-                location = json.dumps([field, locations[0], entry[locations[0]]], sort_keys=True)
-                found += _twice(location, trainable, here, "a second trainable entry for this field there")
+            if isinstance(field, str):
+                found += _unread(field, read, f"{here}/field")
+                location = _location_name(field, entry) if len(locations) == 1 else None
+                if location is not None:
+                    found += _twice(
+                        location, trainable, here, "a second trainable entry for this field there"
+                    )
+            # The location is judged against the model, not the field: a `field` at fault leaves it be.
+            for name in locations:
+                if (kind == "scene" and name == "record") or (kind == "records" and name != "record"):
+                    found.append(
+                        Finding(
+                            "BC-048", f"{here}/{name}", f"a {name} where the model is checked over {kind}"
+                        )
+                    )
             reference = _reference(entry.get("record")) if locations == ["record"] else None
             if reference is not None and records is not None and reference not in records:
                 found.append(Finding("BC-048", f"{here}/record", "a record its model is not checked over"))
@@ -839,6 +871,19 @@ def _names(declaration: JsonObject) -> list[Finding]:
             if acceptance.get("acceptance") == "overlay_scope" and len(set(accepts)) < len(accepts):
                 found.append(Finding("BC-048", f"{at}/acceptances/{position}/accepts", "a token twice"))
     return found
+
+
+def _location_name(field: str, entry: JsonObject) -> str | None:
+    """The name of a `trainable` entry of one location: its field and location, a record by its reference;
+    None where the location is no well-formed name (a record that is no reference, a region no string)."""
+    (kind,) = (name for name in ("record", "region", "interval") if name in entry)
+    held = entry[kind]
+    if kind == "record":
+        reference = _reference(held)
+        held = None if reference is None else [reference.id, reference.version, reference.content_hash]
+    elif kind == "region" and not isinstance(held, str):
+        held = None
+    return None if held is None else json.dumps([field, kind, held], sort_keys=True)
 
 
 def _twice(name: _Name, seen: set[_Name], at: str, detail: str) -> list[Finding]:
@@ -898,7 +943,8 @@ def _locations(declaration: JsonObject) -> list[Finding]:
 
 def _labels(declaration: JsonObject) -> list[Finding]:
     """BC-050: a waiver naming a `label`, unless the requirement for its field names that label and holds
-    `review: "reviewed"` (section 4.1 item 4), at the waiver's `label`."""
+    `review: "reviewed"` (section 4.1 item 4), at the waiver's `label`. A `label` that is no string names no
+    label, and is BC-048's alone, at itself, whatever the requirement holds."""
     found: list[Finding] = []
     for index, model in _entries(declaration, "models"):
         requirements: dict[str, JsonObject] = {}
@@ -906,7 +952,7 @@ def _labels(declaration: JsonObject) -> list[Finding]:
             if isinstance(requirement.get("field"), str):
                 requirements.setdefault(cast(str, requirement["field"]), requirement)
         for position, waiver in _entries(model, "acceptances"):
-            if waiver.get("acceptance") != "waiver" or "label" not in waiver:
+            if waiver.get("acceptance") != "waiver" or not isinstance(waiver.get("label"), str):
                 continue
             field = waiver.get("field")
             requirement = requirements.get(field, {}) if isinstance(field, str) else {}
@@ -1055,6 +1101,18 @@ def _reference(value: JsonValue) -> MaterialRef | None:
     if isinstance(id_, str) and isinstance(version, str) and isinstance(pin, str):
         return MaterialRef(id_, version, pin)
     return None
+
+
+def _checked_over_kind(model: JsonObject) -> Literal["records", "scene"] | None:
+    """What a model is checked over, where `checked_over` names exactly one alternative: `records`, a list; or
+    `scene`, a `domain` or a `path`, whatever it holds. None where the member is at fault in this."""
+    checked_over = _object(model.get("checked_over"))
+    named = checked_over.keys() & {"domain", "path", "records"}
+    if len(named) != 1:
+        return None
+    if "records" in named:
+        return "records" if isinstance(checked_over["records"], list) else None
+    return "scene"
 
 
 def _checked_records(model: JsonObject) -> list[MaterialRef | None] | None:
