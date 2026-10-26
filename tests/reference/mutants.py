@@ -3928,7 +3928,6 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
         "a requirement's `population_level` of another shape taken",
         'declarations.md:64 "`{"level", "within"}` as in `uncertainty.md` section 1"',
         {"DeclarationCheck.population_level": population_level_shape_unchecked},
-        "no case holds a `population_level` of another shape",
         module=build,
     ),
     "build_represents_token_unchecked": Mutant(
