@@ -254,9 +254,11 @@ ACCEPTANCES_OF_NO_KIND: Final[tuple[tuple[str, JsonObject, str], ...]] = (
 )
 
 
-# The refusals the divergence triage settled for the model (the rulings of 2026-10-26): a rule that judges one
-# member against another stands aside only as far as its verdict depends on the member at fault, and a name
-# given twice is judged on well-formed names. Each is the answer the check gives, which the model now gives.
+# The refusals the model gives where it once read the specification apart from the declaration check
+# (defaults of 2026-10-26, which the maintainer has yet to confirm): a rule that judges one member against
+# another stands aside only as far as its verdict depends on the member at fault, so that what the judged
+# member's own type, shape or registered names settle is still judged, and a name given twice is judged on
+# well-formed names. Each is the answer the check gives, or the one the check's own pull request moves it to.
 REMANENCE: Final = "magnetic.remanence"
 SATURATION: Final = "magnetic.saturation_magnetisation"
 TRAINABLE: Final = f"{MODEL}/trainable/0"
@@ -265,6 +267,13 @@ SECOND_RECORD: Final[JsonObject] = {**RECORD, "id": "conformance/second_fixture"
 RECORD_WITH_A_STRAY: Final[JsonObject] = {**RECORD, "x": 1.0}
 RECORD_WITHOUT_AN_ID: Final[JsonObject] = {**RECORD, "id": None}
 BAD_LABEL: Final = "materica.nobody.has.this.v1"  # a label registered for no field
+RECORD_OF_ANOTHER_VERSION: Final[JsonObject] = {**RECORD, "version": "2.0.0"}
+RECORD_OF_ANOTHER_HASH: Final[JsonObject] = {**RECORD, "content_hash": "sha256:" + "0" * 64}
+# The parts of a reference's name besides its `id`: a reference holding another JSON type there has no name.
+PARTS_OF_A_NAME: Final[tuple[tuple[str, JsonObject], ...]] = (
+    ("version", RECORD_OF_ANOTHER_VERSION),
+    ("content_hash", RECORD_OF_ANOTHER_HASH),
+)
 
 
 UNREGISTERED_FIELDS: Final[tuple[tuple[str, list[JsonValue], JsonObject, list[tuple[str, str]]], ...]] = (
@@ -295,6 +304,15 @@ def accepted_difference(value: JsonValue) -> JsonObject:
         "fact": "species",
         "value": value,
     }
+
+
+NOMINAL_AT_A_REGION: Final[JsonObject] = {
+    "acceptance": "nominal",
+    "reason": REASON,
+    "basis": REASON,
+    "field": VISCOSITY,
+    "region": "lumen",
+}
 
 
 def refusing(what: str, held: JsonObject, *refusals: tuple[str, str]) -> Direct:
@@ -548,6 +566,120 @@ DIVERGENCES: Final[tuple[Direct, ...]] = (
         declaration(entry(acceptances=[waiver(region=None)])),
         ("BC-048", f"{ACCEPTANCE}/region"),
         ("BC-051", ACCEPTANCE),
+    ),
+    # A record's name is its `id`, its `version` and its `content_hash`, each a string: records that differ in
+    # one are two records, and a record whose `version` or `content_hash` is another JSON type has no name.
+    *(
+        Direct(
+            f"two records differing only in {part}",
+            declaration(entry(checked_over={"records": [RECORD, other]})),
+            BUILD,
+            None,
+        )
+        for part, other in PARTS_OF_A_NAME
+    ),
+    *(
+        refusing(
+            f"a trainable entry at a record differing from the one listed only in {part}",
+            declaration(entry(trainable=[{"field": VISCOSITY, "record": other}])),
+            ("BC-048", f"{TRAINABLE}/record"),
+        )
+        for part, other in PARTS_OF_A_NAME
+    ),
+    *(
+        refusing(
+            f"two records alike, their {part} a number",
+            declaration(entry(checked_over={"records": [{**RECORD, part: 1.0}, {**RECORD, part: 1.0}]})),
+            ("BC-048", f"{CHECKED_OVER}/records/0/{part}"),
+            ("BC-048", f"{CHECKED_OVER}/records/1/{part}"),
+        )
+        for part, _ in PARTS_OF_A_NAME
+    ),
+    *(
+        refusing(
+            f"a trainable entry at a record whose {part} is a number, the record listed whole",
+            declaration(entry(trainable=[{"field": VISCOSITY, "record": {**RECORD, part: 1.0}}])),
+            ("BC-048", f"{TRAINABLE}/record/{part}"),
+        )
+        for part, _ in PARTS_OF_A_NAME
+    ),
+    # A name given twice is judged against every name before it, and two `trainable` entries are twice for one
+    # field at one location, not for two fields at one.
+    Direct(
+        "two trainable entries for two fields at one record",
+        declaration(
+            entry(
+                reads=[VISCOSITY, DENSITY],
+                trainable=[{"field": VISCOSITY, "record": RECORD}, {"field": DENSITY, "record": RECORD}],
+            )
+        ),
+        BUILD,
+        None,
+    ),
+    refusing(
+        "two trainable entries for one field at one record, with one for another field between them",
+        declaration(
+            entry(
+                reads=[VISCOSITY, DENSITY],
+                trainable=[
+                    {"field": VISCOSITY, "record": RECORD},
+                    {"field": DENSITY, "record": RECORD},
+                    {"field": VISCOSITY, "record": RECORD},
+                ],
+            )
+        ),
+        ("BC-048", f"{MODEL}/trainable/2"),
+    ),
+    refusing(
+        "a record listed twice, with another between the two",
+        declaration(entry(checked_over={"records": [RECORD, SECOND_RECORD, RECORD]})),
+        ("BC-048", f"{CHECKED_OVER}/records/2"),
+    ),
+    # A model checked over records and another alternative is judged on each alternative and not on a record
+    # listed twice; a `trainable` entry's record is judged against `checked_over` only where it holds records
+    # and no other alternative.
+    refusing(
+        "a model checked over a record listed twice and a path",
+        declaration(entry(checked_over={"records": [RECORD, RECORD], "path": "tube"})),
+        ("BC-048", CHECKED_OVER),
+        ("BC-051", f"{CHECKED_OVER}/path"),
+    ),
+    refusing(
+        "a model checked over a record listed twice and a domain",
+        declaration(entry(checked_over={"records": [RECORD, RECORD], "domain": "lumen"})),
+        ("BC-048", CHECKED_OVER),
+        DOMAIN_REFUSAL,
+    ),
+    refusing(
+        "a trainable entry at a record, its model checked over nothing",
+        declaration(entry(checked_over={}, trainable=[{"field": VISCOSITY, "record": RECORD}])),
+        ("BC-048", CHECKED_OVER),
+    ),
+    refusing(
+        "a trainable entry at a record, its model checked over a domain and a path",
+        declaration(
+            entry(
+                checked_over={"domain": "lumen", "path": "tube"},
+                trainable=[{"field": VISCOSITY, "record": RECORD}],
+            )
+        ),
+        ("BC-048", CHECKED_OVER),
+        DOMAIN_REFUSAL,
+        ("BC-051", PATH),
+    ),
+    # A place holding none of the members it takes one of is a missing member's fault, apart from the fault
+    # the member's location is: a nominal at a region holding neither `value` nor `params`.
+    refusing(
+        "a nominal at a region holding neither value nor params",
+        declaration(entry(acceptances=[NOMINAL_AT_A_REGION])),
+        ("BC-048", ACCEPTANCE),
+        ("BC-051", ACCEPTANCE),
+    ),
+    Direct(
+        "a nominal at a region holding neither value nor params, the scene suite claimed",
+        declaration(entry(acceptances=[NOMINAL_AT_A_REGION])),
+        SCENE,
+        None,
     ),
 )
 
