@@ -313,6 +313,14 @@ every family entry goes in `families/CHANGELOG.md`.
   the case writer's own check follows the text for all of them with 17 seeded faults, each caught by a file,
   and the check passes every one. No case file already on `main` changes its expected answer.
   The reference model, with its own changes on `main`, agrees with every one of the 44.
+- Four build-check case files (`BC-048`), written through the case tools, for the three rules the refusal paragraph
+  now says do not stand aside, which no file pinned: a requirement whose `represents` is no token, beside no
+  `sampling` (BC-044 at the declaration and BC-048 at the `represents`); a waiver's `label` beside a requirement
+  whose `review` is no token (BC-048 at the `review` and BC-050 at the `label`); and a `trainable` entry's record
+  beside a `domain` that is no string (BC-048 at the record beside item 12's refusal at the `domain`) and beside
+  `records: []` (BC-048 at the `records` and at the record). Each has a control that gives another answer, and the
+  case writer's own check follows the text for all four with three more seeded faults, each caught by a file. The
+  declaration check and the build's reference model agree with every one. No existing file's answer changes.
 - PR-330's arm of a member one slip from a requirement's `review` (`PR-330.near_typo_requirement_review`,
   S7a-2a), written through the case tools: refused at step 0, which S2a-2's step 0 runs, and passes. The S7
   design's notes ask for the slip among the arms of the read's refusal of `review`, which it has made since

@@ -61,12 +61,12 @@ def test_every_result_a_run_case_file_gets_validates_against_the_result_schema()
 
 def test_every_report_a_run_build_check_file_gets_validates_against_the_report_schema() -> None:
     """`build_report.json` takes each report this implementation gives a build-check file it runs, as
-    `read_result.json` takes each read's result: 100 refused on their own, and 58 with results. The control: a
+    `read_result.json` takes each read's result: 104 refused on their own, and 58 with results. The control: a
     report holding both a refusal and a result, which section 2 does not give, is refused for each, a result
     taken whole from one of the reports the schema takes being added to a refused one, and a refusal to one
     with results."""
     builds = [case_file for case_file in RUN if case_file.operation == "check_build"]
-    assert len(builds) == 158
+    assert len(builds) == 162
     assert results_refused(builds, EXECUTORS, "build_report.json") == []
     reports = [
         EXECUTORS["check_build"](case_file, runner.agreeing(case_file, CONFIGURATIONS)[0])
@@ -82,7 +82,7 @@ def test_every_report_a_run_build_check_file_gets_validates_against_the_report_s
             return {**report, "results": [a_result]}
         return {**report, "refusals": [{"item": "BC-048", "pointer": "/models"}]}
 
-    assert len(results_refused(builds, {"check_build": with_both}, "build_report.json")) == 158
+    assert len(results_refused(builds, {"check_build": with_both}, "build_report.json")) == 162
 
 
 def test_a_result_the_result_schema_refuses_is_found() -> None:
@@ -95,9 +95,9 @@ def test_a_result_the_result_schema_refuses_is_found() -> None:
 
 def test_every_case_file_is_counted() -> None:
     runs = runner.run_all(CASE_FILES, configurations=CONFIGURATIONS, executors=EXECUTORS)
-    assert len(runs) == 1682
+    assert len(runs) == 1686
     assert Counter(case_run.outcome for case_run in runs) == {
-        Outcome.PASSED: 1340,
+        Outcome.PASSED: 1344,
         Outcome.VERIFIED: 35,
         Outcome.NOT_YET_RUNNABLE: 307,
     }
@@ -106,7 +106,7 @@ def test_every_case_file_is_counted() -> None:
         (Outcome.PASSED, "content_hash"): 51,
         (Outcome.PASSED, "read"): 1106,
         (Outcome.PASSED, "list_records"): 25,
-        (Outcome.PASSED, "check_build"): 158,
+        (Outcome.PASSED, "check_build"): 162,
         (Outcome.VERIFIED, "evaluate"): 35,
         (Outcome.NOT_YET_RUNNABLE, "read"): 110,
         (Outcome.NOT_YET_RUNNABLE, "check"): 184,
@@ -122,9 +122,9 @@ def test_each_configuration_runs_every_case_file_that_holds_for_it() -> None:
         CONFIGURATIONS[0]: 1277,
         CONFIGURATIONS[1]: 1219,
         CONFIGURATIONS[2]: 1277,
-        CONFIGURATIONS[3]: 1435,
-        CONFIGURATIONS[4]: 1377,
-        CONFIGURATIONS[5]: 1434,
+        CONFIGURATIONS[3]: 1439,
+        CONFIGURATIONS[4]: 1381,
+        CONFIGURATIONS[5]: 1438,
         runner.REFERENCE_EVALUATOR: 35,
     }
 
