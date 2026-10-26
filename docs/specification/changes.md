@@ -627,7 +627,7 @@ paragraph). Before, the paragraph's most specific member would have placed an en
 at that value and another `want` at the requirement's `want`, so one engine model could give several refusals
 (BC-040).
 
-Settled with S7a-1b's second review (2026-10-25, a default the maintainer has yet to confirm): a rule that
+Settled with S7a-1b's second review (2026-10-25, a default the maintainer confirmed that day): a rule that
 judges one member against another stands aside where the other is itself at fault, so that one fault is one
 member at fault (`declarations.md` section 1, the refusal paragraph). A `population_level` beside a `represents`
 that is no token is not refused by the `population_level` rule, a requirement for a field is not judged against
@@ -641,7 +641,7 @@ fault, which item 7 and the shape's required members both name: one refusal, BC-
 and none at the value. Before, the paragraph did not say, and a second implementation could read each of these
 cases as a second refusal (BC-005, BC-040, BC-043, BC-048).
 
-A default of 2026-10-26, which the maintainer has yet to confirm, taken after a comparison of the declaration
+The maintainer's ruling of 2026-10-26, taken after a comparison of the declaration
 check with the build's reference model: a rule that judges one member against another stands aside where the
 other is itself at fault, with three exceptions (`declarations.md` section 1, the refusal paragraph). A member is
 still held to what it must be whichever value the other holds: its JSON type (a distribution parameter's value
@@ -658,9 +658,23 @@ is no registered field are refused at that entry alone (the sections rule judges
 other). Before, the paragraph gave three examples of standing aside and did not say where the principle stops,
 so two implementations could stop it at different places (BC-048).
 
-A second default of 2026-10-26, taken with the same comparison and not yet confirmed by the maintainer: a
+A second ruling of 2026-10-26, taken with the same comparison: a
 `trainable` entry at a `record` where its model is checked over a domain or a path, and one at a `region` or
 an `interval` where it is checked over `records`, is at a location its model is not checked over
 (`declarations.md` section 1, the shape's departures, and `declarations.md` section 2 item 2): BC-048 at the
 location, beside item 12's refusal at the entry where the build does not claim the scene suite. Before, the
 text did not say which location kinds a model checked over `records` or over a scene can have (BC-048).
+
+A third ruling of 2026-10-26, on three readings the declaration check and the build's reference model already
+shared: the refusal paragraph (`declarations.md` section 1) now says which rules do not stand aside where the
+member they judge against is at fault. A requirement samples where it holds `represents`, whatever `represents`
+holds (item 8), so a `represents` that is no token beside no `sampling` is refused for the missing `sampling`
+(BC-044) and for the `represents` (BC-048). A waiver's `label` is refused unless its requirement holds
+`review: "reviewed"` and names that label, whatever else the requirement's `label` and `review` hold (`declarations.md`
+section 4.1 item 4), so a `review` that is no token beside a waiver's `label` is refused at the `review` (BC-048) and at
+the `label` (BC-050). A `trainable` entry's location is judged against the one alternative `checked_over` names,
+whatever that alternative holds: a `domain` or a `path` that is no string is still a scene, and a `records` list,
+an empty one too, is still the list a record must be in; where `checked_over` names two alternatives or none,
+or its `records` is no list, the location is judged against none. The paragraph's "That has three exceptions"
+now reads "Standing aside has three exceptions", as the "That" could be read as the acceptance clause before it.
+Before, the paragraph read literally would have had each of the three stand aside (BC-044, BC-050, BC-048).

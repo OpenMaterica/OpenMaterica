@@ -114,7 +114,7 @@ every family entry goes in `families/CHANGELOG.md`.
 
 ### Changed
 - The declaration check agrees with the text where it and the build's reference model read it apart
-  (`core/declarations.py`; the defaults of 2026-10-26 are under Schema). A waiver's `label` that is no string
+  (`core/declarations.py`; the rulings of 2026-10-26 are under Schema). A waiver's `label` that is no string
   names no label and is BC-048's alone at itself, whatever its requirement holds (before, `null` beside a
   requirement that names no label was BC-048's, and every other case BC-050's). A waiver's `condition` beside
   a `code` that is missing or no string is refused, as beside a string that is no reason. A `trainable`
@@ -160,8 +160,8 @@ every family entry goes in `families/CHANGELOG.md`.
   holds the declaration as given where its text is JSON, and its `consumer` where the declaration declares one
   (section 2), which `build_report.json` now requires unless the report's one refusal is BC-048 at the empty
   pointer, which it cannot tell from a text that is not JSON; and a model item 7 refuses gives one refusal, at
-  its `engine` (section 1, the refusal paragraph). A default of the second review (2026-10-25), which the
-  maintainer has yet to confirm, adds a seventh: a rule that judges one member against another stands aside
+  its `engine` (section 1, the refusal paragraph). A default of the second review (2026-10-25),
+  which the maintainer confirmed that day, adds a seventh: a rule that judges one member against another stands aside
   where the other is itself at fault, so that one fault is one refusal (the same paragraph): a requirement is
   not judged against an empty `reads`, an acceptance with no known kind is refused at itself and none of its
   other members is judged, and an engine value without its `reason` or `basis` is item 7's fault alone, at the
@@ -280,8 +280,8 @@ every family entry goes in `families/CHANGELOG.md`.
 - A build-check case that compares results it expects names the members of each result it compares:
   `case.json` requires `compare.result_members` there. Before, such a case without it compared each result's
   `model`, location and `field` alone. A refusal case, which compares results and expects none, names none.
-- A paragraph and a phrase of `declarations.md` section 1 (defaults of 2026-10-26, which the maintainer has yet
-  to confirm, taken after a comparison of the declaration check with the build's reference model;
+- A paragraph and a phrase of `declarations.md` section 1 (the maintainer's rulings of 2026-10-26, taken after
+  a comparison of the declaration check with the build's reference model;
   `docs/specification/changes.md`). A rule that judges one member against another stands aside where the other
   is itself at fault, with three exceptions: a member is still held to its JSON type, to a label that no
   registered field has and to `params` where no registered field's row allows `parameter_set`; a rule the text
@@ -290,6 +290,16 @@ every family entry goes in `families/CHANGELOG.md`.
   A `trainable` entry at a `record` where its model is checked over a domain or a path, or at a `region` or an
   `interval` where it is checked over `records`, is at a location its model is not checked over (BC-048 at the
   location). No schema or vocabulary changes.
+- The refusal paragraph of `declarations.md` section 1 states three rules that do not stand aside (the
+  maintainer's ruling of 2026-10-26, on the readings the declaration check and the build's reference model
+  already shared; `docs/specification/changes.md`): a requirement samples where it holds `represents`, whatever
+  `represents` holds; a waiver's `label` is refused unless its requirement holds `review: "reviewed"` and names
+  that label, whatever else the requirement's `label` and `review` hold; and a `trainable` entry's location is
+  judged against the one alternative `checked_over` names, whatever that alternative holds, and against none
+  where it names two alternatives or none, or its `records` is no list. The paragraph's "That has three
+  exceptions" reads "Standing aside has three exceptions", so that it cannot be read as the acceptance clause
+  before it. Before, the paragraph read literally would have had each of the three stand aside. No schema or
+  vocabulary changes.
 
 ### Verification
 - 44 build-check case files of the declaration check beside the build's reference model (`BC-048`, and one
@@ -466,7 +476,7 @@ every family entry goes in `families/CHANGELOG.md`.
   The draw-time ownership the maintainer ruled on 2026-10-24 follows as a piece of its own,
   before the whole-repository run.
 - The build's reference model of a declaration is changed at the points where it and the declaration check
-  read the specification apart (defaults of 2026-10-26, which the maintainer has yet to confirm; the check's side
+  read the specification apart (the maintainer's rulings of 2026-10-26; the check's side
   follows in its own pull request, which also moves the check's comparison of a `trainable` entry's record, now
   of the record whole, to the model's, by its reference). A rule that judges one member against another stands
   aside where the other is itself at fault, with three exceptions: a member is still held to what it must be
@@ -488,7 +498,7 @@ every family entry goes in `families/CHANGELOG.md`.
   or `interval` for item 12 whatever JSON type it holds; refuses a combination for its sections only where
   every entry is a registered field and all are of one section; and gives an object holding two of the members it takes one of the object's own fault,
   so that a `trainable` entry at a record and a region is item 12's refusal alone at the entry. Three open
-  points are retired on those defaults (`member_judged_beside_a_faulty_one`, `combination_sections`,
+  points are retired on those rulings (`member_judged_beside_a_faulty_one`, `combination_sections`,
   `trainable_location_in_a_scene`) and `exactly_one_of` is restated. `tests/reference/direct.py` holds 71 new
   direct checks, 44 of which the model of `main` fails (counted by running them against it); the other 27 pin
   what the model of `main` already held (the cross-kind location rule of a `trainable` entry, the parts of a

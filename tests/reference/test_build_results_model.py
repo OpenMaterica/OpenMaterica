@@ -275,7 +275,7 @@ def test_a_direct_check_the_model_does_not_meet_is_found(check: results_direct.D
 
 
 def test_the_verdict_is_a_result_not_accepted() -> None:
-    """declarations.md:259 "The build MUST refuse to build while any result is not accepted, and reports every
+    """declarations.md:268 "The build MUST refuse to build while any result is not accepted, and reports every
     such result, not only": the verdict of a report, by its results."""
     accepted: JsonObject = {"model": "a", "accepted": True}
     refused: JsonObject = {"model": "b", "accepted": False}

@@ -255,7 +255,7 @@ ACCEPTANCES_OF_NO_KIND: Final[tuple[tuple[str, JsonObject, str], ...]] = (
 
 
 # The refusals the model gives where it once read the specification apart from the declaration check
-# (defaults of 2026-10-26, which the maintainer has yet to confirm): a rule that judges one member against
+# (the maintainer's rulings of 2026-10-26): a rule that judges one member against
 # another stands aside where the other is itself at fault, with three exceptions (a member is still held to
 # its JSON type, a label that no registered field has, and `params` where no registered field's row allows
 # the form `parameter_set`), and a name given twice is judged on well-formed names. Each is the answer the
