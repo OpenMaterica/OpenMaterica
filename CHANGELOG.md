@@ -113,6 +113,24 @@ every family entry goes in `families/CHANGELOG.md`.
   figure counts stay with the reviewer.
 
 ### Changed
+- The declaration check agrees with the text where it and the build's reference model read it apart
+  (`core/declarations.py`; the rulings of 2026-10-26 are under Schema). A waiver's `label` that is no
+  string names no label and is BC-048's alone at itself, whatever its requirement holds (before, `null` beside
+  a requirement that names no label was BC-048's, and every other case BC-050's). A waiver's `condition`
+  beside a `code` that is missing or no string is refused, as beside a string that is no reason. A `trainable`
+  entry's location is judged beside a `field` that is no string, and a record that is no reference, a region
+  that is no string or a `field` that is no string make an entry that is given twice never; a record is
+  compared with the listed ones, and with another entry's, by its reference. A `trainable` entry at a `record`
+  where the model is checked over a domain or a path, or at a `region` or an `interval` where it is checked
+  over records, is BC-048 at the location. A population level's `within` object is visited as a status object
+  whose one status is `none`: a member it does not name, a `reason` that is no text and a `status` other than
+  `none` are refused at themselves (before, an object with a `reason` that was not a text was taken, which
+  nothing reaches until the sampling suite lands). Nothing is checked inside the `tolerance` of a token
+  condition or the `accept` of a numeric one, which is refused at itself. A combination of registered fields
+  of one section is refused beside an entry that is no registered field, and one registered field beside an
+  unregistered one is no such combination. No case file changes its expected answer; three unit tests change
+  theirs (a `within` of another status, a waiver's `code` of another type and a `trainable` entry at a record
+  and a region).
 - CI's fuzz control step prints each run's find time (the maintainer's ruling of 2026-10-23), so that CI's runs
   measure the rates the fuzz controls' bar is judged by, which the rates in `ci.yml` and `tests/fuzz/README.md`
   only estimate from local runs. For every control, one line a run, `fuzz-control <name> round=<r> run=<i>
