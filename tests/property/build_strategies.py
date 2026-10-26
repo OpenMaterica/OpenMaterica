@@ -663,14 +663,37 @@ def _never(
 # middle of its range: a viscosity stated there, or 20 K away (`condition_outside`), in vivo with its
 # temperature unstated (an implied condition fills it), or two alternatives there and 0.5 K away; a density
 # as a constant or an interval stated there, a table or a table with an edge, or in vivo with its temperature
-# and kind unstated.
-VISCOSITY_KINDS = ("met", "outside", "in_vivo", "in_vivo", "alternatives")
-DENSITY_KINDS = ("constant", "interval", "table", "edge_table", "in_vivo", "in_vivo")
+# and kind unstated. In vivo values are half the viscosities and a third of the densities, and intervals a
+# third of the densities: HP43's `indexes` kills its rarest mutants only there (an implied value of the other
+# sign of zero, an implied token, an extrapolation beside a nominal that applied), and CI's first drift run
+# killed two of them past the margin guard. Here and below, a choice's first value, which a search draws
+# about twice as often as each other in its first examples (a probe of Hypothesis 6.169), is the one those
+# kills need: in vivo, the pair or the token, the other sign of zero, an extrapolation beside a nominal, an
+# acceptance kept at its record, a requirement present, and no waiver of another code beside them.
+VISCOSITY_KINDS = ("in_vivo", "met", "outside", "in_vivo", "alternatives", "in_vivo")
+DENSITY_KINDS = (
+    "in_vivo",
+    "interval",
+    "constant",
+    "table",
+    "edge_table",
+    "interval",
+    "in_vivo",
+    "interval",
+    "in_vivo",
+)
+# An in vivo value whose record states one of the two conditions an implied condition supplies (its shear
+# rate, or its density's kind), a third of the in vivo values.
+IN_VIVO_STATED = "in_vivo_stated"
+# A nominal inside the grade's limits, which supplies an interval's value, or outside them
+# (`nominal_invalid`).
+NOMINALS = (NOMINAL_VALUE, NOMINAL_VALUE, 1300.0, NOMINAL_VALUE)
 
 
 @dataclass(frozen=True)
 class Drawn:
-    """A record as drawn: its record, as pinned, and the kind of each of its fields."""
+    """A record as drawn: its record, as pinned, and the kind of each of its fields (`IN_VIVO_STATED` for
+    an in vivo value that states one of the two conditions)."""
 
     record: JsonObject
     kinds: dict[str, str]
@@ -721,14 +744,15 @@ def a_record(
         if field == VISCOSITY:
             kind = (kinds or {}).get(field) or draw(st.sampled_from(VISCOSITY_KINDS))
             label = draw(st.sampled_from((NEWTONIAN, NEWTONIAN, None)))
-            shear_stated = kind == "in_vivo" and draw(st.integers(0, 2)) == 0
-            held = a_viscosity(kind, at, label, review, shear_stated=shear_stated)
+            stated = kind == "in_vivo" and draw(st.integers(0, 2)) == 2
+            held = a_viscosity(kind, at, label, review, shear_stated=stated)
             sections["fluid"] = section({"dynamic_viscosity": held}, in_vivo=kind == "in_vivo")
         else:
             kind = (kinds or {}).get(field) or draw(st.sampled_from(DENSITY_KINDS))
-            held = a_density(kind, at, review, kind_stated=kind == "in_vivo" and draw(st.booleans()))
+            stated = kind == "in_vivo" and draw(st.integers(0, 2)) == 2
+            held = a_density(kind, at, review, kind_stated=stated)
             sections["bulk"] = section({"density": held}, in_vivo=kind == "in_vivo")
-        chosen[field] = kind
+        chosen[field] = IN_VIVO_STATED if stated else kind
     return Drawn(material(identity, sections), chosen)
 
 
@@ -759,12 +783,18 @@ def a_requirement(draw: Draw, field: str, kind: str) -> JsonObject:
 
 
 # The implied conditions an in vivo value is given: its temperature implied as a value or a range, two
-# conditions implied by one acceptance (one of which the record may state), and for a viscosity a pair of one
-# value, one of whose tokens the specimen does not state, their numbers equal or of the other sign of zero, a
-# shear rate at rest, and for a density its kind implied as a token.
+# conditions implied by one acceptance, and for a viscosity a pair of one value, one of whose tokens the
+# specimen does not state, their numbers equal or of the other sign of zero, a shear rate at rest, and for a
+# density its kind implied as a token. Where the record states one of the two conditions (`IN_VIVO_STATED`),
+# the two-condition acceptance is drawn in half the draws, since only there does it fill one condition of
+# two; where it states neither, the pair or the token in two of five, since only there do they fill one.
 IMPLIED_KINDS = {
-    VISCOSITY: ("value", "range", "two_conditions", "pair"),
-    DENSITY: ("value", "range", "two_conditions", "token"),
+    VISCOSITY: ("pair", "value", "range", "two_conditions", "pair"),
+    DENSITY: ("token", "value", "range", "two_conditions", "token"),
+}
+STATED_IMPLIED_KINDS = {
+    VISCOSITY: ("two_conditions", "value", "two_conditions", "range", "two_conditions", "pair"),
+    DENSITY: ("two_conditions", "value", "two_conditions", "range", "two_conditions", "token"),
 }
 
 
@@ -785,12 +815,14 @@ def implies_for(field: str, how: str, at: float) -> JsonObject:
 
 
 @st.composite
-def implied_acceptances(draw: Draw, record: JsonObject, field: str, at: float) -> list[JsonObject]:
-    how = draw(st.sampled_from(IMPLIED_KINDS[field]))
+def implied_acceptances(
+    draw: Draw, record: JsonObject, field: str, at: float, *, stated: bool = False
+) -> list[JsonObject]:
+    how = draw(st.sampled_from((STATED_IMPLIED_KINDS if stated else IMPLIED_KINDS)[field]))
     if how != "pair":
         return [implied(record, field, implies_for(field, how, at))]
     zero = draw(st.sampled_from((0.0, -0.0)))
-    other = draw(st.sampled_from((zero, -zero)))
+    other = draw(st.sampled_from((-zero, zero)))
     pair = [
         implied(record, field, {"shear_rate": {"value": zero, "unit": "1/s"}}),
         implied(record, field, {"shear_rate": {"value": other, "unit": "1/s"}}, token="phantom"),
@@ -801,26 +833,27 @@ def implied_acceptances(draw: Draw, record: JsonObject, field: str, at: float) -
 @st.composite
 def acceptances_for(draw: Draw, drawn: Drawn, field: str, record: JsonObject, at: float) -> list[JsonObject]:
     """Acceptances a model may declare for `field` at `record`, by the field's kind: a waiver of a reason its
-    read gives, an implied condition, a nominal or an extrapolation where the kind meets one, in about half
-    of those draws one alike for the section's other field beside it, and in about a quarter of the draws a
+    read gives, an implied condition, a nominal and in most draws an extrapolation beside it, or an
+    extrapolation, where the kind meets one, in about two thirds of those draws one alike for the section's
+    other field beside the first (the one a read of the kind applies), and in about a quarter of the draws a
     waiver of another code."""
     kind = drawn.kinds.get(field)
     found: list[JsonObject] = []
     if field == VISCOSITY and draw(st.integers(0, 3)):
         found.append(waiver(record, field, "condition_unstated", "shear_rate"))
-    if kind == "in_vivo":
-        found += draw(implied_acceptances(record, field, at))
+    if kind in ("in_vivo", IN_VIVO_STATED):
+        found += draw(implied_acceptances(record, field, at, stated=kind == IN_VIVO_STATED))
     elif kind == "interval":
-        found.append(nominal(record, field, draw(st.sampled_from((NOMINAL_VALUE, NOMINAL_VALUE, 1300.0)))))
-        if draw(st.booleans()):
+        found.append(nominal(record, field, draw(st.sampled_from(NOMINALS))))
+        if draw(st.integers(0, 3)) < 3:
             found.append(extrapolation(record, field))
     elif kind in TABLES:
         found.append(extrapolation(record, field, draw(st.sampled_from(("constant", "consumer_law")))))
     elif kind == "outside" and draw(st.booleans()):
         found.append(waiver(record, field, "condition_outside", "temperature"))
-    if field == DENSITY and kind in ("interval", *TABLES) and draw(st.booleans()):
-        found.append({**found[-1], "field": COMPOSITION})
-    if draw(st.integers(0, 3)) == 0:
+    if field == DENSITY and kind in ("interval", *TABLES) and draw(st.integers(0, 2)) < 2:
+        found.append({**found[0], "field": COMPOSITION})
+    if draw(st.integers(0, 3)) == 3:
         found.append(waiver(record, field, draw(st.sampled_from(WAIVED)), None))
     return found
 
@@ -829,7 +862,7 @@ def acceptances_for(draw: Draw, drawn: Drawn, field: str, record: JsonObject, at
 def placed(draw: Draw, held: JsonObject, listed: Sequence[JsonObject]) -> JsonObject:
     """`held` where it was drawn in most draws; else at another record listed, or elsewhere."""
     at = held.get("record")
-    if not isinstance(at, dict) or draw(st.integers(0, 4)):
+    if not isinstance(at, dict) or draw(st.integers(0, 4)) < 4:
         return held
     others = [reference(record) for record in listed if reference(record) != at]
     how = draw(st.sampled_from(("listed", *ELSEWHERE) if others else ELSEWHERE))
@@ -854,7 +887,7 @@ def a_model(
     fields = list(reads) if reads is not None else draw(st.permutations(FIELDS))[: draw(st.integers(1, 2))]
     requirements: list[JsonObject] = []
     for field in fields:
-        if draw(st.integers(0, 5)):
+        if draw(st.integers(0, 5)) < 5:
             requirements.append(draw(a_requirement(field, listed[0].kinds.get(field, "constant"))))
     acceptances: list[JsonObject] = []
     for one in listed:
@@ -972,7 +1005,7 @@ def requests(draw: Draw, size: Size, ways: Sequence[str]) -> World:
     record = reference(one.record)
     given: list[JsonObject] = []
     if way == "implied":
-        for held in draw(implied_acceptances(record, field, at)):
+        for held in draw(implied_acceptances(record, field, at, stated=one.kinds[field] == IN_VIVO_STATED)):
             given += draw(given_somewhere(held, field))
         if draw(st.integers(0, 2)):
             # Beside them, one the specimen does not state the token of, which no read applies.

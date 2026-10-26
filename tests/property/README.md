@@ -2158,6 +2158,15 @@ of one model reversed (the text gives `unused` per model and no order within one
 (`_trusted`: an inferred basis trusted, a stated one not, the basis read from the read result; `_label_rests`:
 review or label presence not checked) wait for label trust, after 0.1.0.dev4 (maintainer, 2026-10-21).
 
+CI's first drift run of these searches (40 streams a size) killed `extrapolation_applied_under_any_assumption`
+and `implied_value_compared_by_equality` past the margin guard in several streams (the latest at the 845th and
+the 1,012th example): the whole builds of HP43's `indexes` reached their faults in about one example in 50 to
+250. Those builds now hold more in vivo values and intervals, give an in vivo value that states one of the two
+conditions an implied condition supplies the two-condition acceptance in half its draws, and put first in each
+choice the value those kills need, which a search draws most in its first examples (`build_strategies.py`,
+above `VISCOSITY_KINDS`). Run locally over the same 40 streams a size, every search of `indexes` and HP46 then
+died by its 166th example, and every search of HP44 by its 142nd; the drift on CI's matrix measures it again.
+
 <!-- kill points of every search of test_build_mutants.py::test_the_build_mutant_is_killed (scripts/gen_kill_counts.py) -->
 | Mutant | Fault | At | Killed by | Dies at | Examples |
 |---|---|---|---|---|---|
@@ -2179,26 +2188,26 @@ review or label presence not checked) wait for label trust, after 0.1.0.dev4 (ma
 | `accepted_by_without_the_applied` | `accepted_by` holds what covered a reason, not what the read applied | `judge` | HP43, assumptions | `other_reason` | 1, 1 |
 | `accepted_by_with_what_covered_nothing` | `accepted_by` holds every acceptance of the result's field located at its record | `judge` | HP43, waivers | `matching`, `code_differs` | 2, 2 |
 | `not_accepted_holds_covered_reasons` | `not_accepted` holds every reason, covered or not | `judge` | HP43, waivers | `matching`, `code_differs` | 1, 1 |
-| `judged_by_every_models_acceptances` | a model's results judged by every model's acceptances (R02) | `_results` | HP43, indexes | `indexes` | 14, 14 |
-| `unfilled_implied_condition_applied` | an implied condition given to a read counted applied, whether or not it filled a condition | `_applied` | HP43, indexes | `indexes` | 38, 38 |
-| `extrapolation_at_an_edge_applied` | an extrapolation given to a read counted applied, at an edge among others | `_applied` | HP43, indexes | `indexes` | 24, 24 |
-| `implied_applied_where_every_condition_filled` | an implied condition applied only where it fills every condition it implies | `_shown` | HP43, indexes | `indexes` | 92, 92 |
+| `judged_by_every_models_acceptances` | a model's results judged by every model's acceptances (R02) | `_results` | HP43, indexes | `indexes` | 9, 9 |
+| `unfilled_implied_condition_applied` | an implied condition given to a read counted applied, whether or not it filled a condition | `_applied` | HP43, indexes | `indexes` | 1, 1 |
+| `extrapolation_at_an_edge_applied` | an extrapolation given to a read counted applied, at an edge among others | `_applied` | HP43, indexes | `indexes` | 3, 3 |
+| `implied_applied_where_every_condition_filled` | an implied condition applied only where it fills every condition it implies | `_shown` | HP43, indexes | `indexes` | 7, 7 |
 | `implied_range_not_recognised` | an implied range not recognised in the condition it fills | `_IMPLIED_MEMBERS` | HP43, indexes | `indexes` | 11, 11 |
-| `implied_token_not_recognised` | an implied token not recognised in the condition it fills | `_IMPLIED_MEMBERS` | HP43, indexes | `indexes` | 42, 42 |
-| `implied_value_compared_by_equality` | an implied value compared with the condition it fills by equality, so that -0 is 0 | `_fills` | HP43, indexes | `indexes` | 38, 38 |
-| `extrapolation_applied_under_any_assumption` | an extrapolation counted applied on a result with any `assumption`, a nominal's among them | `_shown` | HP43, indexes | `indexes` | 110, 122 |
-| `unused_lists_the_applied` | an acceptance a read applied, and that covered no reason, listed unused | `_unused` | HP43, indexes | `indexes` | 11, 11 |
-| `unused_named_after_the_first_model` | each unused acceptance named after the first model (R01) | `_unused` | HP43, indexes | `indexes` | 5, 5 |
-| `unused_shared_by_every_model` | one set of used acceptances shared by every model (R03) | `_unused` | HP43, indexes | `indexes` | 11, 11 |
-| `acceptance_at_another_record_given` | an acceptance given to a read wherever it is located | `_given` | HP44, requests | `nominal` | 36, 36 |
-| `acceptance_of_another_field_of_the_section_given` | an acceptance for another field of the read's section given to it, and so counted applied where the result's `assumption` names one alike | `_given` | HP43, indexes | `indexes` | 80, 80 |
+| `implied_token_not_recognised` | an implied token not recognised in the condition it fills | `_IMPLIED_MEMBERS` | HP43, indexes | `indexes` | 5, 5 |
+| `implied_value_compared_by_equality` | an implied value compared with the condition it fills by equality, so that -0 is 0 | `_fills` | HP43, indexes | `indexes` | 1, 1 |
+| `extrapolation_applied_under_any_assumption` | an extrapolation counted applied on a result with any `assumption`, a nominal's among them | `_shown` | HP43, indexes | `indexes` | 60, 47 |
+| `unused_lists_the_applied` | an acceptance a read applied, and that covered no reason, listed unused | `_unused` | HP43, indexes | `indexes` | 1, 1 |
+| `unused_named_after_the_first_model` | each unused acceptance named after the first model (R01) | `_unused` | HP43, indexes | `indexes` | 3, 3 |
+| `unused_shared_by_every_model` | one set of used acceptances shared by every model (R03) | `_unused` | HP43, indexes | `indexes` | 9, 9 |
+| `acceptance_at_another_record_given` | an acceptance given to a read wherever it is located | `_given` | HP44, requests | `nominal` | 14, 14 |
+| `acceptance_of_another_field_of_the_section_given` | an acceptance for another field of the read's section given to it, and so counted applied where the result's `assumption` names one alike | `_given` | HP43, indexes | `indexes` | 9, 9 |
 | `requirement_label_and_review_given` | the requirement's `label` and `review` given in the read's request (`request_incomplete`) | `_request` | HP44, requests | `operating_value`, `operating_range` | 1, 1 |
 | `unnamed_operating_condition_dropped` | an operating condition the requirement does not name dropped from the request | `_request` | HP44, requests | `operating_value`, `operating_range` | 5, 5 |
 | `want_defaulted` | the request's `want` defaulted to `value` | `_request` | HP44, requests | `operating_value`, `operating_range` | 18, 18 |
 | `only_the_first_acceptance_given` | the first acceptance given alone, of several | `_request` | HP44, requests | `implied` | 7, 7 |
 | `claims_dropped_from_the_read` | the build's own read made under the default claims, not the build's | `read` | HP44, requests | `operating_value`, `operating_range` | 7, 7 |
 | `every_record_in_the_store_read` | results for every record in the store, listed or not | `_results` | HP44, coverage | `unlisted_record` | 1, 1 |
-| `field_with_no_requirement_read` | a field with no requirement read for a value | `_requirement` | HP44, coverage | `unlisted_record`, `no_requirement` | 1, 1 |
+| `field_with_no_requirement_read` | a field with no requirement read for a value | `_requirement` | HP44, coverage | `unlisted_record`, `no_requirement` | 3, 3 |
 | `status_lowered_when_accepted` | the status of an accepted result made `met` | `BuildResult` | HP44, requests | `operating_value`, `operating_range` | 35, 35 |
 | `not_reviewed_status_unknown` | `not_reviewed` making the status `unknown` over a read's `not_met` (R05) | `BuildResult` | HP44, requests | `nominal` | 2, 2 |
 | `label_from_the_result_only` | the label read from the result's labels, which a refusal before step 12 leaves out | `_stored` | HP45, label | `early_refusal` | 2, 2 |
@@ -2214,9 +2223,9 @@ review or label presence not checked) wait for label trust, after 0.1.0.dev4 (ma
 | `not_reviewed_given_without_provenance` | `not_reviewed` given to a result that holds no `provenance` (R04) | `_build_reasons` | HP45, review | `reviewed`, `not_checked` | 5, 5 |
 | `labelled_waiver_covers_untrusted` | a waiver naming a label covers as one naming none, its label never judged | `judge` | HP45, label_waiver | `reviewed_and_labelled`, `unreviewed` | 1, 1 |
 | `label_trust_raised_where_decided` | label trust's raise where a waiver naming a label fits a reason of a result refused whatever | `judge` | HP45, label_waiver | `unlabelled`, `another_label` | 1, 1 |
-| `refused_read_from_the_first_model_only` | `refused` read from the first model's results only | `BuildReport.refused` | HP46 | `permutation` | 89, 70 |
-| `acceptances_matched_by_position` | an acceptance a read applied mapped by its position among those given, not its index | `_applied` | HP46 | `permutation` | 11, 11 |
-| `results_deduplicated_by_field` | one result per field, of the first model and record that read it | `_results` | HP46 | `permutation` | 3, 3 |
+| `refused_read_from_the_first_model_only` | `refused` read from the first model's results only | `BuildReport.refused` | HP46 | `permutation` | 7, 28 |
+| `acceptances_matched_by_position` | an acceptance a read applied mapped by its position among those given, not its index | `_applied` | HP46 | `permutation` | 5, 7 |
+| `results_deduplicated_by_field` | one result per field, of the first model and record that read it | `_results` | HP46 | `permutation` | 5, 5 |
 
 ## Audits
 
@@ -2474,14 +2483,14 @@ lists its 29 uncut draws, among them the way of HP41's strata (30 ways across th
 HP42's planters beside (34 and 32) and the field an acceptance covers under `every_fault`'s planters (31 values,
 a field read twice a value at each of its places), each above the 24 values a site may hold to be cut.
 
-S7a-2's selection (`build`: `build_strategies.py` under HP43 to HP46 and their searches) has 163 sites and 542
+S7a-2's selection (`build`: `build_strategies.py` under HP43 to HP46 and their searches) has 163 sites and 587
 cuts, seven of them empty (a stratum of one way, and the one `unknown` code no row of section 4.2 lists, each
-drawn alone) and five draws uncut, each listed with why. Its 32 other cuts of a way drawn first ran locally on
-2026-10-25 (on two workers a cut, four at once), each held, at its feature audit or a mutant search, in 6 to 162
-s; its other 503 cuts wait for the cut kind on CI's measurement matrix, and are not counted here as held or not.
-Its `timing` is local until that dispatch measures it: a cut that holds nothing runs what the recording runs,
-181.7 s on two workers (117.1 s on four, the request job's figure), so the cut kind plans its 542 cuts in 14
-slices.
+drawn alone) and five draws uncut, each listed with why. A first look ran its 32 cuts of a way drawn first
+locally on 2026-10-25 (on two workers a cut, four at once), each held, at its feature audit or a mutant search,
+in 6 to 162 s, on the draws before the whole builds' were reweighted against the drift (2026-10-26); its 580
+runnable cuts wait for the cut kind on CI's measurement matrix, and are not counted here as held or not. Its
+`timing` is local until that dispatch measures it: a cut that holds nothing runs what the recording runs, 160.1
+s on two workers (110.1 s on four, the request job's figure), so the cut kind plans its 587 cuts in 14 slices.
 
 Every cut of S4d's ran on 2026-10-24, after the owner rule; of S3c's, the 80 whose sites the rule left with
 the same calls keep their results of 2026-10-23, and the other 127 ran on 2026-10-24. Under the rule, S4d's

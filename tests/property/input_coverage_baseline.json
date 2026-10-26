@@ -9722,10 +9722,10 @@
    "tests/property/test_build_mutant_table.py": "reads the parts' ways and strata (`HP43_PARTS`, `HP44_PARTS`, `HP45_PARTS`, `STRATA`) to hold the mutant table to them; it draws nothing"
   },
   "timing": {
-   "cuts": 542,
-   "whole_cuts": 542,
-   "seconds": 181.7,
-   "measured": "run locally (2026-10-25), until the cut kind's first dispatch on CI measures it: a cut that holds nothing runs what the selection's recording runs, which took 181.7 s on two workers, as a cut runs (117.1 s on four); no `!` pattern, so a whole recording makes the same 542 cuts, at two workers and at four"
+   "cuts": 587,
+   "whole_cuts": 587,
+   "seconds": 160.1,
+   "measured": "run locally (2026-10-26), until the cut kind's first dispatch on CI measures it: a cut that holds nothing runs what the selection's recording runs, which took 160.1 s on two workers, as a cut runs (110.1 s on four); no `!` pattern, so a whole recording makes the same 587 cuts, at two workers and at four"
   },
   "left_out": {
    "sites": 0,
