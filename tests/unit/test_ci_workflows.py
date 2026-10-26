@@ -4161,7 +4161,7 @@ def cap_check_problems(
     found: Workflow, cap: Cap, directory: Path, locales: Sequence[str] = CAP_LOCALES
 ) -> list[str]:
     """Where the cap step, run as written under each of `locales`, takes a value of the variable outside 1
-    to 20 or refuses one inside, lets a value run a command, refuses one without naming the variable or with
+    to 60 or refuses one inside, lets a value run a command, refuses one without naming the variable or with
     a workflow command beside its own, or takes one that the capped job computes as another number, the
     variable unset included, from the output the step writes, which it writes for no value it refuses; or
     where a locale is not installed, so that the check would run under bash's fallback instead."""
