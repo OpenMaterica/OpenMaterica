@@ -535,7 +535,8 @@ judged.
 So a record is named by its reference, whatever else it holds, in `checked_over.records`, in a `trainable`
 entry's location and in the check for a name given twice; a `trainable` entry's record that is no reference is
 not compared with the listed ones; a label beside a field that is not registered is judged against every
-registered label, and a nominal's `params` against every registered field's row (none allows `parameter_set`);
+registered label, and a nominal's `params`, whenever its `field` names no registered field, against every registered field's row
+(none allows `parameter_set`);
 a distribution's parameter values are judged beside a token that is none, their names are
 not; `records` is judged beside another alternative of `checked_over` (a record listed twice is judged on
 neither side there). Three further points of the same default: a combination is refused for its sections only

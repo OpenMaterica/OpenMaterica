@@ -447,8 +447,8 @@ every family entry goes in `families/CHANGELOG.md`.
   every entry is a registered field and all are of one section; and gives an object holding two of the members it takes one of the object's own fault,
   so that a `trainable` entry at a record and a region is item 12's refusal alone at the entry. Three open
   points are retired on those defaults (`member_judged_beside_a_faulty_one`, `combination_sections`,
-  `trainable_location_in_a_scene`) and `exactly_one_of` is restated. `tests/reference/direct.py` holds 69 new
-  direct checks, 42 of which the model of `main` fails (counted by running them against it); the other 27 pin
+  `trainable_location_in_a_scene`) and `exactly_one_of` is restated. `tests/reference/direct.py` holds 71 new
+  direct checks, 44 of which the model of `main` fails (counted by running them against it); the other 27 pin
   what the model of `main` already held (the cross-kind location rule of a `trainable` entry, the parts of a
   record's name, a name given twice with another between, a record listed twice beside another alternative of
   `checked_over`, a `nominal` holding neither `value` nor `params`) and arms on which the sides already agreed,
