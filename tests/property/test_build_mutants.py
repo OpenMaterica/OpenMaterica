@@ -207,6 +207,21 @@ def _on_no_assumption(row: CoverageRow) -> CoverageRow:
     return dataclasses.replace(row, on_assumption=False)
 
 
+def _without_the_pick_row() -> tuple[CoverageRow, ...]:
+    return tuple(row for row in COVERAGE if row.kind != "pick")
+
+
+def _extrapolation_row_without(code: str) -> tuple[CoverageRow, ...]:
+    """Section 4.2's rows, `code` left out of the row an extrapolation covers with no condition of its own
+    (`range_unstated`, `outside_coverage`)."""
+    return tuple(
+        dataclasses.replace(row, reasons=tuple(each for each in row.reasons if each != code))
+        if row.kind == "extrapolation" and not row.on_assumption
+        else row
+        for row in COVERAGE
+    )
+
+
 def _at_edge_beside_range_unstated() -> tuple[CoverageRow, ...]:
     return tuple(
         dataclasses.replace(row, reasons=(*row.reasons, "at_edge"))
@@ -585,6 +600,18 @@ def _label_only_on_a_read_otherwise_met(original: BuildReasons) -> BuildReasons:
     return faulty
 
 
+def _label_only_where_the_read_is_not_met(original: BuildReasons) -> BuildReasons:
+    def faulty(
+        requirement: Requirement | None, result: ReadResult | None, stored: JsonObject | None
+    ) -> tuple[Reason, ...]:
+        found = original(requirement, result, stored)
+        if result is not None and result.status == "met":
+            return tuple(one for one in found if one.code != "label_mismatch")
+        return found
+
+    return faulty
+
+
 def _not_reviewed_as_not_met(monkeypatch: pytest.MonkeyPatch) -> None:
     spec = VOCABULARY.reasons["not_reviewed"]
     monkeypatch.setitem(VOCABULARY.reasons, "not_reviewed", dataclasses.replace(spec, status="not_met"))
@@ -707,6 +734,33 @@ MUTANTS = [
         ("extrapolation_not_named",),
         COVERED,
         "an extrapolation covers `outside_range` on a result whose `assumption` does not name it",
+    ),
+    Mutant(
+        "pick_covers_nothing",
+        "COVERAGE",
+        "HP43 assumptions",
+        replacing(acceptance, "COVERAGE", _without_the_pick_row()),
+        ("pick",),
+        COVERED,
+        "a pick covers nothing (section 4.2's `no_pick` row left out)",
+    ),
+    Mutant(
+        "extrapolation_leaves_range_unstated",
+        "COVERAGE",
+        "HP43 assumptions",
+        replacing(acceptance, "COVERAGE", _extrapolation_row_without("range_unstated")),
+        ("extrapolation_unconditioned",),
+        COVERED,
+        "an extrapolation does not cover `range_unstated`",
+    ),
+    Mutant(
+        "extrapolation_leaves_outside_coverage",
+        "COVERAGE",
+        "HP43 assumptions",
+        replacing(acceptance, "COVERAGE", _extrapolation_row_without("outside_coverage")),
+        ("extrapolation_unconditioned",),
+        COVERED,
+        "an extrapolation does not cover `outside_coverage`",
     ),
     Mutant(
         "extrapolation_covers_at_an_edge",
@@ -1093,6 +1147,15 @@ MUTANTS = [
         ("differs",),
         "own reasons ",
         "`label_mismatch` given only beside no `not_met` of the read's",
+    ),
+    Mutant(
+        "label_mismatch_left_out_of_a_read_met",
+        "_build_reasons",
+        "HP45 label",
+        reasons_changed(_label_only_where_the_read_is_not_met),
+        ("absent_met",),
+        "own reasons ",
+        "`label_mismatch` given only where the read is not `met`",
     ),
     # `_build_reasons` (HP45's `review`).
     Mutant(

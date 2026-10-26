@@ -26,17 +26,18 @@ the bounds that decide it.
 The parts:
 - HP43, `judge` drawn directly: `waivers` (one matching a reason, or differing from it in its code, its
   condition, its location or its field), `assumptions` (a nominal or an extrapolation that the result's
-  `assumption` names or not, and a reason other than the one an assumption covers), and `never` (a reason
-  section 4.2 lists for no waiver, beside a waiver that names it, and `at_edge` beside an extrapolation);
-  `indexes`, whole builds, each result's verdict and the unused acceptances judged by their indexes.
+  `assumption` names or not, a reason other than the one an assumption covers, and a pick or an extrapolation
+  beside a reason its row lists with no condition of its own), and `never` (a reason section 4.2 lists for no
+  waiver, beside a waiver that names it, and `at_edge` beside an extrapolation); `indexes`, whole builds, each
+  result's verdict and the unused acceptances judged by their indexes.
 - HP44, `requests` (an operating value or range; an implied condition, a nominal or an extrapolation at the
   record or elsewhere) and `coverage` (a record listed or not, a field with a requirement or none, two models
   over one record, a listed record absent from the store).
 - HP45, `label` (the stored label equal, different, absent, absent or equal under a refusal before step 12,
-  and no stored value), `review` (reviewed, not checked, an unknown result, a slip, no `review` required), and
-  `label_waiver` (a waiver naming the requirement's label, on a value reviewed and labelled, unreviewed,
-  unlabelled or of another label). HP45's `label_trust` part waits for label trust, after 0.1.0.dev4
-  (maintainer, 2026-10-21).
+  no stored value, and absent under a read that is `met`), `review` (reviewed, not checked, an unknown result,
+  a slip, no `review` required), and `label_waiver` (a waiver naming the requirement's label, on a value
+  reviewed and labelled, unreviewed, unlabelled or of another label). HP45's `label_trust` part waits for
+  label trust, after 0.1.0.dev4 (maintainer, 2026-10-21).
 - HP46: builds of two or three models, permuted.
 """
 
@@ -136,6 +137,8 @@ UNSTATED: JsonObject = {"status": "unstated"}
 APPARENT: JsonObject = {"token": "apparent", "basis": "stated"}
 IN_VIVO: JsonObject = {"tissue_state": {"token": "in_vivo", "basis": "stated"}}
 SHEAR_RATES: JsonObject = {"range": [50.0, 500.0], "unit": "1/s"}
+# A shear rate a value states, over the operating range's and beyond it.
+STATED_SHEAR_RATES: JsonObject = {"range": [10.0, 1000.0], "unit": "1/s", "basis": "stated"}
 
 STATISTICS: JsonObject = {
     "central": "stated",
@@ -402,6 +405,14 @@ def nominal(at: JsonObject, field: str, value: float = NOMINAL_VALUE) -> JsonObj
     }
 
 
+def pick(at: JsonObject, field: str) -> JsonObject:
+    return {
+        **located(at, acceptance="pick", field=field),
+        "index": 0,
+        "reason": "the first alternative is the one the model was fitted on",
+    }
+
+
 def extrapolation(at: JsonObject, field: str, method: str = "constant") -> JsonObject:
     return {
         **located(at, acceptance="extrapolation", field=field),
@@ -468,6 +479,8 @@ HP43_PARTS: dict[str, tuple[str, ...]] = {
         "extrapolation_named",
         "extrapolation_not_named",
         "other_reason",
+        "pick",
+        "extrapolation_unconditioned",
     ),
     "never": ("unlisted_not_met", "no_pick", "label_mismatch", "unlisted_code", "at_edge"),
 }
@@ -597,7 +610,19 @@ def _assumed(
 ) -> tuple[list[JsonObject], list[Reason], JsonObject | None]:
     """A nominal or an extrapolation at the result, whose kind's reason the result holds, and the
     `assumption` the way gives: naming it, naming another (its value or law changed, or another kind), or
-    none."""
+    none. Or a pick beside `no_pick`, or an extrapolation beside `range_unstated` or `outside_coverage`: the
+    rows that need no condition of their acceptance, under no `assumption`. A pick is drawn here alone, for
+    `judge`; a build raises on one before any read until S7c."""
+    if way == "pick":
+        return [pick(at, field)], [Reason("no_pick")], None
+    if way == "extrapolation_unconditioned":
+        unconditioned = draw(st.sampled_from(("range_unstated", "outside_coverage")))
+        reason = (
+            Reason("range_unstated", "temperature")
+            if unconditioned == "range_unstated"
+            else Reason("outside_coverage")
+        )
+        return [extrapolation(at, field)], [reason], None
     by_nominal = way.startswith("nominal") or (way == "other_reason" and draw(st.booleans()))
     held = (
         nominal(at, field, draw(st.sampled_from((NOMINAL_VALUE, 1200.0))))
@@ -712,9 +737,7 @@ def a_viscosity(
             ]
         }
     if kind == "in_vivo":
-        shear: JsonObject = (
-            {"range": [10.0, 1000.0], "unit": "1/s", "basis": "stated"} if shear_stated else UNSTATED
-        )
+        shear: JsonObject = STATED_SHEAR_RATES if shear_stated else UNSTATED
         return viscosity(UNSTATED, label=label, review=review, shear_rate=shear)
     return viscosity(stated(at if kind == "met" else at + 20.0, "K"), label=label, review=review)
 
@@ -1071,7 +1094,7 @@ def coverage(draw: Draw, size: Size, ways: Sequence[str]) -> World:
 # HP45.
 
 HP45_PARTS: dict[str, tuple[str, ...]] = {
-    "label": ("equal", "differs", "absent", "early_refusal", "no_stored_value"),
+    "label": ("equal", "differs", "absent", "early_refusal", "no_stored_value", "absent_met"),
     "review": ("reviewed", "not_checked", "unknown_result", "slip", "not_required"),
     "label_waiver": ("reviewed_and_labelled", "unreviewed", "unlabelled", "another_label"),
 }
@@ -1085,10 +1108,13 @@ NO_STORED_VALUE = ("record_absent", "field_absent", "other_version", "unknown_ty
 def labels(draw: Draw, size: Size, ways: Sequence[str]) -> World:
     """HP45's `label`: a viscosity whose requirement names the Newtonian label, stored as the way says, read
     beside a section that holds an unknown `label` member in some draws (which a read ignores), under claims
-    with the hash suite or without it, where a record's stated hash may be stale."""
+    with the hash suite or without it, where a record's stated hash may be stale. Under `absent_met` the value
+    states its shear rate and the requirement names it, so that the read is `met` and `label_mismatch` is the
+    result's one reason; the other ways leave the shear rate unstated, and their reads end `unknown` or
+    `not_met`."""
     way = draw(st.sampled_from(tuple(ways)))
     claims = draw(CLAIMS)
-    stored_label: str | None = {"equal": NEWTONIAN, "absent": None}.get(way, NEWTONIAN)
+    stored_label: str | None = {"equal": NEWTONIAN, "absent": None, "absent_met": None}.get(way, NEWTONIAN)
     if way == "differs":
         stored_label = draw(st.sampled_from(OTHER_LABELS))
     elif way == "early_refusal":
@@ -1096,7 +1122,9 @@ def labels(draw: Draw, size: Size, ways: Sequence[str]) -> World:
     tolerated = 1.0
     operating: float = BODY
     value = draw(VISCOSITIES)
-    held: JsonObject = viscosity(stated(BODY, "K"), label=stored_label, value=value)
+    met = way == "absent_met"
+    shear = STATED_SHEAR_RATES if met else UNSTATED
+    held: JsonObject = viscosity(stated(BODY, "K"), label=stored_label, value=value, shear_rate=shear)
     if way == "early_refusal":
         held = viscosity(stated(ROOM, "K"), label=stored_label, value=value)
     alternatives = way in ("equal", "absent") and draw(st.integers(0, 3)) == 0
@@ -1135,7 +1163,7 @@ def labels(draw: Draw, size: Size, ways: Sequence[str]) -> World:
     sources = () if how == "record_absent" else (source(record),)
     required = requirement(
         VISCOSITY,
-        {"temperature": tolerance(tolerated, "K")},
+        {"temperature": tolerance(tolerated, "K"), **({"shear_rate": tolerance(0.0, "1/s")} if met else {})},
         want=want,
         label=NEWTONIAN,
         review=draw(st.booleans()),
@@ -1250,11 +1278,12 @@ STRATA: dict[str, tuple[tuple[str, ...], ...]] = {
         ("nominal_named", "nominal_not_named"),
         ("extrapolation_named", "extrapolation_not_named"),
         ("other_reason",),
+        ("pick", "extrapolation_unconditioned"),
     ),
     "never": (("unlisted_not_met", "no_pick"), ("label_mismatch", "unlisted_code"), ("at_edge",)),
     "requests": (("operating_value", "operating_range"), ("implied",), ("nominal",), ("extrapolation",)),
     "coverage": (("unlisted_record", "no_requirement"), ("two_models", "absent_record")),
-    "label": (("equal", "differs"), ("absent", "early_refusal"), ("no_stored_value",)),
+    "label": (("equal", "differs"), ("absent", "early_refusal"), ("no_stored_value",), ("absent_met",)),
     "review": (("reviewed", "not_checked"), ("unknown_result", "slip"), ("not_required",)),
     "label_waiver": (("reviewed_and_labelled", "unreviewed"), ("unlabelled", "another_label")),
 }

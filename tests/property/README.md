@@ -730,7 +730,7 @@ hold yet passes `--check`, so that a stacked branch's older commits stand, and f
 run.
 
 <!-- kill points summary (scripts/gen_kill_counts.py) -->
-`kill_points.json` records 1,610 searches, 805 mutants each at both sizes; the latest kill is at the 487th example (`upper_none_as_infinity`, original size).
+`kill_points.json` records 1,618 searches, 809 mutants each at both sizes; the latest kill is at the 487th example (`upper_none_as_infinity`, original size).
 <!-- end of kill points summary -->
 
 Three searches were planned because their kill sat in a long tail. With the pin, a search's kill is fixed by
@@ -2175,6 +2175,9 @@ died by its 166th example, and every search of HP44 by its 142nd; the drift on C
 | `waiver_ignores_its_code` | a waiver covers a reason its row lists whatever code it names | `_under` | HP43, waivers | `code_differs` | 2, 2 |
 | `nominal_covers_without_its_assumption` | a nominal covers `want_mismatch` on a result whose `assumption` does not name it | `_under` | HP43, assumptions | `nominal_not_named` | 2, 2 |
 | `extrapolation_covers_without_its_assumption` | an extrapolation covers `outside_range` on a result whose `assumption` does not name it | `_under` | HP43, assumptions | `extrapolation_not_named` | 2, 2 |
+| `pick_covers_nothing` | a pick covers nothing (section 4.2's `no_pick` row left out) | `COVERAGE` | HP43, assumptions | `pick` | 1, 1 |
+| `extrapolation_leaves_range_unstated` | an extrapolation does not cover `range_unstated` | `COVERAGE` | HP43, assumptions | `extrapolation_unconditioned` | 2, 2 |
+| `extrapolation_leaves_outside_coverage` | an extrapolation does not cover `outside_coverage` | `COVERAGE` | HP43, assumptions | `extrapolation_unconditioned` | 3, 3 |
 | `extrapolation_covers_at_an_edge` | `at_edge` covered by an extrapolation, as `range_unstated` is | `COVERAGE` | HP43, never | `at_edge` | 1, 1 |
 | `waiver_covers_no_pick` | `no_pick` covered by a waiver naming it | `_covers` | HP43, never | `no_pick` | 2, 2 |
 | `waiver_covers_label_mismatch` | `label_mismatch` covered by a waiver naming it | `_covers` | HP43, never | `label_mismatch` | 1, 1 |
@@ -2217,6 +2220,7 @@ died by its 166th example, and every search of HP44 by its 142nd; the drift on C
 | `refusal_at_steps_2_to_5_rests_on_the_field` | a record refused at steps 2 to 5 resting on its field | `read` | HP45, label | `no_stored_value` | 3, 3 |
 | `label_mismatch_on_no_stored_value` | `label_mismatch` on a result that rests on no stored value | `_build_reasons` | HP45, label | `no_stored_value` | 1, 1 |
 | `label_mismatch_left_out_beside_a_not_met` | `label_mismatch` given only beside no `not_met` of the read's | `_build_reasons` | HP45, label | `differs` | 2, 2 |
+| `label_mismatch_left_out_of_a_read_met` | `label_mismatch` given only where the read is not `met` | `_build_reasons` | HP45, label | `absent_met` | 1, 1 |
 | `review_not_required` | `not_reviewed` never given | `_build_reasons` | HP45, review | `not_checked` | 2, 2 |
 | `not_checked_with_a_reason_taken_as_reviewed` | a review `not_checked` with a `reason` taken as completed | `_build_reasons` | HP45, review | `not_checked` | 2, 2 |
 | `not_reviewed_read_as_not_met` | `not_reviewed` read as `not_met` | `VOCABULARY.reasons` | HP45, review | `not_checked` | 2, 2 |
@@ -2509,7 +2513,11 @@ CI's result, held at the same test with the same message. A change to a draw or 
 changes the sample every cut of the draws it reaches runs, and a cut held near the 2,000th example of a search
 could move; the pull request's measure run checks every cut of the selection again on each push that changes its
 tests or its entry. Its `timing` is CI's: the longest cut took 351.2 s, so the cut kind plans its cuts in 29
-slices (the 14 planned from the local 160.1 s took 59 min to 1 h 46 min of their 2 hours).
+slices (the 14 planned from the local 160.1 s took 59 min to 1 h 46 min of their 2 hours). The fourth round's
+three ways (`pick` and `extrapolation_unconditioned` of HP43's `assumptions`, and `absent_met` of HP45's `label`)
+add a site and five cuts, run locally on 2026-10-26: the two ways and the two reasons
+`extrapolation_unconditioned` draws are each held at a mutant search, and `absent_met`, a stratum of one way, is
+empty; so 164 sites and 592 cuts.
 
 Every cut of S4d's ran on 2026-10-24, after the owner rule; of S3c's, the 80 whose sites the rule left with
 the same calls keep their results of 2026-10-23, and the other 127 ran on 2026-10-24. Under the rule, S4d's

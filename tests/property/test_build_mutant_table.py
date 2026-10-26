@@ -152,6 +152,15 @@ REVIEWS: dict[str, str] = {
     "S7a-2m: a labelled waiver of another code or condition left undecided": (
         "label_trust_raised_where_decided"
     ),
+    # The review of this piece: rows of section 4.2 and an arm of section 2 item 8 that no draw reached. A
+    # pick is drawn for `judge` alone: a build raises on one before any read, so the row's test over whole
+    # builds waits for S7c.
+    "S7a-2p: a pick covering nothing": "pick_covers_nothing",
+    "S7a-2p: an extrapolation not covering `range_unstated`": "extrapolation_leaves_range_unstated",
+    "S7a-2p: an extrapolation not covering `outside_coverage`": "extrapolation_leaves_outside_coverage",
+    "S7a-2p: `label_mismatch` left out of a result whose read is `met`": (
+        "label_mismatch_left_out_of_a_read_met"
+    ),
 }
 
 
