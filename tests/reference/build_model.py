@@ -127,11 +127,15 @@ OPEN_POINTS: Final[Mapping[str, str]] = {
 # another missing member's: `Fault.apart` names which. A rule that judges one member against another does not
 # judge it where the other is at fault (declarations.md:156-157 "A rule that judges one member against
 # another stands aside where the other is itself at fault"): the rules that do so are marked "Stands aside".
-# It stands aside only as far as its verdict depends on the member at fault: what the judged member's own
-# type, shape or registered names settle, whichever value the member at fault holds, is still judged. An
-# entry that is no well-formed name (a reference without string `id`, `version` and `content_hash`, a `field`
-# that is no string) is neither the same as nor different from another, and no rule compares it (a default
-# of 2026-10-26).
+# It stands aside with three exceptions (a default of 2026-10-26, which the maintainer has yet to confirm). A
+# member is still held to what it must be whichever value the other holds, namely its JSON type (a
+# distribution parameter's value is a number; an accepted difference's `value` is an object, a status object,
+# judged as one, or `"any"`), a label that no registered field has, and `params` where no registered field's
+# row allows the form `parameter_set`. A rule the text states for a member at fault still applies: a waiver
+# whose `code` is no reason names no `condition`. An entry that is no well-formed name (a reference without
+# string `id`, `version` and `content_hash`, a `field` that is no string) is neither the same as nor different
+# from another, and no rule compares it. An acceptance that names no known kind keeps the rule above: none of
+# its other members is judged.
 ORDER: Final = ("BC-004", "BC-005", "BC-040", "BC-044", "BC-043", "BC-037", "BC-050", "BC-051", "BC-048")
 SHAPE: Final = "BC-048"
 # What the model gives a declaration that passes its own check: the build's results model
@@ -751,16 +755,18 @@ class DeclarationCheck:
 
     def combination(self, combination: JsonValue, pointer: str, reads: list[str] | None) -> None:
         # declarations.md:98 "lists of two or more fields in `reads`, from different sections"; refused where
-        # the Holds list refuses, declarations.md:139 "fewer than two fields or of fields of one section": the
-        # registered fields among the entries are all of one section (a default of 2026-10-26). A name that
-        # is no field has no section.
+        # the Holds list refuses, declarations.md:139 "fewer than two fields or of fields of one section". The
+        # count judges the list alone. The sections rule judges the entries against each other, so it stands
+        # aside wherever an entry is no registered field: it refuses only where every entry is a registered
+        # field and all are of one section (a default of 2026-10-26, which the maintainer has yet to confirm).
         if not isinstance(combination, list):
             self.fault(pointer)
             return
         sections = [
             name.partition(".")[0] for name in combination if isinstance(name, str) and name in FIELDS
         ]
-        if len(combination) < 2 or (len(sections) > 1 and len(set(sections)) == 1):
+        every_entry_registered = len(sections) == len(combination)
+        if len(combination) < 2 or (every_entry_registered and len(set(sections)) == 1):
             self.fault(pointer)
         for index, name in enumerate(combination):
             if self.token(name, at(pointer, index), FIELDS) and not read_by(name, reads):

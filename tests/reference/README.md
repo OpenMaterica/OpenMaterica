@@ -522,19 +522,25 @@ reordering of a pair without the shape rule changes no answer it gives, and only
 are the model's own tests, not shared evidence: the seeded faults run against them after the case files, so
 that a fault only they tell apart is a kill.
 
-The model reads a rule that judges one member against another as standing aside only as far as its verdict
-depends on the member at fault (a default of 2026-10-26, which the maintainer has yet to confirm): what the
-judged member's own type, shape or registered names settle, whichever value the member at fault holds, is still
-judged. An entry that is no well-formed name (a reference without string `id`, `version` and `content_hash`, a
-`field` that is no string) is neither the same as nor different from another, and no rule compares it.
+The model reads a rule that judges one member against another as standing aside where the other is itself at
+fault, with three exceptions (a default of 2026-10-26, which the maintainer has yet to confirm). A member is
+still held to what it must be whichever value the other holds, namely its JSON type (a distribution
+parameter's value is a number; an accepted difference's `value` is an object, a status object, judged as one,
+or `"any"`), a label that no registered field has, and `params` where no registered field's row allows the
+form `parameter_set`. A rule the text states for a member at fault still applies: a waiver whose `code` is no
+reason names no `condition`. An entry that is no well-formed name (a reference without string `id`, `version`
+and `content_hash`, a `field` that is no string) is neither the same as nor different from another, and no
+rule compares it. An acceptance that names no known kind keeps the rule above: none of its other members is
+judged.
 So a record is named by its reference, whatever else it holds, in `checked_over.records`, in a `trainable`
 entry's location and in the check for a name given twice; a `trainable` entry's record that is no reference is
 not compared with the listed ones; a label beside a field that is not registered is judged against every
 registered label, and a nominal's `params` against every registered field's row (none allows `parameter_set`);
 a distribution's parameter values are judged beside a token that is none, their names are
 not; `records` is judged beside another alternative of `checked_over` (a record listed twice is judged on
-neither side there). Three further points of the same default: a combination is refused where its registered
-fields are all of one section, not where two are; a waiver's `condition` of another JSON type is the member at
+neither side there). Three further points of the same default: a combination is refused for its sections only
+where every entry is a registered field and all are of one section (the rule judges the entries against each
+other, so it stands aside wherever one is no registered field; the count rule judges the list alone); a waiver's `condition` of another JSON type is the member at
 fault and not also a missing one; and item 12 names `region_conditions`, and a `trainable` entry's `region` or
 `interval`, whatever JSON type it holds. A place holding two of the members it takes one of is at fault itself,
 one fault with any other rule's at its pointer. Over records a `trainable` entry's location is the record, so

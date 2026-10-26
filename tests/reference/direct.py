@@ -256,9 +256,10 @@ ACCEPTANCES_OF_NO_KIND: Final[tuple[tuple[str, JsonObject, str], ...]] = (
 
 # The refusals the model gives where it once read the specification apart from the declaration check
 # (defaults of 2026-10-26, which the maintainer has yet to confirm): a rule that judges one member against
-# another stands aside only as far as its verdict depends on the member at fault, so that what the judged
-# member's own type, shape or registered names settle is still judged, and a name given twice is judged on
-# well-formed names. Each is the answer the check gives, or the one the check's own pull request moves it to.
+# another stands aside where the other is itself at fault, with three exceptions (a member is still held to
+# its JSON type, a label that no registered field has, and `params` where no registered field's row allows
+# the form `parameter_set`), and a name given twice is judged on well-formed names. Each is the answer the
+# check gives, or the one the check's own pull request moves it to.
 REMANENCE: Final = "magnetic.remanence"
 SATURATION: Final = "magnetic.saturation_magnetisation"
 TRAINABLE: Final = f"{MODEL}/trainable/0"
@@ -533,11 +534,10 @@ DIVERGENCES: Final[tuple[Direct, ...]] = (
         ("BC-048", f"{MODEL}/combinations/0"),
     ),
     refusing(
-        "a combination of two fields of one section and a number",
+        "a combination of two fields of one section and a number, not refused for its sections",
         declaration(
             entry(requirements=[], reads=[REMANENCE, SATURATION], combinations=[[REMANENCE, SATURATION, 1.0]])
         ),
-        ("BC-048", f"{MODEL}/combinations/0"),
         ("BC-048", f"{MODEL}/combinations/0/2"),
     ),
     refusing(
