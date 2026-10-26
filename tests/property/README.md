@@ -2447,14 +2447,16 @@ with a reason under `excused` (`tests/unit/test_input_coverage.py` fails on one 
 draws the sites through another module is not found so. S4d's selection (`table_alternatives`) also runs HP12's part over tables among
 alternatives, its searches and the planned searches of `test_model_mutant_table.py`; under the rule these hold
 none of S4d's own sites (HP12's strategy draws S4d's composite inside its own, so those draws are HP12's, for an
-HP12 selection to judge), and they add only to the time of a cut. Three selections are checked so far: two run
-locally on 2026-10-23 and 2026-10-24 (on two workers a cut, four cuts at once), and a third on CI's cut kind alone:
+HP12 selection to judge), and they add only to the time of a cut. Four selections are checked so far: S4d's
+and S3c's run locally on 2026-10-23 and 2026-10-24 (on two workers a cut, four cuts at once), and S7a-1's and
+S7a-2's on CI's cut kind in their pull requests' own measure runs (on two workers a cut, two cuts at once):
 
 | Selection | Sites | Cuts | Held | Not held: gaps, equivalents | Empty | Uncut | A cut, nothing holding it | A cut held |
 |---|---|---|---|---|---|---|---|---|
 | `table_alternatives` (S4d) | 29 | 93 | 15 | 72, 6 | 5 | 5 | 284 to 342 s | 103 to 369 s |
 | `extrapolation` (S3c) | 64 | 213 | 56 | 127, 30 | 6 | 19 | 77 to 147 s | 16 to 107 s |
 | `declarations` (S7a-1) | 458 | 2,186 | 46 | 1,842, 289 | 9 | 29 | 233 to 630 s (CI) | 23 to 217 s (CI) |
+| `build` (S7a-2, on CI) | 163 | 587 | 60 | 329, 189 | 9 | 5 | 139 to 351 s | 8.5 to 294 s |
 
 S7a-1's selection (`declarations`, HP41's and HP42's properties and their mutant searches, over
 `declaration_strategies.py`, which draws no other module's strategy) ran in the cut kind on the CI matrix, on two
@@ -2483,14 +2485,31 @@ lists its 29 uncut draws, among them the way of HP41's strata (30 ways across th
 HP42's planters beside (34 and 32) and the field an acceptance covers under `every_fault`'s planters (31 values,
 a field read twice a value at each of its places), each above the 24 values a site may hold to be cut.
 
-S7a-2's selection (`build`: `build_strategies.py` under HP43 to HP46 and their searches) has 163 sites and 587
-cuts, seven of them empty (a stratum of one way, and the one `unknown` code no row of section 4.2 lists, each
-drawn alone) and five draws uncut, each listed with why. A first look ran its 32 cuts of a way drawn first
-locally on 2026-10-25 (on two workers a cut, four at once), each held, at its feature audit or a mutant search,
-in 6 to 162 s, on the draws before the whole builds' were reweighted against the drift (2026-10-26); its 580
-runnable cuts wait for the cut kind on CI's measurement matrix, and are not counted here as held or not. Its
-`timing` is local until that dispatch measures it: a cut that holds nothing runs what the recording runs, 160.1
-s on two workers (110.1 s on four, the request job's figure), so the cut kind plans its 587 cuts in 14 slices.
+S7a-2's selection (`build`: `build_strategies.py` under HP43 to HP46 and their searches) holds 60 of its 587
+cuts: 33 at a mutant search (32 that the mutant survived, one that it died at a way it does not name) and 27 at a
+feature audit, a way of a stratum dropped or a draw left too narrow for the examples. Its nine empty cuts are the
+strata of one way and the one `unknown` code no row of section 4.2 lists, each drawn alone; five draws are uncut,
+each listed with why. Of the 518 cuts not held, 189 are equivalent: 80 drop one copy of a value written twice or
+more to weight a draw, so that the value is drawn still; 32 keep a draw read as a gate (`== 2`, `< 5`) off an end
+that it reads as the values left; and 77 drop a value the code reads as the others: a condition, a field or a
+waiver's code compared by equality alone, an alternative's index read by no rule, a nominal's value or an
+extrapolation's method read only through the `assumption`, a viscosity's number passed through, a review read
+only for a `result` none of the kinds holds, the label of an alternative set aside, two tolerances every offset
+drawn meets or passes alike, and a waiver of a code no read of these records gives. The 329 gaps: 181 are the
+draws the whole builds of HP43's `indexes` and HP46 and HP44's `coverage` share (a record's kinds, states and
+label, a model's records, fields, requirements and acceptances, where an acceptance is put, the operating
+temperature and the counts), none of which a mutant of the table needs alone; 71 are HP44's `requests` (where an
+acceptance is given, the requirement's conditions, the operating value or range); 37 HP43's direct draws (a
+reason's code among its row's, the reason `other_reason` plants beside an applied acceptance, the other reasons
+and their waivers); 39 HP45's (the label's, the review's and the labelled waiver's other values); and one is the
+hash suite, under which no draw holds a stale hash. A cut's run is derandomized, with `PYTHONHASHSEED=0` and no
+example database, so its result is the same on every run of one tree under one Python and Hypothesis: 41 cuts run
+again locally (2026-10-26, on the same Python 3.15.0 and Hypothesis 6.169.0, seven of them held on CI) each gave
+CI's result, held at the same test with the same message. A change to a draw or to a test function's source
+changes the sample every cut of the draws it reaches runs, and a cut held near the 2,000th example of a search
+could move; the pull request's measure run checks every cut of the selection again on each push that changes its
+tests or its entry. Its `timing` is CI's: the longest cut took 351.2 s, so the cut kind plans its cuts in 29
+slices (the 14 planned from the local 160.1 s took 59 min to 1 h 46 min of their 2 hours).
 
 Every cut of S4d's ran on 2026-10-24, after the owner rule; of S3c's, the 80 whose sites the rule left with
 the same calls keep their results of 2026-10-23, and the other 127 ran on 2026-10-24. Under the rule, S4d's
