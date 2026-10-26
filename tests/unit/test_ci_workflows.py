@@ -9974,13 +9974,13 @@ def test_the_measure_jobs_are_wired_as_the_readme_says(
 # four workers), in seconds: the request job records every selection that a change to a module scopes, one
 # after the other, to count the cuts the scope holds (`scripts/measure.py` `scope_cuts`). The declaration's
 # (S7a-1p) is its local recording on four workers (`record_seconds`, 2026-10-26), until its cut dispatch
-# records it on CI. The build's (S7a-2p) is its recording on four workers run locally (2026-10-25), until the
+# records it on CI. The build's (S7a-2p) is its recording on four workers run locally (2026-10-26), until the
 # cut kind's first dispatch of it measures it.
 RECORDING_SECONDS = {
     "table_alternatives": 411.7,
     "extrapolation": 128.1,
     "declarations": 244.1,
-    "build": 117.1,
+    "build": 110.1,
 }
 REQUEST_MARGIN = 3
 
