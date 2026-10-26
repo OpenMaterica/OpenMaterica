@@ -1,0 +1,35 @@
+{
+  "case": "BC-048",
+  "variant": "nominal_params_beside_an_unregistered_field",
+  "suite": "build_checks",
+  "schema_version": "0.1.0",
+  "inputs": {
+    "records": [
+      "water_fixture.json"
+    ],
+    "declaration": "bc048_nominal_params_beside_an_unregistered_field.json"
+  },
+  "request": {
+    "operation": "check_build"
+  },
+  "expected": {
+    "refusals": [
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/acceptances/1/field"
+      },
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/acceptances/1/params"
+      }
+    ]
+  },
+  "compare": {
+    "members": [
+      "refusals",
+      "results",
+      "watches",
+      "unused"
+    ]
+  }
+}

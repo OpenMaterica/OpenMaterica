@@ -114,24 +114,26 @@ every family entry goes in `families/CHANGELOG.md`.
 
 ### Changed
 - The declaration check agrees with the text where it and the build's reference model read it apart
-  (`core/declarations.py`; the defaults of 2026-10-26 are under Schema). A waiver's `label` that is no
-  string names no label and is BC-048's alone at itself, whatever its requirement holds (before, `null` beside
-  a requirement that names no label was BC-048's, and every other case BC-050's). A waiver's `condition`
-  beside a `code` that is missing or no string is refused, as beside a string that is no reason. A `trainable`
-  entry's location is judged beside a `field` that is no string, and a record that is no reference, a region
-  that is no string or a `field` that is no string make an entry that is given twice never; a record is
-  compared with the listed ones, and with another entry's, by its reference. A `trainable` entry at a `record`
-  where the model is checked over a domain or a path, or at a `region` or an `interval` where it is checked
-  over records, is BC-048 at the location, and a `trainable` entry naming two locations has its `record`
-  judged against `checked_over` too, as the one location it names would be. A population level's `within` object is visited as a status object
-  whose one status is `none`: a member it does not name, a `reason` that is no text and a `status` other than
-  `none` are refused at themselves (before, an object with a `reason` that was not a text was taken, which
-  nothing reaches until the sampling suite lands). Nothing is checked inside the `tolerance` of a token
-  condition or the `accept` of a numeric one, which is refused at itself. A combination of registered fields
-  of one section is refused beside an entry that is no registered field, and one registered field beside an
-  unregistered one is no such combination. No case file changes its expected answer; three unit tests change
-  theirs (a `within` of another status, a waiver's `code` of another type and a `trainable` entry at a record
-  and a region).
+  (`core/declarations.py`; the defaults of 2026-10-26 are under Schema). A waiver's `label` that is no string
+  names no label and is BC-048's alone at itself, whatever its requirement holds (before, `null` beside a
+  requirement that names no label was BC-048's, and every other case BC-050's). A waiver's `condition` beside
+  a `code` that is missing or no string is refused, as beside a string that is no reason. A `trainable`
+  entry's location is judged beside a `field` that is no string. A record that is no reference, a `field` that
+  is no string and a `region` that is no string make an entry that is given twice never, and a record is
+  compared with the listed ones, and with another entry's, by its reference. A `trainable` entry at a
+  `record` where the model is checked over a domain or a path, or at a `region` or an `interval` where it is
+  checked over records, is BC-048 at the location, and a `trainable` entry naming two locations has its
+  `record` judged against `checked_over` too, as the one location it names would be. A population level's
+  `within` object is visited as a status object whose one status is `none`: a member it does not name, a
+  `reason` that is no text and a `status` other than `none` are refused at themselves (before, an object with a
+  `reason` that was not a text was taken, which nothing reaches until the sampling suite lands). Nothing is checked inside the `tolerance` of a
+  token condition or the `accept` of a numeric one, which is refused at itself. A combination is refused for
+  its sections only where every entry is a registered field and all are of one section (before, two
+  registered fields of one section were refused beside an entry that is no registered field). A nominal's
+  `params` beside a `field` that is missing, no string or unregistered is refused unless some registered
+  field's row allows `parameter_set`, which none does in 0.1.0. No case file on `main` changes its expected
+  answer; three unit tests change theirs (a `within` of another status, a waiver's `code` of another type
+  and a `trainable` entry at a record and a region).
 - CI's fuzz control step prints each run's find time (the maintainer's ruling of 2026-10-23), so that CI's runs
   measure the rates the fuzz controls' bar is judged by, which the rates in `ci.yml` and `tests/fuzz/README.md`
   only estimate from local runs. For every control, one line a run, `fuzz-control <name> round=<r> run=<i>
@@ -278,26 +280,29 @@ every family entry goes in `families/CHANGELOG.md`.
 - A build-check case that compares results it expects names the members of each result it compares:
   `case.json` requires `compare.result_members` there. Before, such a case without it compared each result's
   `model`, location and `field` alone. A refusal case, which compares results and expects none, names none.
-- Two sentences of `declarations.md` section 1 (defaults of 2026-10-26, which the maintainer has yet to
-  confirm, taken after a comparison of the declaration check with the build's reference model; `docs/specification/changes.md`): a rule
-  that judges one member against another stands aside only as far as its verdict depends on the member at fault,
-  and an entry that is no well-formed name is neither the same as nor different from another, which no rule
-  compares; and a `trainable` entry at a `record` where its model is checked over a domain or a path, or at a
-  `region` or an `interval` where it is checked over `records`, is at a location its model is not checked over
-  (BC-048 at the location). No schema, vocabulary or case file changes.
+- A paragraph and a phrase of `declarations.md` section 1 (defaults of 2026-10-26, which the maintainer has yet
+  to confirm, taken after a comparison of the declaration check with the build's reference model;
+  `docs/specification/changes.md`). A rule that judges one member against another stands aside where the other
+  is itself at fault, with three exceptions: a member is still held to its JSON type, to a label that no
+  registered field has and to `params` where no registered field's row allows `parameter_set`; a rule the text
+  states for a member at fault still applies (a waiver whose `code` is no reason names no `condition`); and an
+  entry that is no well-formed name is neither the same as nor different from another, which no rule compares.
+  A `trainable` entry at a `record` where its model is checked over a domain or a path, or at a `region` or an
+  `interval` where it is checked over `records`, is at a location its model is not checked over (BC-048 at the
+  location). No schema or vocabulary changes.
 
 ### Verification
-- 43 build-check case files of the declaration check beside the build's reference model (`BC-048`, and one
+- 44 build-check case files of the declaration check beside the build's reference model (`BC-048`, and one
   `BC-051`), written through the case tools, one for each place the two read the text apart that a declaration
   can show: a waiver's `label` of another type in every situation, a `condition` beside a `code` that names
   none, a `trainable` entry's location beside a `field` at fault and its kind against `checked_over`, a name
   that is no well-formed name never given twice, a `within` object, a member a condition's kind does not take,
   a label beside an unregistered field, `checked_over` holding two alternatives, a distribution's parameters
-  beside a token at fault, a combination beside an entry that is no field, and `region_conditions` of another
-  type. Each has a control that gives another answer, the case writer's own check follows the text for all of
-  them with 15 seeded faults, each caught by a file, and the check passes every one. No existing case file
-  changes its expected answer. `tests/reference` fails on 20 of the 43 until the reference model's own changes
-  land, as does every search of seeded faults that asserts the cases agree with the model.
+  beside a token at fault, a combination beside an entry that is no field, a nominal's `params` beside an
+  unregistered field, and `region_conditions` of another type. Each has a control that gives another answer,
+  the case writer's own check follows the text for all of them with 17 seeded faults, each caught by a file,
+  and the check passes every one. No case file already on `main` changes its expected answer.
+  The reference model, with its own changes on `main`, agrees with every one of the 44.
 - PR-330's arm of a member one slip from a requirement's `review` (`PR-330.near_typo_requirement_review`,
   S7a-2a), written through the case tools: refused at step 0, which S2a-2's step 0 runs, and passes. The S7
   design's notes ask for the slip among the arms of the read's refusal of `review`, which it has made since
