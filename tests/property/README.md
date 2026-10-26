@@ -454,7 +454,8 @@ check's reader (the last bullet).
   an accepted difference, an overlay or an `overlay_scope` naming none, one located, at a region or an
   interval among them), `shape` (two required members missing at objects of two places, an accepted
   difference's kind among them in about one draw in eight and a waiver's `condition` in about half, or its
-  `code` in about one draw in eight, whose `condition` the rule on a `code` that is no reason refuses then,
+  `code` in about one draw in nine (measured, 175 of 1,546 draws of the `missing` way at the small size),
+  whose `condition` the rule on a `code` that is no reason refuses then,
   a value its Holds column refuses, of another JSON type (a waiver's `code` beside its `condition` among them)
   or breaking constraints the column states, a combination's
   field not in `reads` and a nominal's `params` beside a `field` at fault among them, a member whose row holds

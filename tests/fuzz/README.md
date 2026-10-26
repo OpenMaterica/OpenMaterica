@@ -244,7 +244,11 @@ The mapping and its mechanism stay, for the next divergence the target finds: a 
 `KNOWN_DIVERGENCES` only with its open point, a function that names, of the refusals one side gives and the
 other does not, those it explains, and an example in `tests/unit/test_fuzz_build_oracle.py` that the relation
 lets through with it listed and fails without it. These are the divergences found so far, not
-all there are.
+all there are. With the thirteen fixed and the list empty, the sweeps find nothing, on the 158 seed declarations `main` then
+held (none of 154,682 single changes, 149,976 pairs of changes to the members of one object, 29,619 added
+members of another kind beside a second change, 935,733 random changes in two runs of 300 s, and none of 2,200
+declarations HP41 and HP42 draw; 2026-10-26). With the fault seeded
+the single-change sweep shows it on the same 13 changes.
 
 ## In CI
 
