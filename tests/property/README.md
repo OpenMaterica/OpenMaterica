@@ -466,8 +466,8 @@ check's reader (the last bullet).
   holds a requirement in most draws, and a `trainable` entry, or a requirement, naming a field misspelt beside
   it in about half), `tokens` (tokens outside their members' lists, slips of them, other members' tokens,
   tokens in another case, each at members of the sweep by chance, the never-waived `code` with its `condition`
-  or without; a field or a condition misspelt), `names` (names given twice in several lists, a requirement or
-  a `trainable` entry for a field not read, a `trainable` entry at a record not listed, a label-resting waiver
+  or without; a field or a condition misspelt, at places of its kind, each in about half the draws and one at
+  least), `names` (names given twice in several lists, a requirement or a `trainable` entry for a field not read, a `trainable` entry at a record not listed, a label-resting waiver
   its requirement does not hold up, and a waiver's `label` of `null` beside a reviewed requirement naming no
   label, which names no label, so that the shape table alone refuses it, maintainer, 2026-10-25), `precedence`
   (a fault two rules name, missing members, a text that is not JSON, a value that is not an object, two
@@ -1974,8 +1974,8 @@ beside a `code` taken out, of another JSON type or written as a slip, which the 
 reason names no `condition` still refuses; a `trainable` entry at a record beside a model checked over a
 domain or a path, refused at its `record`; a `within` of another status refused at its `status`; a waiver's
 `label` of another JSON type judged by the shape table alone; a combination's entry that is no registered
-field, beside a field of its own section, which the sections rule leaves be. Every one is searched over the draws of the
-one stratum of its part that holds the ways it names: none needs a planned search. The three that refuse what
+field, beside a field of its own section in about half the draws and of another in the rest, which the sections
+rule leaves be. Every one is searched over the draws of the one stratum of its part that holds the ways it names: none needs a planned search. The three that refuse what
 the text takes and that a planter's fault can show as well (blank text, a waiver's `basis`, two `trainable`
 entries of one field at two records) are searched over the `precedence` part's stratum of a text that is not
 JSON and a value that is not an object, whose faults no rule but the parse judges, so that each dies at the
@@ -2057,8 +2057,8 @@ three).
 | `label_beside_an_unregistered_field_unjudged` | a waiver's `label` beside a `field` that is not registered left to the field's own fault | `_labels` | HP41, names | `label_unreviewed` | 64, 7 |
 | `label_waiver_taken_without_review` | a label-resting waiver taken without its requirement's `review` | `_labels` | HP41, names | `label_unreviewed` | 1, 1 |
 | `null_label_judged` | a waiver's `label` of `null` judged by item 4 beside a reviewed requirement naming no label | `_labels` | HP41, names | `label_unreviewed` | 67, 9 |
-| `bc048_beside_bc005` | BC-048 given beside BC-005 for one missing `reason` | `_precedence` | HP41, precedence | `two_rules` | 1, 1 |
-| `missing_member_at_the_member` | a missing member's pointer at the member, not at its parent | `_precedence` | HP41, precedence | `two_rules`, `missing_member` | 1, 1 |
+| `bc048_beside_bc005` | BC-048 given beside BC-005 for one missing `reason` | `_precedence` | HP41, precedence | `two_rules` | 5, 11 |
+| `missing_member_at_the_member` | a missing member's pointer at the member, not at its parent | `_precedence` | HP41, precedence | `two_rules`, `missing_member` | 2, 2 |
 | `two_missing_members_given_twice` | two members missing from one object given as two refusals | `_precedence` | HP41, precedence | `two_missing` | 1, 1 |
 | `not_json_pointer_not_empty` | a text that is not JSON refused at "/", not at "" | `_precedence` | HP41, precedence | `not_json` | 1, 1 |
 | `first_fault_only` | the search stopping at the first fault | `_precedence` | HP41, `every_fault` | `every_fault` | 1, 1 |
@@ -2096,8 +2096,8 @@ three).
 | `condition_beside_a_slipped_code_unjudged` | a waiver's `condition` left unjudged beside a `code` written as a slip of its name | `_kind_tokens` | HP41, shape | `slip` | 5, 5 |
 | `trainable_record_beside_a_scene_taken` | a `trainable` entry at a record taken where its model is checked over a domain or a path | `_names` | HP42 | `domain`, `path` | 5, 5 |
 | `within_of_another_status_refused_at_the_object` | a `within` of a status other than `none` refused at the object, not at its `status` | `_tokens` | HP42 | `sampling` | 109, 7 |
-| `label_of_another_type_judged_by_item_4` | a waiver's `label` of another JSON type judged by item 4, BC-050 in front of the shape table's BC-048 | `_labels` | HP41, precedence | `two_rules` | 83, 258 |
-| `combination_sections_judged_beside_an_unregistered_entry` | a combination judged for its sections beside an entry that names no registered field | `_names` | HP41, tokens | `slip_of_token`, `misspelt_name` | 48, 50 |
+| `label_of_another_type_judged_by_item_4` | a waiver's `label` of another JSON type judged by item 4, BC-050 in front of the shape table's BC-048 | `_labels` | HP41, precedence | `two_rules` | 1, 1 |
+| `combination_sections_judged_beside_an_unregistered_entry` | a combination judged for its sections beside an entry that names no registered field | `_names` | HP41, tokens | `slip_of_token`, `misspelt_name` | 1, 1 |
 
 ## Audits
 

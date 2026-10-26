@@ -495,7 +495,7 @@ CONTROLS = [
         declaration_properties.test_a_token_or_a_registered_name_off_its_members_list_is_refused,
         "misspelt_name",
         ("check_declaration",),
-        (("ways", ("slip_of_token", "misspelt_name")),),
+        (("ways", ("misspelt_name", "slip_of_token")),),
     ),
     Control(
         declaration_properties.test_a_name_given_twice_a_field_not_read_and_an_unreviewed_label_are_refused,
