@@ -9722,10 +9722,10 @@
    "tests/property/test_build_mutant_table.py": "reads the parts' ways and strata (`HP43_PARTS`, `HP44_PARTS`, `HP45_PARTS`, `STRATA`) to hold the mutant table to them; it draws nothing"
   },
   "timing": {
-   "cuts": 587,
-   "whole_cuts": 587,
+   "cuts": 592,
+   "whole_cuts": 592,
    "seconds": 351.2,
-   "measured": "the longest of the selection's cuts in its first run of the cut kind on CI (this pull request's own measure run, 2026-10-26, 14 slices planned from the local figure), on two workers a cut, two cuts at once, on a runner of four vCPUs; run locally before it: 160.1 s, a cut that holds nothing running what the selection's recording runs; no `!` pattern, so a whole recording makes the same 587 cuts, at two workers and at four"
+   "measured": "the longest of the selection's cuts in its first run of the cut kind on CI (this pull request's own measure run, 2026-10-26, 14 slices planned from the local figure), on two workers a cut, two cuts at once, on a runner of four vCPUs; run locally before it: 160.1 s, a cut that holds nothing running what the selection's recording runs; 587 cuts then, 592 since the fourth round's three ways (a recording on two workers, 2026-10-26); no `!` pattern, so a whole recording makes the same cuts"
   },
   "left_out": {
    "sites": 0,
@@ -11345,6 +11345,10 @@
    "tests/property/build_strategies.py::labels::st.sampled_from(OTHER_LABELS) :: drop 'materica.magnetic.linear.v1'": {
     "result": "not held",
     "reason": "a gap: no test of HP45's `label` needs a stored label the reader knows and the row does not name (`form_invalid`); the build reads either as a label other than the requirement's, but the read refuses the two with different reasons, and a fault that judged the label beside one of them alone would pass"
+   },
+   "tests/property/build_strategies.py::labels::st.sampled_from(tuple(ways)) :: drop 'absent_met'": {
+    "result": "empty",
+    "reason": "equivalent: a stratum of one way, drawn alone (`STRATA`, the S7 design's 6.1 split of a test function), so the cut leaves the call nothing to draw"
    },
    "tests/property/build_strategies.py::labels::st.sampled_from(tuple(ways)) :: drop 'no_stored_value'": {
     "result": "empty",
