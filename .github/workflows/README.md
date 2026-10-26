@@ -304,21 +304,24 @@ other steps took a median of 45 s of it; with the collection and the specificati
 test time in the test jobs' reports, nine runs, every Python, which four workers share) it is about two minutes
 a commit, an estimate to be read from the durations of the pull request that made the change.
 
-| | The head alone | With `commit` jobs at V | At the cap's ceiling of 20 |
+| | The head alone | With `commit` jobs at V | At the cap's ceiling of 60 |
 |---|---|---|---|
-| Runners one push holds | 30 | 30 + V (42 at V = 12) for the two minutes or so of the `commit` jobs | 50 (70 with `site_commit` jobs, which run beside `commit`'s and are rare) |
-| Left of 60 at once | 30 | 30 - V (18 at V = 12) | 10 (none, and 10 wait, with `site_commit` jobs) |
-| Left of 20 at once | none, 10 wait | none, 10 + V wait (22 at V = 12) | none, 30 wait |
+| Runners one push holds | 30 | 30 + V (42 at V = 12) for the two minutes or so of the `commit` jobs | 90 where the pull request has 60 commits or more (150 with `site_commit` jobs, which run beside `commit`'s and are rare) |
+| Left of 60 at once | 30 | 30 - V (18 at V = 12) | none, and 30 wait (90 with `site_commit` jobs) |
+| Left of 20 at once | none, 10 wait | none, 10 + V wait (22 at V = 12) | none, 70 wait |
 
 At a limit L of jobs at once, a run takes at least its job-minutes over L, whatever the caps: about 130 for the
 head and about two more for each earlier commit, so 10 minutes for the head alone at L = 13. Where jobs wait,
 GitHub starts them in an order of its own, not the workflow's, so the longest may start last.
 `PER_COMMIT_MAX_PARALLEL` caps `commit` and `site_commit` each apart; each repeat dispatch runs its own
-`REPEAT_MAX_PARALLEL` (20 at the ceiling) and each mutant dispatch its own `MUTANT_MAX_PARALLEL` (20 at the
+`REPEAT_MAX_PARALLEL` (60 at the ceiling) and each mutant dispatch its own `MUTANT_MAX_PARALLEL` (60 at the
 ceiling, and nothing beside them: its request job ends before they start and its table job starts after them),
 up to 201 jobs for 200 mutants and the baseline. One push at the ceiling with a `site_commit` job, one repeat
-dispatch and one mutant dispatch together ask for 70 + 20 + 20 = 110, more than the 60: the rest wait for a
-runner. Each further dispatch, of other inputs or on another ref, asks for its own 20 more.
+dispatch and one mutant dispatch together ask for 150 + 60 + 60 = 270, more than the 60: the rest wait for a
+runner. Each further dispatch, of other inputs or on another ref, asks for its own 60 more. The ceiling is the
+organisation's 60 (maintainer, 2026-10-26; it was 20 before, from when the repository shared them): a cap at it
+takes every runner while its jobs run, so that every other job waits behind them. A cap of 40 leaves 20 to the
+rest.
 
 Anyone with write access to the repository can set these variables, not its maintainers alone (GitHub's "Use
 variables": write access suffices for a repository of an organisation), which is why the check bounds them. Set,
@@ -330,10 +333,10 @@ gh variable list -R OpenMaterica/OpenMaterica
 gh variable delete PER_COMMIT_MAX_PARALLEL -R OpenMaterica/OpenMaterica  # the default again
 ```
 
-Each takes a whole number from 1 to 20, written plainly in ASCII digits. A step of the job the capped jobs need,
+Each takes a whole number from 1 to 60, written plainly in ASCII digits. A step of the job the capped jobs need,
 `gate` or `request`, reads the variable on every run (a push to main and the weekly run included) and fails on
-anything else, with "the repository variable NAME is ..., not a whole number from 1 to 20": 0, a negative number,
-more than 20, a fraction, `1e1`, a sign, a space or a leading zero, another script's digit, or text. The capped
+anything else, with "the repository variable NAME is ..., not a whole number from 1 to 60": 0, a negative number,
+more than 60, a fraction, `1e1`, a sign, a space or a leading zero, another script's digit, or text. The capped
 jobs then never start, and the run fails. GitHub documents no bound on `max-parallel`, nor what it does with such
 a value, so none reaches it. The step writes the value it took as an output of its job (the gate's
 `per_commit_max_parallel`, each request job's `max_parallel`), and the capped jobs parse that output

@@ -4012,11 +4012,11 @@ def test_the_margin_check_finds_a_measured_shard_gone() -> None:
 
 # The caps of jobs at once (maintainer, 2026-10-17). A step of the job a capped job needs checks a repository
 # variable, or the workflow's default where it is unset, on every run, fails where it is not a whole number
-# from 1 to 20, and writes the value it took as an output of that job, which the capped job's `max-parallel`
+# from 1 to 60, and writes the value it took as an output of that job, which the capped job's `max-parallel`
 # parses: the variable is read once, by the check, so that a value changed after it, or before failed jobs
 # are re-run, does not reach a capped job. GitHub documents no bound on `max-parallel`, nor what it does with
 # 0, a negative number or a fraction, so a capped job is given no value the check refuses.
-CAP_STEP, CAP_STEP_ID = "The cap of jobs at once is a whole number from 1 to 20", "cap"
+CAP_STEP, CAP_STEP_ID = "The cap of jobs at once is a whole number from 1 to 60", "cap"
 CAP_REFUSAL = "::error title=Runner cap::the repository variable {variable} is "
 # The cap step's output, which its job gives as its own.
 CAP_STEP_OUTPUT = "max_parallel"
@@ -4047,11 +4047,12 @@ CAPS = (
 # number; a command; a line break and a workflow command, which a refusal that printed the value as it is
 # would give the runner as a command of its own (`workflow_commands`); or a digit of another script, which a
 # range such as `[1-9]` takes in a locale that collates it there (`CAP_LOCALES`), and fromJSON cannot parse.
-CAPS_TAKEN = ("1", "9", "10", "19", "20")
+CAPS_TAKEN = ("1", "9", "10", "19", "20", "21", "29", "30", "59", "60")
 CAPS_REFUSED = (
     "0",
     "-1",
-    "21",
+    "61",
+    "70",
     "100",
     "6.0",
     "1e1",
@@ -4298,28 +4299,28 @@ def test_the_cap_check_can_fail(fault: Callable[[Workflow, Cap], None], problem:
     assert any(problem in line for line in problems), problems
 
 
-CAP_CONDITION = '[[ ! "$MAX_PARALLEL" =~ ^([123456789]|1[0123456789]|20)$ ]]'
+CAP_CONDITION = '[[ ! "$MAX_PARALLEL" =~ ^([123456789]|[12345][0123456789]|60)$ ]]'
 
 
 @pytest.mark.parametrize("cap", CAPS, ids=lambda cap: cap.job)
 @pytest.mark.parametrize(
     ("old", "new", "problem"),
     [
-        ("|20)$", "|2[0123456789])$", "the check takes {variable} '21'"),
+        ("|60)$", "|6[0123456789])$", "the check takes {variable} '61'"),
         ("^([123456789]|", "^([0123456789]|", "the check takes {variable} '0'"),
         (
-            "^([123456789]|1[0123456789]|20)$",
-            "([123456789]|1[0123456789]|20)",
+            "^([123456789]|[12345][0123456789]|60)$",
+            "([123456789]|[12345][0123456789]|60)",
             "the check takes {variable} '6.0'",
         ),
         (
-            "^([123456789]|1[0123456789]|20)$",
-            "^([1-9]|1[0-9]|20)$",
+            "^([123456789]|[12345][0123456789]|60)$",
+            "^([1-9]|[1-5][0-9]|60)$",
             "the check takes {variable} '\u0666' under en_US.UTF-8",
         ),
         (
             CAP_CONDITION,
-            "(( MAX_PARALLEL < 1 || MAX_PARALLEL > 20 ))",
+            "(( MAX_PARALLEL < 1 || MAX_PARALLEL > 60 ))",
             "{variable} 'a[$(touch ran)]' ran a command",
         ),
         ("exit 1", "exit 0", "the check takes {variable} '0'"),

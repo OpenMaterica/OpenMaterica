@@ -129,17 +129,17 @@ jobs:
           fi
           python3 scripts/repeat_runs.py derandomized <<< "$collected"
       # The runs' cap, as ci.yml's gate checks the per-commit jobs' (its step says why), with the same script:
-      # a whole number from 1 to 20, or no run starts. The value it took is the request job's output
+      # a whole number from 1 to 60, or no run starts. The value it took is the request job's output
       # `max_parallel`, the only place the runs read it.
-      - name: The cap of jobs at once is a whole number from 1 to 20
+      - name: The cap of jobs at once is a whole number from 1 to 60
         id: cap
         env:
           VARIABLE: REPEAT_MAX_PARALLEL
           MAX_PARALLEL: ${{ vars.REPEAT_MAX_PARALLEL || '10' }}
         run: |
-          if [[ ! "$MAX_PARALLEL" =~ ^([123456789]|1[0123456789]|20)$ ]]; then
+          if [[ ! "$MAX_PARALLEL" =~ ^([123456789]|[12345][0123456789]|60)$ ]]; then
             printf -v shown '%q' "$MAX_PARALLEL"
-            echo "::error title=Runner cap::the repository variable $VARIABLE is $shown, not a whole number from 1 to 20: set it to one, or delete it for the workflow's default"
+            echo "::error title=Runner cap::the repository variable $VARIABLE is $shown, not a whole number from 1 to 60: set it to one, or delete it for the workflow's default"
             exit 1
           fi
           echo "max_parallel=$MAX_PARALLEL" >> "$GITHUB_OUTPUT"
