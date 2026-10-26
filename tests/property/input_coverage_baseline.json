@@ -1104,6 +1104,12 @@
   "excused": {
    "tests/property/test_declaration_mutant_table.py": "reads the parts' ways and strata (`PARTS`, `STRATA`, `HP42_WAYS`, `HP42_STRATA`) to hold the mutant table to them; it draws nothing"
   },
+  "timing": {
+   "cuts": 2086,
+   "whole_cuts": 2086,
+   "seconds": 456.3,
+   "measured": "an estimate until the cut kind's first dispatch measures it: one cut not held took 231.6 s locally on two workers, alone (2026-10-26), times 1.97, the ratio of S4d's selection's longest cut on CI to its local one; whole_cuts: the selection has no `!` pattern, and its recordings make 2086 cuts at 2 and at 4 workers alike"
+  },
   "left_out": {
    "sites": 0,
    "cuts": 0,
@@ -1181,7 +1187,7 @@
    "tests/property/declaration_strategies.py::hp41 > planters[way](p) > tests/property/declaration_strategies.py::fact::st.text('0123456789', min_size=1, max_size=7)": "an UBERON identifier's digits after `UBERON:` (the anatomical site's fact): any digits alike; an identifier of another form is the Holds column's constraint, planted by `breaks_holds` (`identifier`)",
    "tests/property/declaration_strategies.py::hp41 > planters[way](p) > tests/property/declaration_strategies.py::plant_not_object::st.sampled_from(options)": "the value given in place of a declaration that is no object (the declaration in a list among them), computed from the drawn declaration at each call: any value of another type alike, refused at the empty pointer",
    "tests/property/declaration_strategies.py::hp41 > planters[way](p) > tests/property/declaration_strategies.py::plant_twice_in::st.sampled_from(records_of(model))": "the record listed twice, one of the model's listed records, computed from the drawn model at each call: any listed record alike",
-   "tests/property/declaration_strategies.py::hp41::st.sampled_from(tuple(ways))": "the way, drawn first among a stratum's two or one, 29 ways across HP41's strata, above the 24 values a site may hold to be cut: each way is held by the mutants named to die at it (the mutant table) and by its feature audit at `ci`, where a way never drawn fails its floor",
+   "tests/property/declaration_strategies.py::hp41::st.sampled_from(tuple(ways))": "the way, drawn first among a stratum's two or one, 30 ways across HP41's strata, above the 24 values a site may hold to be cut: each way is held by the mutants named to die at it (the mutant table) and by its feature audit at `ci`, where a way never drawn fails its floor",
    "tests/property/declaration_strategies.py::hp42 > LOCAL[name](p) > tests/property/declaration_strategies.py::Planting.choose::st.sampled_from(options)": "`Planting.choose`, a planter's choice among a list it passes (kinds, members, tokens, fields, places), another list at each call; each value a way needs is named in its planter's docstring, and each way is held by the mutants that die at it",
    "tests/property/declaration_strategies.py::hp42 > LOCAL[name](p) > tests/property/declaration_strategies.py::acceptance::st.sampled_from(WAIVED_CONDITION_CODES if draw(st.booleans()) else OTHE…": "a waiver's `code`, among the reasons that name a condition or among the others (the vocabulary's lists, one of two at each call); the declaration's own check tells no two codes of one list apart but `condition_unknown_name`, which the token sweep plants (`never_waived_code_taken`)",
    "tests/property/declaration_strategies.py::hp42 > LOCAL[name](p) > tests/property/declaration_strategies.py::acceptance::st.sampled_from(fields)": "an acceptance's `field`, one of the model's registered reads, a list computed from the drawn model at each call: any field read is a registered field alike",
