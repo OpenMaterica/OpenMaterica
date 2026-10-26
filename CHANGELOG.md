@@ -121,8 +121,8 @@ every family entry goes in `families/CHANGELOG.md`.
   records are, compared as a list, no verdict changed by permuting models, listed records and acceptances (the
   law's arm of a refusal is the fuzz relation's: HP46 draws no declaration its check refuses).
   `tests/property/build_strategies.py` draws records built from the build-check cases' values and declarations
-  over them; each drawing part is a test parametrized by strata of at most two of its ways. 60 mutants
-  (`test_build_mutants.py`): the design's 41 mutants less label trust's five, and 24 more mutants the reviews of
+  over them; each drawing part is a test parametrized by strata of at most two of its ways. 61 mutants
+  (`test_build_mutants.py`): the design's 41 mutants less label trust's five, and 25 more mutants the reviews of
   S7a-2a, S7a-2b, S7a-2m and S7a-2p and the parts' other ways name, each killed at both sizes at its way and at
   the assertion its fault changes, their kill points recorded; an audit control for each drawing part. A pick is
   drawn for `judge` alone: a build raises on one before any read, so the row's test over whole builds waits for

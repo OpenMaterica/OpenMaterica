@@ -739,7 +739,7 @@ hold yet passes `--check`, so that a stacked branch's older commits stand, and f
 run.
 
 <!-- kill points summary (scripts/gen_kill_counts.py) -->
-`kill_points.json` records 1,618 searches, 809 mutants each at both sizes; the latest kill is at the 487th example (`upper_none_as_infinity`, original size).
+`kill_points.json` records 1,620 searches, 810 mutants each at both sizes; the latest kill is at the 487th example (`upper_none_as_infinity`, original size).
 <!-- end of kill points summary -->
 
 Three searches were planned because their kill sat in a long tail. With the pin, a search's kill is fixed by
@@ -2149,7 +2149,7 @@ three).
 the names it imports, `judge`, `located_at`, `read` and `BuildResult`; the vocabulary's reason table; and
 `BuildReport.refused`), and each dying at a way it names and at the assertion it names: the S7 design's mutants
 of HP43 to HP46 but label trust's five (its section 6.5, with the five the review of S7-cases-2 added, R01 to
-R03, R05 and R07; 36 rows, `test_build_mutant_table.py` holds each to the row that stands for it), and 24 more:
+R03, R05 and R07; 36 rows, `test_build_mutant_table.py` holds each to the row that stands for it), and 25 more:
 the faults the reviews of S7a-2a, S7a-2b, S7a-2m and S7a-2p showed no test of theirs catching (the acceptances
 given cut to the first, the build's claims dropped from the read and from the stored label, an implied condition
 applied only where it fills every condition, an implied range or token not recognised, an implied value compared
@@ -2157,19 +2157,19 @@ by equality so that -0 is 0, the first alternative read under `want_mismatch`, a
 the section given, the location's version or id ignored, a record refused at steps 2 to 5 resting on its field,
 an extrapolation counted applied under a nominal's assumption, label trust's raise where the result is decided, a
 pick covering nothing, an extrapolation not covering `range_unstated` or `outside_coverage`, `label_mismatch`
-left out where the read is `met`), and the parts' other ways (a waiver's code ignored, `no_pick` waived, a code
-no row lists waived, `label_mismatch` left out beside a `not_met`, `not_reviewed` never given, a labelled waiver
-covering untrusted). Every one is searched over the draws of the one stratum of its part that holds the ways it
-names: none needs a planned search. A fault of the verdict drawn directly dies at `accepted` or `accepted_by`,
-the assertions it changes, and where the acceptance at fault may also cover another reason of the result, at
-`not_accepted` too (`COVERED` and `VERDICT` in `test_build_mutants.py`). Of the reviews' survivors, these are not
-here: the acceptances given in reverse order (`_applied` reads what the result shows, and a read's answer never
-depends on the order of the acceptances given it, `read_side_contract.md` section 1); a stored value that is no
-object read as `{"label": null}` (the same `label_mismatch` as no label: only its words differ); and the unused
-acceptances of one model reversed (the text gives `unused` per model and no order within one). The faults of
-label trust (`_trusted`: an inferred basis trusted, a stated one not, the basis read from the read result;
-`_label_rests`: review or label presence not checked) wait for label trust, after 0.1.0.dev4 (maintainer,
-2026-10-21).
+left out where the read is `met`, the results in another order than the declaration's), and the parts' other ways
+(a waiver's code ignored, `no_pick` waived, a code no row lists waived, `label_mismatch` left out beside a
+`not_met`, `not_reviewed` never given, a labelled waiver covering untrusted). Every one is searched over the
+draws of the one stratum of its part that holds the ways it names: none needs a planned search. A fault of the
+verdict drawn directly dies at `accepted` or `accepted_by`, the assertions it changes, and where the acceptance
+at fault may also cover another reason of the result, at `not_accepted` too (`COVERED` and `VERDICT` in
+`test_build_mutants.py`). Of the reviews' survivors, these are not here: the acceptances given in reverse order
+(`_applied` reads what the result shows, and a read's answer never depends on the order of the acceptances given
+it, `read_side_contract.md` section 1); a stored value that is no object read as `{"label": null}` (the same
+`label_mismatch` as no label: only its words differ); and the unused acceptances of one model reversed (the text
+gives `unused` per model and no order within one). The faults of label trust (`_trusted`: an inferred basis
+trusted, a stated one not, the basis read from the read result; `_label_rests`: review or label presence not
+checked) wait for label trust, after 0.1.0.dev4 (maintainer, 2026-10-21).
 
 CI's first drift run of these searches (40 streams a size) killed `extrapolation_applied_under_any_assumption`
 and `implied_value_compared_by_equality` past the margin guard in several streams (the latest at the 845th and
@@ -2245,6 +2245,7 @@ latest at the 166th example and none near the guard.
 | `refused_read_from_the_first_model_only` | `refused` read from the first model's results only | `BuildReport.refused` | HP46 | `permutation` | 7, 28 |
 | `acceptances_matched_by_position` | an acceptance a read applied mapped by its position among those given, not its index | `_applied` | HP46 | `permutation` | 5, 7 |
 | `results_deduplicated_by_field` | one result per field, of the first model and record that read it | `_results` | HP46 | `permutation` | 5, 5 |
+| `results_in_reverse` | the results in the reverse of the order the declaration lists models, records and fields | `_results` | HP46 | `permutation` | 1, 1 |
 
 ## Audits
 

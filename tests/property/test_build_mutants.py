@@ -480,6 +480,10 @@ def _deduplicated_by_field(*offered: Any) -> Any:
     return list(kept.values())
 
 
+def _in_reverse(*offered: Any) -> Any:
+    return list(reversed(RESULTS(*offered)))
+
+
 def result_changed(change: Callable[[BuildResult], BuildResult]) -> Callable[[pytest.MonkeyPatch], None]:
     def inject(monkeypatch: pytest.MonkeyPatch) -> None:
         def made(*members: Any, **more: Any) -> BuildResult:
@@ -1240,6 +1244,15 @@ MUTANTS = [
         ("permutation",),
         "^permuted, the verdicts",
         "one result per field, of the first model and record that read it",
+    ),
+    Mutant(
+        "results_in_reverse",
+        "_results",
+        "HP46",
+        replacing(build, "_results", _in_reverse),
+        ("permutation",),
+        "^permuted, the verdicts",
+        "the results in the reverse of the order the declaration lists models, records and fields",
     ),
 ]
 
