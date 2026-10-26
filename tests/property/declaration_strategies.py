@@ -2085,20 +2085,24 @@ def write_requirement_field(p: Planting, bad: Bad) -> str:
 
 
 def write_combination_entry(p: Planting, bad: Bad) -> str:
-    """A combination of the name and a field of `reads`, of the name's section or another by chance (such a
-    field appended to `reads` where none is read): the sections rule judges the entries against each other
-    and stands aside where one is no registered field, which has no section, so that this entry is the one
-    fault whichever section the other holds (the refusal paragraph)."""
+    """A combination of the name and a field of `reads`, beside a field of the name's own section in about
+    half the draws and of another in the rest (such a field appended to `reads` where the model reads none
+    of the section drawn): the sections rule judges the entries against each other and stands aside where one
+    is no registered field, which has no section, so that this entry is the one fault whichever section the
+    other holds (the refusal paragraph). The name's section is its first word, which a slip of the name's last
+    word or last character keeps."""
     m = p.model_index()
     model = p.models[m]
     token = bad(FIELDS)
     reads = reads_of(model)
-    registered = registered_reads(model)
-    if not registered:
-        registered = [p.choose(FIELDS)]
-        reads.append(registered[0])
+    own = [field for field in FIELDS if section_of(field) == section_of(token)]
+    other = [field for field in FIELDS if field not in own]
+    wanted = own if own and not p.draw(st.booleans()) else other
+    partner = p.choose([field for field in registered_reads(model) if field in wanted] or wanted)
+    if partner not in reads:
+        reads.append(partner)
     listed = cast(list[JsonValue], model["combinations"])
-    listed.append([token, p.choose(registered)])
+    listed.append([token, partner])
     return pointer("models", m, "combinations", len(listed) - 1, 0)
 
 
@@ -2224,17 +2228,17 @@ def plant_token(p: Planting, way: Callable[[Planting], Bad]) -> None:
 
 
 def plant_misspelt_name(p: Planting) -> None:
-    """A registered name misspelt, a field or a condition by chance, at a place of its kind by chance: one
-    slip from a registered name, and no registered name itself."""
-    writers, names = (FIELD_WRITERS, FIELDS) if p.draw(st.booleans()) else (CONDITION_WRITERS, CONDITIONS)
-    member = p.choose(sorted(writers))
-    p.kinds.append(member)
+    """A registered name misspelt, a field or a condition by chance, at places of its kind, each in about half
+    the draws and one at least: one slip from a registered name, and no registered name itself."""
+    writers, names = (CONDITION_WRITERS, CONDITIONS) if p.draw(st.booleans()) else (FIELD_WRITERS, FIELDS)
 
     def misspelt(allowed: tuple[str, ...]) -> str:
         slipped = slip_of(p.choose(names), p.choose(SLIP_KINDS))
         return slipped if slipped not in allowed else slipped + "q"
 
-    p.plant("token", writers[member](p, misspelt))
+    for member in included(p, sorted(writers)):
+        p.kinds.append(member)
+        p.plant("token", writers[member](p, misspelt))
 
 
 TOKENS: dict[str, Callable[[Planting], None]] = {
@@ -2428,7 +2432,10 @@ def plant_two_rules(p: Planting) -> None:
     the shape table), a tolerance or accept list without its `reason` (item 3 and the table), a pick naming no
     record (the location rule and the table), a waiver's `label` registered for another field (item 4 and the
     table), or of another type (the table alone)."""
-    pair = p.choose(("item 4", "item 3", "location", "label"))
+    # The label pair first and, in it, a label of another type before a string: Hypothesis tries the simplest
+    # example first, which takes the first of every choice, and a choice's first comes out more often than
+    # the others (the label pair in 56% of the draws of this way as the first of the four, 15% as the last).
+    pair = p.choose(("label", "item 4", "item 3", "location"))
     p.kinds.append(pair)
     m = p.model_index()
     if pair == "item 4":
@@ -2451,8 +2458,8 @@ def plant_two_rules(p: Planting) -> None:
         # field's label is a fault two rules name.
         held["label"] = p.draw(
             st.one_of(
-                st.sampled_from([label for label in ANY_LABEL if label != LABELS[field]]),
                 st.sampled_from(OTHER_TYPES["string"]).map(copy.deepcopy),
+                st.sampled_from([label for label in ANY_LABEL if label != LABELS[field]]),
             )
         )
         p.plant("waiver_label" if isinstance(held["label"], str) else "holds", at + "/label")
@@ -2547,7 +2554,7 @@ STRATA: dict[str, tuple[tuple[str, ...], ...]] = {
     "reasons": (("tolerance_reason", "accept_reason"), ("acceptance_reason", "basis"), ("empty_text",)),
     "locations": (("unlocated", "accepted_difference_unlocated"), ("overlay_unlocated", "located")),
     "shape": (("missing", "empty_list"), ("unknown", "slip"), ("breaks_holds",), ("not_a_number",)),
-    "tokens": (("outside_list", "other_members_token"), ("slip_of_token", "misspelt_name"), ("other_case",)),
+    "tokens": (("outside_list", "other_members_token"), ("misspelt_name", "slip_of_token"), ("other_case",)),
     "names": (
         ("requirement_unread", "trainable_unread"),
         ("twice", "trainable_unlisted"),
