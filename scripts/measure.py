@@ -182,11 +182,13 @@ CONTROLS = {
         dictionary="acceptance.dict",
         ci_runs=4,
     ),
+    # The model's BC-005 at an acceptance that the implementation does not give, whatever else either gives:
+    # the implementation's BC-048 at that acceptance shows beside it only where the model gives none there.
     "declarations": Control(
         "declarations",
         "build_bytes",
         900,
-        "^AssertionError: the implementation gives .*'BC-048', '/models/[0-9]*/acceptances/[0-9]*'.*, "
+        "^AssertionError: the implementation gives .*, "
         "the model .*'BC-005', '/models/[0-9]*/acceptances/[0-9]*'",
         corpus="declarations",
         dictionary="declaration.dict",

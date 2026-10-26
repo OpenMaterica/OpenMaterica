@@ -198,20 +198,25 @@ acceptance after a model's second (`seeded_fault.faulty_reasons`), so that a thi
 `reason` or `basis` is refused only as a member missing, BC-048, where the text gives BC-005.
 `MATERICA_FUZZ_SEEDED_FAULT=declarations` seeds it alone, in `build_bytes.py`. Nothing raises, and its case and
 pointer are ones the target allows, so only the target's relation to the build's reference model sees it, as a
-line in which the implementation gives BC-048 and the model BC-005 at an acceptance. The design's fault skipped
-every acceptance
-after a model's first: seven of the 113 seed declarations, BC-005's arms of a second acceptance without its
-`reason` or `basis`, show that one unchanged (2026-10-25), so the fuzzer would find it at once and show
-nothing. No seed shows the narrowed one, and one change does: the seed that holds such an acceptance at
-`/models/0/acceptances/1` written at `/models/0/acceptances/2`, one byte of its pointer. Every seed passes the
-target's four relations, with no fault seeded and with this one (2026-10-25). Its rate is not measured yet:
-`measure.yml`'s fuzz kind runs it on CI (ten runs with the fault seeded, and runs with none, `declarations:none`,
-which must find nothing), and CI's control step runs it meanwhile in four runs side by side, each of up to 900 s,
-the window of the bar the maintainer's ruling sets the fuzz controls, passing where any finds it; their number
-and length are set from the rate measured. By the S7 design's budget rule the target joins the `fuzz` job only
-where that job's slowest run on CI, and 5 minutes, come to 60 minutes at most; it took 126.7 (run 39743609131,
-2026-10-22, which `ci.yml`'s comment on the job cites), so the target's own weekly fuzzing runs in a row of its
-own beside the fuzz controls' job, which lands with the control's runs set from its rate.
+line in which the model gives BC-005 at an acceptance and the implementation does not; the implementation's
+BC-048 there shows beside it only where the model gives none there, so the find asks for the model's BC-005
+alone. The design's fault skipped every acceptance after a model's first: seven of the 113 seed declarations,
+BC-005's arms of a second acceptance without its `reason` or `basis`, show that one unchanged (2026-10-25), so
+the fuzzer would find it at once and show nothing. No seed shows the narrowed one, and one change does: the seed
+that holds such an acceptance at `/models/0/acceptances/1` written at `/models/0/acceptances/2`, one byte of its
+pointer. Every seed passes the target's four relations, with no fault seeded and with this one (2026-10-25).
+`measure.yml`'s fuzz kind ran it ten times with the fault seeded and ten with none (run 40263772231, Python
+3.14): each run with the fault failed on it, after 28 to 63 s, four of them with the model's BC-005 alone, an
+acceptance missing another member as well, which a find that also asked for the implementation's BC-048 read as
+no find; each of the ten failing inputs passes the relations with no fault seeded. The ten with none found
+nothing in 9,071 s. Eight local runs as that kind runs them (Python 3.14, 2026-10-26) each found it, after 28
+to 44 s, two with the model's BC-005 alone. The rate is measured again with this find, and CI's control step
+runs it meanwhile in four runs side by side, each of up to 900 s, the window of the bar the maintainer's ruling
+sets the fuzz controls, passing where any finds it; their number and length are set from the rate measured. By
+the S7 design's budget rule the target joins the `fuzz` job only where that job's slowest run on CI, and 5
+minutes, come to 60 minutes at most; it took 126.7 (run 39743609131, 2026-10-22, which `ci.yml`'s comment on
+the job cites), so the target's own weekly fuzzing runs in a row of its own beside the fuzz controls' job,
+which lands with the control's runs set from its rate.
 
 The relation to the model found, before any fuzzing, that the check and the model read a declaration apart in
 twelve ways no build-check case shows: by a sweep of every seed with each member replaced by a value of each

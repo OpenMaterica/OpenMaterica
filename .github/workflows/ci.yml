@@ -1131,10 +1131,14 @@ jobs:
           # S7a-1's control for build_bytes.py (`MATERICA_FUZZ_SEEDED_FAULT=declarations`): item 4 skipping every
           # acceptance after a model's second, so that a third without its `reason` or `basis` is refused as a
           # member missing (BC-048) where the build's reference model gives BC-005, which the target's relation
-          # to the model finds. No seed shows it, and one change to a seed does. Its rate is not measured yet
-          # (measure.yml's fuzz kind runs it on CI): until it is, four runs side by side, each of up to the 900 s
-          # of the bar the maintainer's ruling sets the fuzz controls, and the control passes where any finds
-          # it. Their number and length are set from the rate CI measures.
+          # to the model finds: its find is the model's BC-005 at an acceptance that the implementation does not
+          # give, the implementation's BC-048 there showing beside it only where the model gives none there. No
+          # seed shows it, and one change to a seed does. measure.yml's fuzz kind ran it ten times (run
+          # 40263772231): each run failed on it, after 28 to 63 s, four of them with the model's BC-005 alone,
+          # which a find that also asked for the implementation's BC-048 read as no find. Until that kind
+          # measures it with this find, four runs side by side, each of up to the 900 s of the bar the
+          # maintainer's ruling sets the fuzz controls, and the control passes where any finds it. Their number
+          # and length are set from the rate CI measures.
           for worker in 1 2 3 4; do
             cp -r "$control/declarations" "$control/declarations-$worker"
             MATERICA_FUZZ_SEEDED_FAULT=declarations uv run python -m tests.fuzz.build_bytes \
@@ -1144,7 +1148,7 @@ jobs:
           done
           wait || true
           cat "$control"/declarations-[1-4].log > "$control/declarations.log"
-          declared="^AssertionError: the implementation gives .*'BC-048', '/models/[0-9]*/acceptances/[0-9]*'.*, the model .*'BC-005', '/models/[0-9]*/acceptances/[0-9]*'"
+          declared="^AssertionError: the implementation gives .*, the model .*'BC-005', '/models/[0-9]*/acceptances/[0-9]*'"
           # What each run found and when, one line a run, printed before any check below can end the step:
           # `fuzz-control <name> round=<r> run=<i> found=<yes|no> seconds=<s>`, then a line a control,
           # `fuzz-control-summary <name> runs=<n> found=<k> seconds=<total> rate=<finds a second>`. A run's seconds
@@ -1243,8 +1247,9 @@ jobs:
             echo "::error::the table_alternatives runs did not find the fault seeded in step 7 over a table alternative, so they could not find a real one"
             exit 1
           fi
-          # The declaration check's fault raises nothing: the model's assertion finds it, the implementation
-          # refusing an acceptance as a member missing (BC-048) where the model gives BC-005.
+          # The declaration check's fault raises nothing: the model's assertion finds it, the model giving BC-005
+          # at an acceptance where the implementation does not (it refuses a missing `reason` or `basis` there
+          # as a member missing, BC-048).
           if ! grep -q "$declared" "$control/declarations.log"; then
             tail -40 "$control/declarations.log"
             echo "::error::the declarations runs did not find the fault seeded in the declaration's check, so they could not find a real one"
