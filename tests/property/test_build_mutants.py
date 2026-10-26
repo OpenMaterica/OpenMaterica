@@ -642,7 +642,16 @@ def _refused_by_the_first_model(report: BuildReport) -> bool:
     )
 
 
-VERDICT = r"(accepted|accepted_by|not_accepted) "
+# The assertion of `check_judged` a fault of the verdict fails first. A fault by which an acceptance covers a
+# reason it should not, or leaves one uncovered it should cover, changes `accepted` where that reason decides
+# the verdict, and otherwise `accepted_by`, which gains or loses the acceptance: `COVERED`. Where that
+# acceptance can also cover another reason of the result (a waiver whose code, or condition, an extra reason
+# may hold, or a waiver covering several reasons), `accepted_by` may stay as it was, and `not_accepted` is the
+# assertion that changes: `VERDICT`. Whole builds name the result first (`check_verdicts`):
+# `VERDICT_OF_A_RESULT`.
+COVERED = r"^accepted(_by)? "
+VERDICT = r"^(accepted|accepted_by|not_accepted) "
+VERDICT_OF_A_RESULT = r": (accepted|accepted_by|not_accepted) "
 WAIVERS = strategies.HP43_PARTS["waivers"]
 ASSUMPTIONS = strategies.HP43_PARTS["assumptions"]
 NEVER = strategies.HP43_PARTS["never"]
@@ -660,7 +669,7 @@ MUTANTS = [
         "HP43 never",
         replacing(acceptance, "_covers", covering_also(_not_met)),
         ("unlisted_not_met",),
-        VERDICT,
+        COVERED,
         "a waiver naming a `not_met` reason covers it",
     ),
     Mutant(
@@ -687,7 +696,7 @@ MUTANTS = [
         "HP43 assumptions",
         replacing(acceptance, "_under", under_without(_on_no_assumption, "nominal")),
         ("nominal_not_named",),
-        VERDICT,
+        COVERED,
         "a nominal covers `want_mismatch` on a result whose `assumption` does not name it",
     ),
     Mutant(
@@ -696,7 +705,7 @@ MUTANTS = [
         "HP43 assumptions",
         replacing(acceptance, "_under", under_without(_on_no_assumption, "extrapolation")),
         ("extrapolation_not_named",),
-        VERDICT,
+        COVERED,
         "an extrapolation covers `outside_range` on a result whose `assumption` does not name it",
     ),
     Mutant(
@@ -705,7 +714,7 @@ MUTANTS = [
         "HP43 never",
         replacing(acceptance, "COVERAGE", _at_edge_beside_range_unstated()),
         ("at_edge",),
-        VERDICT,
+        COVERED,
         "`at_edge` covered by an extrapolation, as `range_unstated` is",
     ),
     Mutant(
@@ -714,7 +723,7 @@ MUTANTS = [
         "HP43 never",
         replacing(acceptance, "_covers", covering_also(_coded("no_pick"))),
         ("no_pick",),
-        VERDICT,
+        COVERED,
         "`no_pick` covered by a waiver naming it",
     ),
     Mutant(
@@ -723,7 +732,7 @@ MUTANTS = [
         "HP43 never",
         replacing(acceptance, "_covers", covering_also(_coded("label_mismatch"))),
         ("label_mismatch",),
-        VERDICT,
+        COVERED,
         "`label_mismatch` covered by a waiver naming it",
     ),
     Mutant(
@@ -732,7 +741,7 @@ MUTANTS = [
         "HP43 never",
         replacing(acceptance, "_covers", covering_also(_unlisted)),
         ("unlisted_not_met", "no_pick"),
-        VERDICT,
+        COVERED,
         "a waiver covers a code no row of section 4.2 lists, where it names it",
     ),
     Mutant(
@@ -750,7 +759,7 @@ MUTANTS = [
         "HP43 waivers",
         replacing(acceptance, "_covers", _covers_any_field),
         ("field_differs",),
-        VERDICT,
+        COVERED,
         "an acceptance covers a reason of a result of another field",
     ),
     # `located_at` (HP43).
@@ -760,7 +769,7 @@ MUTANTS = [
         "HP43 waivers",
         locating(located_by("id")),
         ("location_differs",),
-        VERDICT,
+        COVERED,
         "an acceptance located at every record of its record's `id` (R06)",
     ),
     Mutant(
@@ -769,7 +778,7 @@ MUTANTS = [
         "HP43 waivers",
         locating(located_by("id", "content_hash")),
         ("location_differs",),
-        VERDICT,
+        COVERED,
         "an acceptance located at its record's `id` and `content_hash`, whatever the `version`",
     ),
     Mutant(
@@ -778,7 +787,7 @@ MUTANTS = [
         "HP43 waivers",
         locating(located_by("version", "content_hash")),
         ("location_differs",),
-        VERDICT,
+        COVERED,
         "an acceptance located at its record's `version` and `content_hash`, whatever the `id`",
     ),
     Mutant(
@@ -787,7 +796,7 @@ MUTANTS = [
         "HP43 waivers",
         locating(_located_wherever_it_names_the_record),
         ("location_differs",),
-        VERDICT,
+        COVERED,
         "an acceptance naming a region or an interval beside a record located at that record",
     ),
     # `judge` (HP43).
@@ -824,7 +833,7 @@ MUTANTS = [
         "HP43 indexes",
         _judged_by_every_model,
         ("indexes",),
-        VERDICT,
+        VERDICT_OF_A_RESULT,
         "a model's results judged by every model's acceptances (R02)",
     ),
     # `_applied`, `_shown` and `_fills`: "applied" (HP43's `indexes`).
