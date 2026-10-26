@@ -45,10 +45,10 @@ every family entry goes in `families/CHANGELOG.md`.
   version builds nothing past the declaration's check for, where a refusal's pointer names no member, where a
   refusal's case is none of the refusal paragraph's, or where the build's reference model refuses the
   declaration with every rule's refusals placed and the check refuses otherwise, or takes it and the check
-  refuses it, but as one of twelve known divergences says, each an open point (`tests/fuzz/build_oracle.py`,
-  each relation and each divergence shown failing by `tests/unit/test_fuzz_build_oracle.py`); a thirteenth, a
-  nominal's `params` beside a `field` that names no registered field, which CI's fuzz runs with no fault
-  seeded found, is the model's, fixed with it. Its seeded fault (`MATERICA_FUZZ_SEEDED_FAULT=declarations`),
+  refuses it. The thirteen divergences its sweeps and CI's runs found are fixed on `main` (the model's in
+  #103, the check's in #104), so `build_oracle.KNOWN_DIVERGENCES` is empty, its mechanism kept, and
+  `tests/unit/test_fuzz_build_oracle.py` shows each relation failing and the check and the model giving the
+  same refusals on each divergence's example. Its seeded fault (`MATERICA_FUZZ_SEEDED_FAULT=declarations`),
   which only the relation to the model sees, found as the model's BC-005 at an acceptance after a model's
   second that the check does not give, runs in CI's fuzz control step, four runs side by side of up to 900 s
   until its rate is measured, and as `measure.yml`'s fuzz control `declarations`, whose report flags a run

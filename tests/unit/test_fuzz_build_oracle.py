@@ -261,8 +261,9 @@ def test_a_declaration_holding_what_a_later_piece_reads_passes_the_relations() -
     check_declaration(with_a_target, store())
 
 
-# Each known divergence: an example the check and the model refuse apart, which the relation lets through
-# with the divergence listed and fails without it.
+# The thirteen divergences the target's runs found, fixed on `main` (the model's, then the check's), each as
+# the example that showed it: the check and the model now give the same refusals on it, with no divergence
+# listed (`KNOWN_DIVERGENCES` is empty).
 
 INPUTS = BUILD_CHECKS / "inputs"
 
@@ -295,7 +296,7 @@ TWO_ALTERNATIVES = put(
     ("/models/0/checked_over/path", "lumen"),
     ("/models/0/checked_over/records/0/version", {"x": 1.0}),
 )
-DIVERGENCES: dict[str, JsonValue] = {
+WITNESSES: dict[str, JsonValue] = {
     "waiver_label_of_another_type": put(
         "bc050_requirement_without_review.json", ("/models/0/acceptances/0/label", 1.0)
     ),
@@ -335,22 +336,56 @@ DIVERGENCES: dict[str, JsonValue] = {
     "region_conditions_of_another_type": put(
         "bc051_region_conditions.json", ("/models/0/region_conditions", None)
     ),
+    # The thirteenth, from CI's fuzz run 40275055796: a nominal acceptance's `params` beside a `field` that
+    # names no registered field (the input that crashed four runs of ten with no fault seeded).
+    "params_beside_an_unregistered_field": put(
+        "bc006_every_kind_s7a_2_reads.json",
+        (
+            "/models/0/acceptances/3",
+            {
+                "acceptance": "nominal",
+                "params": {
+                    "id": "conformance/water_fixture",
+                    "version": "1.0.0",
+                    "content_hash": "sha512:c2",
+                },
+                "field": "fluid.dyna",
+                "reason": "the model needs onbration",
+            },
+        ),
+    ),
 }
 
 
-def test_every_known_divergence_has_an_example() -> None:
-    assert set(DIVERGENCES) == set(KNOWN_DIVERGENCES)
+def test_no_divergence_is_listed() -> None:
+    assert KNOWN_DIVERGENCES == {}
 
 
-@pytest.mark.parametrize("name", sorted(DIVERGENCES))
-def test_a_known_divergence_passes_the_relation_and_fails_it_unlisted(
-    name: str, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize("name", sorted(WITNESSES))
+def test_the_check_and_the_model_give_the_same_refusals_on_a_divergence_found_once(name: str) -> None:
+    """The witness is refused, with every rule's refusals placed by the model (so that the equality below
+    compares something), and the relation holds with nothing listed."""
+    declaration = WITNESSES[name]
+    verdict = build_model.check_build(json.dumps(declaration).encode(), BUILD)
+    assert isinstance(verdict, build_model.Refused)
+    assert not verdict.unplaced
+    wanted = {(refusal.item, refusal.pointer) for refusal in verdict.refusals}
+    assert wanted
+    assert {(one.item, one.pointer) for one in check_build(declaration, store()).refusals} == wanted
+    check_declaration(declaration, store())
+
+
+def test_a_divergence_listed_is_let_through_and_fails_the_relation_unlisted(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    check_declaration(DIVERGENCES[name], store())
-    others = {other: explains for other, explains in KNOWN_DIVERGENCES.items() if other != name}
-    monkeypatch.setattr(build_oracle, "KNOWN_DIVERGENCES", others)
+    """The mechanism an empty list keeps: a check that refuses a declaration the model takes fails the
+    relation, and passes it where an `Explains` function names that refusal."""
+    refusal = BuildRefusal("BC-048", "/models/0/model")
     with pytest.raises(AssertionError, match=r"^the implementation gives "):
-        check_declaration(DIVERGENCES[name], store())
+        check_declaration(VALID, store(), refused(refusal))
+    listed: dict[str, build_oracle.Explains] = {"listed": lambda _, found, wanted: set(found)}
+    monkeypatch.setattr(build_oracle, "KNOWN_DIVERGENCES", listed)
+    check_declaration(VALID, store(), refused(refusal))
 
 
 # The target, through its own `test_one_input`.
