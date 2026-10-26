@@ -113,6 +113,9 @@ every family entry goes in `families/CHANGELOG.md`.
   figure counts stay with the reviewer.
 
 ### Changed
+- The caps of jobs at once (`PER_COMMIT_MAX_PARALLEL`, `REPEAT_MAX_PARALLEL`, `MUTANT_MAX_PARALLEL`,
+  `MEASURE_MAX_PARALLEL`) take a whole number from 1 to 60, the organisation's runners, where they took one
+  from 1 to 20, from when the repository shared them (maintainer, 2026-10-26). The defaults are unchanged.
 - The declaration check agrees with the text where it and the build's reference model read it apart
   (`core/declarations.py`; the rulings of 2026-10-26 are under Schema). A waiver's `label` that is no string
   names no label and is BC-048's alone at itself, whatever its requirement holds (before, `null` beside a
