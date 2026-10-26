@@ -428,66 +428,79 @@ check's reader (the last bullet).
   only where that end lies past the readable range's (HP12's tables below); HP40's three moves of the range by a
   test of each on a table written by hand (`off_the_value`); the others' own draws are S4a's, which S4a's
   properties hold.
-- **The declaration on its own (S7a-1):** (21) the S7 design's HP41 and HP42 (`test_declaration_properties.py`, in
-  the `build` shard): the declaration's own check (`declarations.md` section 1; `core/declarations.py`) against an
-  oracle written in the test from the text: each planted fault's rules by its name (`RULES`, each cited from its
-  sentence), the refusal paragraph's order for a member two rules name ("one fault is one member at fault",
-  maintainer, 2026-10-24), one refusal for two faults of one case and one pointer, and none for a fault a rule
-  judges against a member itself at fault (a field not read beside a `reads` missing, of another type or empty)
-  or inside an acceptance that names no known kind, which is refused at itself alone (the paragraph's sentence
-  on a rule that stands aside). `declaration_strategies.py`
-  draws, from the text alone and never from `SHAPE` or `TOKENS`, declarations the text takes: one to three models
-  over one to three of `stores.py`'s records, one to four fields read each with a requirement or none, acceptances
-  of every kind a build that claims none of item 12's suites can check, located at a record, an accepted difference
-  located or not, `trainable` entries (two of one field at two records among them), `target` facts of every shape,
-  the optional members present or absent, and texts of white space, of a degree sign and of 120 characters, which
-  the text takes. A planter changes a copy and records each fault's name, pointer and, for a missing member, which;
-  it puts no second member at fault, planting where nothing rests on what it changes (a labelled waiver on its
-  requirement, a `trainable` entry on the listed records), clearing what rests there first, and never taking out a
-  member that holds a fault planted before. Every part checks first that the declaration drawn is taken, and that
-  the check never raises. HP41 runs in seven parts, each a test parametrized by strata of at most two of its
-  ways, each stratum drawing its way first among its own, alike (floors at the variance measured, below):
-  `reasons`
-  (a tolerance's, an accept list's, an acceptance's and a basis's absence, an empty string), `locations`
-  (acceptances of the kinds that need a location naming none, an accepted difference, an overlay or an
-  `overlay_scope` naming none, one located, at a region or an interval among them), `shape` (two required members
-  missing at objects of two places, an accepted difference's kind and a waiver's `condition` among them in about
-  one draw in six each, a value its Holds column refuses, of another JSON type or breaking constraints the column
-  states, a member whose row holds a number holding another JSON type, a boolean among them, in a stratum of its
-  own (`not_a_number`: a check that takes a boolean anywhere may raise for one in an object or a list first),
-  members no place names or another place names at several depths, two slips of named members at objects of two
-  places, empty lists where one entry is asked, the requirements and `trainable` entries kept beside an emptied
-  `reads`, which holds a requirement in most draws), `tokens` (tokens outside their members' lists, slips
-  of them, other members' tokens, tokens in another case, each at members of the sweep by chance; a field or a
-  condition misspelt), `names` (names given twice in several lists, a requirement or a `trainable` entry for a field
-  not read, a `trainable` entry at a record not listed, a label-resting waiver its requirement does not hold up,
-  and a waiver's `label` of `null` beside a reviewed requirement naming no label, which names no label, so that
-  the shape table alone refuses it, maintainer, 2026-10-25),
-  `precedence` (a fault two rules name, missing members, a text that is not JSON, a value that is not an object, two
-  members missing from one object) and `every_fault` (two to five faults across models, of planters that only append
-  or add, drawing no feature). Where a way's second choice is a list of independent places (the constraints, the
-  sweep's members, the depths, the kinds, the empty lists, the lists a name is given twice in), several are planted
-  at once, each in about half the draws and one at least (included where its boolean is drawn false, so that a run's
-  first examples hold every one), at places apart: each check is then met often enough to kill its mutant well
-  before the margin guard, and the several faults hold the search to every one of them. Two missing members, and two
-  slips, at objects of two places, keep a check that took one from building its typed result of a model that lacks
-  the member, so that a mutant of it dies at its own assertion, not at the check raising. HP42 draws a domain, a
-  path, `region_conditions`, an engine (over records or a domain, and item 7's other reasons, none in half the
+- **The declaration on its own (S7a-1):** (21) the S7 design's HP41 and HP42
+  (`test_declaration_properties.py`, in the `build` shard): the declaration's own check (`declarations.md`
+  section 1; `core/declarations.py`) against an oracle written in the test from the text: each planted fault's
+  rules by its name (`RULES`, each cited from its sentence), the refusal paragraph's order for a member two
+  rules name ("one fault is one member at fault", maintainer, 2026-10-24), one refusal for two faults of one
+  case and one pointer, and none for a fault a rule judges against a member itself at fault (a field not read
+  beside a `reads` missing, of another type or empty, a `population_level` beside a `represents` of no list, a
+  waiver's missing `condition` beside a refused `code`, the members inside an accepted difference's `value`
+  beside its `fact` at fault) or inside an acceptance that names no known kind, which is refused at itself
+  alone (the paragraph's sentence on a rule that stands aside). `declaration_strategies.py` draws, from the
+  text alone and never from `SHAPE` or `TOKENS`, declarations the text takes: one to three models over one to
+  three of `stores.py`'s records, one to four fields read each with a requirement or none, acceptances of
+  every kind a build that claims none of item 12's suites can check, located at a record, an accepted
+  difference located or not, `trainable` entries (two of one field at two records among them), `target` facts
+  of every shape, the optional members present or absent, and texts of white space, of a degree sign and of
+  120 characters, which the text takes. A planter changes a copy and records each fault's name, pointer and,
+  for a missing member, which; it puts no second member at fault, planting where nothing rests on what it
+  changes (a labelled waiver on its requirement, a `trainable` entry on the listed records), clearing what
+  rests there first, and never taking out a member that holds a fault planted before. Every part checks first
+  that the declaration drawn is taken, and that the check never raises. HP41 runs in seven parts, each a test
+  parametrized by strata of at most two of its ways, each stratum drawing its way first among its own, alike
+  (floors at the variance measured, below): `reasons` (a tolerance's, an accept list's, an acceptance's and a
+  basis's absence, an empty string), `locations` (acceptances of the kinds that need a location naming none,
+  an accepted difference, an overlay or an `overlay_scope` naming none, one located, at a region or an
+  interval among them), `shape` (two required members missing at objects of two places, an accepted
+  difference's kind among them in about one draw in eight and a waiver's `condition` in about half, a value
+  its Holds column refuses, of another JSON type or breaking constraints the column states, a combination's
+  field not in `reads` and a nominal's `params` beside a `field` at fault among them, a member whose row holds
+  a number holding another JSON type, a boolean among them, in a stratum of its own (`not_a_number`: a check
+  that takes a boolean anywhere may raise for one in an object or a list first), members no place names or
+  another place names at several depths, two slips of named members at objects of two places, empty lists
+  where one entry is asked, the requirements and `trainable` entries kept beside an emptied `reads`, which
+  holds a requirement in most draws, and a `trainable` entry, or a requirement, naming a field misspelt beside
+  it in about half), `tokens` (tokens outside their members' lists, slips of them, other members' tokens,
+  tokens in another case, each at members of the sweep by chance, the never-waived `code` with its `condition`
+  or without; a field or a condition misspelt), `names` (names given twice in several lists, a requirement or
+  a `trainable` entry for a field not read, a `trainable` entry at a record not listed, a label-resting waiver
+  its requirement does not hold up, and a waiver's `label` of `null` beside a reviewed requirement naming no
+  label, which names no label, so that the shape table alone refuses it, maintainer, 2026-10-25), `precedence`
+  (a fault two rules name, missing members, a text that is not JSON, a value that is not an object, two
+  members missing from one object) and `every_fault` (two to five faults across models, of planters that only
+  append or add, drawing no feature). Where a way's second choice is a list of independent places (the
+  constraints, the sweep's members, the depths, the kinds, the empty lists, the lists a name is given twice
+  in), several are planted at once, each in about half the draws and one at least (included where its boolean
+  is drawn false, so that a run's first examples hold every one), at places apart: each check is then met
+  often enough to kill its mutant well before the margin guard, and the several faults hold the search to
+  every one of them. Two missing members, and two slips, at objects of two places, keep a check that took one
+  from building its typed result of a model that lacks the member, so that a mutant of it dies at its own
+  assertion, not at the check raising. HP42 draws a domain or a path (a `trainable` entry at a region or an
+  interval beside it in about half the draws), `region_conditions` (a numeric condition's name misspelt inside
+  it in about half), an engine (over records, a domain or a path, and item 7's other reasons, none in half the
   draws, so that what the model is over alone tells item 7's refusal, and in the rest each in about half: its
   crosswalk pinned, a value without its `reason` or `basis`, a requirement wanting another token than `value`)
-  or a sampling member (which, and `sampling` absent, valid,
-  off its bounds or missing a member, by chance), in three strata, beside none to two of HP41's
-  faults, and holds the refusals to items 7 and 8, the `population_level` rule and item 12's sparing, to the check
-  of the same declaration without the member, and a build that claims the member's suite to `NotImplementedError`
-  (fail closed, maintainer, 2026-10-24). HP1, HP2 and HP11 hold a result's `read`, and S7a-1 gives none: they join
-  with S7a-2's results. The strata: drawn among four or five ways alike, a way's count varied over CI's 20
-  streams 6.6 times a binomial count's on average (2.6 to 12.5 by way), and 7 of the 34 ways fell below their
-  floor (110 among five, 160 among four) with a probability above 1e-6 at their least share and the variance
-  measured (`requirement_unread` 2.7e-5, `other_members_token` 1.3e-4, `unlocated` 7.2e-5, `basis` 1.1e-5,
-  `missing` 3.5e-6, `misspelt_name` 2.9e-6, `twice` 1.9e-6). A simulation of that measurement (20 streams, each
-  count 6.6 times a binomial one) flags a way drawn among five in about one measurement in five, among three in
-  one in 23, and among two, at a floor of 440 of 2,000, in one in 500; so each part draws among two at most,
-  the S7 design's 6.1 split of a test function, not a floor lowered.
+  or a sampling member (which, a `population_level` beside a `represents` of no list or holding a `within` of
+  another status among them, and `sampling` absent, valid, of another JSON type, with a `min_acceptance` off
+  its bounds or of another type, or missing a member, `min_acceptance` among them, by chance), in three
+  strata, beside none to two of HP41's faults, and holds the refusals to items 7 and 8, the `population_level`
+  rule and item 12's sparing, to the check of the same declaration without the member and under a claim of the
+  suites item 12 names that no member of it needs, and a build that claims the member's suite to
+  `NotImplementedError` (fail closed, maintainer, 2026-10-24). HP1, HP2 and HP11 hold a result's `read`, and
+  S7a-1 gives none: they join with S7a-2's results. The strata: drawn among four or five ways alike, a way's
+  count varied over CI's 20 streams 6.6 times a binomial count's on average (2.6 to 12.5 by way), and 7 of the
+  34 ways fell below their floor (110 among five, 160 among four) with a probability above 1e-6 at their least
+  share and the variance measured (`requirement_unread` 2.7e-5, `other_members_token` 1.3e-4, `unlocated`
+  7.2e-5, `basis` 1.1e-5, `missing` 3.5e-6, `misspelt_name` 2.9e-6, `twice` 1.9e-6). A simulation of that
+  measurement (20 streams, each count 6.6 times a binomial one, the average then) flags a way drawn among five
+  in about one measurement in five, among three in one in 23, and among two, at a floor of 440 of 2,000, in
+  about one in 300; so each part draws among two at most, the S7 design's 6.1 split of a test function, not a
+  floor lowered. That figure is per way and at the average variance: among two, a way is flagged in one
+  measurement in 23 at 9 times a binomial count's variance and in one in four at 12.5 times, the top of the
+  range then; and a measurement of the 28 ways of the strata of two flags one of them about 28 times as often
+  as one way. The strata's ratios measured since are 3.6 to 9.6, and no way has been flagged in two
+  measurements (CI's runs 40263770176 and 40275058309).
 - **The anomaly check's reader:** the YAML reader of `scripts/check_anomalies.py` and its specifier syntax
   against PyYAML's `safe_load` and `packaging` (`test_anomaly_reader_properties.py`, in the `agreement` shard).
   A document the reader reads is read as PyYAML reads it; one PyYAML refuses is refused; one inside the subset
@@ -681,7 +694,7 @@ hold yet passes `--check`, so that a stacked branch's older commits stand, and f
 run.
 
 <!-- kill points summary (scripts/gen_kill_counts.py) -->
-`kill_points.json` records 1,456 searches, 728 mutants each at both sizes; the latest kill is at the 487th example (`upper_none_as_infinity`, original size).
+`kill_points.json` records 1,484 searches, 742 mutants each at both sizes; the latest kill is at the 487th example (`upper_none_as_infinity`, original size).
 <!-- end of kill points summary -->
 
 Three searches were planned because their kill sat in a long tail. With the pin, a search's kill is fixed by
@@ -1926,37 +1939,55 @@ seeded faults of its step-11 rows, each killed by a case file (`tests/reference/
 ### The declaration's own check (S7a-1)
 
 `test_declaration_mutants.py`, each injected at a name of `core/declarations.py` that the check looks up when
-it runs (a rule's function, `_precedence`, `_holds`, `_suite_members`, `_join`, `TOKENS`, `_in_unit_interval`,
-`_ANY_KIND`, `_ITEM_7_MEMBERS`), and each dying at a way it names and at the assertion it names: the S7 design's
-35 mutants of HP41 and HP42 (its section 6.4; `test_declaration_mutant_table.py` holds each to the row that stands
-for it), and 40 more, the rules the build's reference model's listed survivors and S7a-1b's review's hand
-mutants leave to these properties, where the draws reach them: blank text refused, an empty condition reason
-given item 3's case, an empty `reads` or `accepts`, two exclusive alternatives, a `consumer`'s or a `model`'s
-shape, a range upside down, a number below zero, an index not whole, a status object where none is taken, a
-boolean taken as a number, a nominal's `params`, a distribution's parameters, a `basis` on another kind, a
-chain's members, an accepted difference of `"any"` refused, an accepted difference's `value` judged beside
-its `fact` at fault ("that fact's shape", which a `fact` at fault does not give), the never-waived code, a
-mixing rule, a family, a precision, a unit, a distribution's `space`, a waiver's condition token and its
-presence, a combination, a repeated `accepts` token, two `trainable` entries of one field at two records
-refused, a waiver's label beside an unregistered field, an acceptance at an interval, an engine model over a
-domain refused by item 7, a `sampling` block without `independence`, a `population_level` beside another
-`represents` or none, `min_acceptance` 1 and 0; a waiver's `label` of `null` judged by item 4 (maintainer,
-2026-10-25: `null` names no label); and the three rules of the refusal paragraph's last round, each in its old
-reading: a requirement's or a `trainable` entry's `field` judged against an empty `reads`, an acceptance of no
-known kind judged by the members other kinds name, an engine value without `reason` or `basis` refused at the
-value beside the model's `engine`. Every one is searched over the draws of the one stratum of its part that
-holds the ways it names: none needs a planned search.
-The three that refuse what the text takes and that a planter's fault can
-show as well (blank text, a waiver's `basis`, two `trainable` entries of one field at two records) are searched
-over the `precedence` part's stratum of a text that is not JSON and a value that is not an object, whose faults
-no rule but the parse judges, so that each dies at the valid declaration alone. Not drawn, each with why: a fault at an engine model's requirement's
-`want`, which item 7 judges against a member then itself at fault, a reading the text does not settle; a
-`trainable` entry at a region or an interval, S7a-4's; a `represents` or a `population_level` of another shape,
-and an independence entry's members, the sampling suite's, which no build claims yet; a waiver's `label` of
-`null` beside any other requirement, which the check refuses by item 4 where the ruling has item 4 not judge it
-(an open point). A waiver's `label` of another JSON type is drawn as the check reads it, refused by item 4
-(BC-050), where the build's reference model refuses it by the shape table alone (an open point, which the fuzz
-target's relation to the model lists as a known divergence).
+it runs (a rule's function, `_precedence`, `_holds`, `_suite_members`, `_join`, `TOKENS`, `ORDER`,
+`_in_unit_interval`, `_ANY_KIND`, `_ITEM_7_MEMBERS`, `_kind_tokens`, `_fail_closed`), and each dying at a way
+it names and at the assertion it names: the S7 design's 35 mutants of HP41 and HP42 (its section 6.4;
+`test_declaration_mutant_table.py` holds each to the row that stands for it), and 54 more, the rules the
+build's reference model's listed survivors and S7a-1b's and S7a-1p's reviews' hand mutants leave to these
+properties, where the draws reach them: blank text refused, an empty condition reason given item 3's case, an
+empty `reads` or `accepts`, two exclusive alternatives, a `consumer`'s or a `model`'s shape, a range upside
+down, a number below zero, an index not whole, a status object where none is taken, a boolean taken as a
+number, a nominal's `params`, a distribution's parameters, a `basis` on another kind, a chain's members, an
+accepted difference of `"any"` refused, an accepted difference's `value` judged beside its `fact` at fault
+("that fact's shape", which a `fact` at fault does not give), the never-waived code, a mixing rule, a family,
+a precision, a unit, a distribution's `space`, a waiver's condition token and its presence, a combination, a
+repeated `accepts` token, two `trainable` entries of one field at two records refused, a waiver's label beside
+an unregistered field, an acceptance at an interval, an engine model over a domain refused by item 7, a
+`sampling` block without `independence`, a `population_level` beside another `represents` or none,
+`min_acceptance` 1 and 0; a waiver's `label` of `null` judged by item 4 (maintainer, 2026-10-25: `null` names
+no label); and the three rules of the refusal paragraph's last round, each in its old reading: a requirement's
+or a `trainable` entry's `field` judged against an empty `reads`, an acceptance of no known kind judged by the
+members other kinds name, an engine value without `reason` or `basis` refused at the value beside the model's
+`engine`; and the fourteen rules S7a-1p's review found no draw decided, each drawn now: the refusal
+paragraph's first and third rules that stand aside (the `population_level` rule beside a `represents` of no
+list, a waiver's missing `condition` beside its never-waived `code`), item 8 over a `sampling` without
+`min_acceptance`, a `sampling` of another JSON type and a `min_acceptance` of another type, the shape table
+after item 12 for a member both name, a `within` of another status, an engine model over a path (item 7), a
+`trainable` entry at a region or an interval (item 12), a claimed suite no member needs, a combination's field
+not in `reads`, a condition's name in `region_conditions`, a `trainable` entry's field misspelt beside an
+empty `reads`, and a nominal's `params` beside a `field` at fault. Every one is searched over the draws of the
+one stratum of its part that holds the ways it names: none needs a planned search. The three that refuse what
+the text takes and that a planter's fault can show as well (blank text, a waiver's `basis`, two `trainable`
+entries of one field at two records) are searched over the `precedence` part's stratum of a text that is not
+JSON and a value that is not an object, whose faults no rule but the parse judges, so that each dies at the
+valid declaration alone. Not drawn, each with why and the test that holds it: a fault at an engine model's
+requirement's `want`, which item 7 judges against a member then itself at fault, a reading the text does not
+settle; a `families` value of another JSON type, since no field registered here allows the form
+`parameter_set`, so that every name in `families` is itself at fault at the pointer its value has, and no
+declaration tells the value's type apart (`tests/spec_sync/test_declaration_shape.py`'s
+`test_each_member_holds_what_its_row_gives` holds the row); a `represents` or a `population_level` of another
+JSON type or shape, and an independence entry's members: HP41's declarations hold no sampling member, and HP42
+draws those members for items 8 and 12 and the `population_level` rule, with a `represents` of no list and a
+`within` of another status of the shape table's faults inside them and no others, so that the spec-sync test
+of `SHAPE`'s rows alone holds these (an open point); a waiver's `label` of `null` beside any other
+requirement, which the check refuses by item 4 where the ruling has item 4 not judge it (an open point). A
+waiver's `label` of another JSON type is drawn as the check reads it, refused by item 4 (BC-050), where the
+build's reference model refuses it by the shape table alone (an open point, which the fuzz target's relation
+to the model lists as a known divergence). Two rules are drawn thinly, in about one draw in 3,000 of HP41's
+and HP42's (S7a-1p's review): a `consequence` of another JSON type and a `range` of other than two entries,
+each held by a test of its own too (the spec-sync test above, and `tests/unit/test_declarations.py`'s
+`test_a_value_breaking_its_holds_and_two_or_none_of_its_alternatives_are_refused`, a range of one and of
+three).
 
 <!-- kill points of every search of test_declaration_mutants.py::test_the_declaration_mutant_is_killed (scripts/gen_kill_counts.py) -->
 | Mutant | Fault | At | Killed by | Dies at | Examples |
@@ -1977,14 +2008,14 @@ target's relation to the model lists as a known divergence).
 | `empty_reads_taken` | an empty `reads` taken | `_holds` | HP41, shape | `empty_list` | 2, 2 |
 | `empty_accepts_taken` | an `overlay_scope` accepting nothing taken | `_holds` | HP41, shape | `empty_list` | 2, 2 |
 | `empty_reads_judged` | a requirement's or a `trainable` entry's `field` judged against an empty `reads` | `_names` | HP41, shape | `empty_list` | 2, 2 |
-| `exactly_one_unchecked` | two of a place's exclusive alternatives taken | `_shape` | HP41, shape | `breaks_holds` | 11, 6 |
+| `exactly_one_unchecked` | two of a place's exclusive alternatives taken | `_shape` | HP41, shape | `breaks_holds` | 9, 7 |
 | `consumer_shape_unchecked` | a `consumer` missing a member, holding another or of another type, taken | `_shape` | HP41, shape | `unknown`, `slip` | 2, 2 |
 | `range_order_unchecked` | a `range` whose `lo` is above its `hi` taken | `_holds` | HP41, shape | `breaks_holds` | 3, 3 |
 | `number_below_zero_taken` | a tolerance or a `fraction_sum_tolerance` below zero taken | `_holds` | HP41, shape | `breaks_holds` | 3, 3 |
-| `index_not_whole_taken` | a pick's `index` with a fractional part, or below zero, taken | `_holds` | HP41, shape | `breaks_holds` | 7, 44 |
-| `status_object_taken` | a status object as a target's fact or an implied condition's value taken | `_holds` | HP41, shape | `breaks_holds` | 5, 34 |
-| `params_taken` | a nominal's `params` for a field whose row allows no parameter set taken | `_tokens` | HP41, shape | `breaks_holds` | 7, 65 |
-| `distribution_parameters_unchecked` | a distribution's parameters other than its token's taken | `_tokens` | HP41, shape | `breaks_holds` | 3, 44 |
+| `index_not_whole_taken` | a pick's `index` with a fractional part, or below zero, taken | `_holds` | HP41, shape | `breaks_holds` | 7, 7 |
+| `status_object_taken` | a status object as a target's fact or an implied condition's value taken | `_holds` | HP41, shape | `breaks_holds` | 5, 31 |
+| `params_taken` | a nominal's `params` for a field whose row allows no parameter set taken | `_tokens` | HP41, shape | `breaks_holds` | 7, 7 |
+| `distribution_parameters_unchecked` | a distribution's parameters other than its token's taken | `_tokens` | HP41, shape | `breaks_holds` | 3, 7 |
 | `basis_on_any_kind_taken` | a `basis` on a waiver, an implied condition, an accepted difference, a pick or an overlay taken | `_shape` | HP41, shape | `unknown`, `slip` | 96, 100 |
 | `chains_unchecked` | a chain's members unchecked | `_shape` | HP41, shape | `unknown`, `slip` | 11, 71 |
 | `model_name_and_version_unchecked` | a `model` missing `name` or `version`, holding another member or of another type, taken | `_shape` | HP41, shape | `unknown`, `slip` | 19, 5 |
@@ -2003,7 +2034,7 @@ target's relation to the model lists as a known divergence).
 | `unit_unchecked` | a unit other than its condition's or its fact's taken | `_tokens` | HP41, tokens | `outside_list`, `other_members_token` | 1, 1 |
 | `waiver_condition_token_unchecked` | a waiver's `condition` holding any string taken | `_tokens` | HP41, tokens | `outside_list`, `other_members_token` | 1, 1 |
 | `waiver_condition_missing_taken` | a waiver whose code names a condition taken without its `condition` | `_tokens` | HP41, shape | `missing` | 1, 1 |
-| `kindless_acceptance_judged` | an acceptance of no known kind judged by the members other kinds name | `_ANY_KIND` | HP41, shape | `missing` | 66, 35 |
+| `kindless_acceptance_judged` | an acceptance of no known kind judged by the members other kinds name | `_ANY_KIND` | HP41, shape | `missing` | 53, 5 |
 | `two_models_of_one_name_taken` | two models of one `name` taken | `_names` | HP41, names | `twice` | 1, 1 |
 | `requirement_for_a_field_not_read_taken` | a requirement for a field not in `reads` taken | `_names` | HP41, names | `requirement_unread` | 1, 1 |
 | `two_requirements_for_one_field_taken` | two requirements for one field taken | `_names` | HP41, names | `twice` | 1, 1 |
@@ -2011,7 +2042,7 @@ target's relation to the model lists as a known divergence).
 | `trainable_for_a_field_not_read_taken` | a `trainable` entry for a field not in `reads` taken | `_names` | HP41, names | `trainable_unread` | 2, 2 |
 | `trainable_at_an_unlisted_record_taken` | a `trainable` entry at a record its model is not checked over taken | `_names` | HP41, names | `trainable_unlisted` | 2, 2 |
 | `trainable_twice_by_field` | two `trainable` entries for one field at two locations refused | `_names` | HP41, precedence | `not_json`, `not_object` | 78, 123 |
-| `combination_unchecked` | a combination of one field, or of fields of one section, taken | `_names` | HP41, shape | `breaks_holds` | 9, 6 |
+| `combination_unchecked` | a combination of one field, or of fields of one section, taken | `_names` | HP41, shape | `breaks_holds` | 25, 7 |
 | `repeated_accepts_taken` | an `accepts` token given twice taken | `_names` | HP41, names | `twice` | 1, 1 |
 | `label_beside_an_unregistered_field_unjudged` | a waiver's `label` beside a `field` that is not registered left to the field's own fault | `_labels` | HP41, names | `label_unreviewed` | 64, 7 |
 | `label_waiver_taken_without_review` | a label-resting waiver taken without its requirement's `review` | `_labels` | HP41, names | `label_unreviewed` | 1, 1 |
@@ -2025,17 +2056,31 @@ target's relation to the model lists as a known divergence).
 | `region_conditions_taken` | `region_conditions` taken without the scene suite | `_suite_members` | HP42 | `region_conditions` | 1, 1 |
 | `path_taken` | a model checked over a path taken without the scene suite | `_suite_members` | HP42 | `path` | 2, 2 |
 | `interval_location_taken` | an acceptance located at an interval taken without the scene suite | `_suite_members` | HP41, locations | `located` | 52, 19 |
-| `engine_over_a_domain_refused_by_item_7` | an engine model over a domain refused by item 7 as one over records is | `_suites` | HP42 | `engine` | 37, 3 |
-| `sampling_independence_unrequired` | a `sampling` block without `independence` taken | `_shape` | HP42 | `sampling` | 3, 9 |
+| `engine_over_a_domain_refused_by_item_7` | an engine model over a domain refused by item 7 as one over records is | `_suites` | HP42 | `engine` | 5, 3 |
+| `sampling_independence_unrequired` | a `sampling` block without `independence` taken | `_shape` | HP42 | `sampling` | 7, 45 |
 | `engine_taken` | a model with `engine` taken | `_suites` | HP42 | `engine` | 2, 2 |
-| `distribution_taken` | a `distribution` acceptance taken without the sampling suite | `_suite_members` | HP42 | `sampling` | 3, 11 |
-| `represents_taken` | a requirement's `represents` taken without the sampling suite | `_suite_members` | HP42 | `sampling` | 3, 32 |
-| `engine_over_records_left_to_item_12` | BC-051 for an engine model over records in place of BC-040 | `_suites` | HP42 | `engine` | 3, 44 |
+| `distribution_taken` | a `distribution` acceptance taken without the sampling suite | `_suite_members` | HP42 | `sampling` | 3, 27 |
+| `represents_taken` | a requirement's `represents` taken without the sampling suite | `_suite_members` | HP42 | `sampling` | 3, 45 |
+| `engine_over_records_left_to_item_12` | BC-051 for an engine model over records in place of BC-040 | `_suites` | HP42 | `engine` | 27, 11 |
 | `engine_value_refused_at_the_value` | an engine value without `reason` or `basis` refused at the value beside the model's `engine` | `_ITEM_7_MEMBERS` | HP42 | `engine` | 2, 2 |
 | `item_12_beside_item_8` | BC-051 beside BC-044 for a `represents` with no `sampling` | `_suites` | HP42 | `sampling` | 1, 1 |
 | `population_level_beside_any_represents` | a `population_level` beside another `represents`, or none, left to item 12 | `_suites` | HP42 | `sampling` | 1, 1 |
-| `min_acceptance_one_refused` | a `min_acceptance` of 1 refused by item 8 | `_in_unit_interval` | HP42 | `sampling` | 3, 41 |
+| `min_acceptance_one_refused` | a `min_acceptance` of 1 refused by item 8 | `_in_unit_interval` | HP42 | `sampling` | 35, 64 |
 | `min_acceptance_zero_taken` | a `min_acceptance` of 0 taken by item 8 | `_in_unit_interval` | HP42 | `sampling` | 1, 1 |
+| `min_acceptance_missing_left_to_the_shape_table` | a `sampling` without `min_acceptance`, beside a requirement that samples, refused by the shape table alone (BC-048), not item 8 | `_suites` | HP42 | `sampling` | 65, 17 |
+| `sampling_of_another_type_left_to_the_shape_table` | a `sampling` of another JSON type, beside a requirement that samples, refused by the shape table alone (BC-048), not item 8 | `_suites` | HP42 | `sampling` | 71, 51 |
+| `min_acceptance_of_another_type_left_to_the_shape_table` | a `min_acceptance` of another JSON type, a boolean among them, beside a requirement that samples, refused by the shape table alone, not item 8 | `_suites` | HP42 | `sampling` | 22, 7 |
+| `population_level_judged_beside_a_represents_at_fault` | the `population_level` rule judging a level beside a `represents` that is no token | `_suites` | HP42 | `sampling` | 109, 7 |
+| `within_of_any_status_taken` | a `population_level`'s `within` of a status other than `none` taken | `_tokens` | HP42 | `sampling` | 109, 7 |
+| `item_12_after_the_shape_table` | a member both item 12 and the shape table name carrying the shape table's case, BC-048 | `ORDER` | HP42 | `sampling` | 9, 203 |
+| `engine_over_a_path_left_to_item_12` | item 7 not refusing an engine model checked over a path | `_suites` | HP42 | `engine` | 153, 34 |
+| `region_condition_names_unchecked` | a condition's name in `region_conditions` that is no numeric condition taken | `_tokens` | HP42 | `region_conditions` | 15, 7 |
+| `trainable_location_taken_without_the_scene_suite` | a `trainable` entry at a region or an interval taken without the scene suite | `_suite_members` | HP42 | `domain`, `path` | 3, 3 |
+| `fail_closed_on_any_claimed_suite` | a build claiming the scene suite, USD read or the sampling suite failing closed for a declaration that holds no member of it | `_fail_closed` | HP42 | `domain`, `path` | 1, 1 |
+| `waiver_condition_judged_beside_a_refused_code` | a waiver's missing `condition` refused beside its never-waived `code` | `_kind_tokens` | HP41, tokens | `outside_list`, `other_members_token` | 1, 1 |
+| `combination_field_unread_taken` | a combination naming a registered field its model does not list in `reads` taken | `_names` | HP41, shape | `breaks_holds` | 43, 25 |
+| `params_beside_an_unregistered_field_taken` | a nominal's `params` beside a `field` that names no registered field taken | `_kind_tokens` | HP41, shape | `breaks_holds` | 25, 9 |
+| `trainable_field_name_unchecked` | a `trainable` entry's `field` that names no registered field taken beside a `reads` at fault | `_tokens` | HP41, shape | `empty_list` | 3, 7 |
 
 ## Audits
 

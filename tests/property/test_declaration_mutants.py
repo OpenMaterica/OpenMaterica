@@ -12,6 +12,7 @@ A fault is injected where the check looks a name up when it runs: a module-level
 `TOKENS`, `_in_unit_interval`).
 """
 
+import copy
 import re
 from collections.abc import Callable, Collection
 from typing import Any, NamedTuple, cast
@@ -92,6 +93,8 @@ SUITE_MEMBERS = declarations._suite_members  # pyright: ignore[reportPrivateUsag
 JOIN = declarations._join  # pyright: ignore[reportPrivateUsage]
 PLACES = declarations._places  # pyright: ignore[reportPrivateUsage]
 ENTRIES = declarations._entries  # pyright: ignore[reportPrivateUsage]
+KIND_TOKENS = declarations._kind_tokens  # pyright: ignore[reportPrivateUsage]
+NOT_BUILT = declarations._NOT_BUILT  # pyright: ignore[reportPrivateUsage]
 TOKEN_LISTS = declarations.TOKENS
 ORDER = declarations.ORDER
 
@@ -509,6 +512,102 @@ def _first_fault_only(found: list[Finding]) -> tuple[BuildRefusal, ...]:
 
 def _model_index_off_by_one(pointer: str, name: str | int) -> str:
     return JOIN(pointer, name + 1 if pointer == "/models" and isinstance(name, int) else name)
+
+
+# The rules S7a-1p's review found the draws reached none of, each in the reading its hand mutant gave it.
+
+
+def _item_8_left_to_the_shape_table(words: str) -> Callable[[JsonObject, Collection[Suite]], list[Finding]]:
+    """Item 8's refusal whose words begin with `words` given the shape table's case, BC-048, where item 8
+    names it first (BC-044); the requirements it spares stay spared."""
+
+    def faulty(declaration: JsonObject, claims: Collection[Suite]) -> list[Finding]:
+        return [
+            Finding("BC-048", finding.pointer, finding.detail, finding.aspect)
+            if finding.case == "BC-044" and finding.detail.startswith(words)
+            else finding
+            for finding in SUITES(declaration, claims)
+        ]
+
+    return faulty
+
+
+def _min_acceptance_of_another_type_taken(
+    declaration: JsonObject, claims: Collection[Suite]
+) -> list[Finding]:
+    """Item 8 judging a `min_acceptance` of another JSON type as if it were one in (0, 1]: the shape table
+    alone refuses it, and no requirement is spared."""
+    block = declaration.get("sampling")
+    if isinstance(block, dict) and not isinstance(block.get("min_acceptance", 0.5), float):
+        declaration = {**declaration, "sampling": {**block, "min_acceptance": 0.5}}
+    return SUITES(declaration, claims)
+
+
+def _population_level_judged_beside_a_represents_at_fault(
+    declaration: JsonObject, claims: Collection[Suite]
+) -> list[Finding]:
+    """The `population_level` rule judging a level beside a `represents` that is no token, as beside any
+    other `represents`, where the refusal paragraph has it stand aside."""
+    tokens = TOKEN_LISTS["requirement", "represents"]
+    judged = copy.deepcopy(declaration)
+    for _, model in ENTRIES(judged, "models"):
+        for _, requirement in ENTRIES(model, "requirements"):
+            if (
+                "population_level" in requirement
+                and requirement.get("represents", "population") not in tokens
+            ):
+                requirement["represents"] = "measurement"
+    return SUITES(judged, claims)
+
+
+def _waiver_condition_judged_beside_a_refused_code(kind: str, value: JsonObject, at: str) -> list[Finding]:
+    """A waiver's missing `condition` refused beside a `code` that names one and is itself refused (the
+    never-waived `condition_unknown_name`), where the refusal paragraph has that rule stand aside."""
+    found = KIND_TOKENS(kind, value, at)
+    code = value.get("code")
+    if (
+        kind == "waiver"
+        and isinstance(code, str)
+        and code in declarations.CONDITION_CODES
+        and code not in TOKEN_LISTS["waiver", "code"]
+        and "condition" not in value
+    ):
+        found.append(Finding("BC-048", at, f"a waiver of {code} names its condition", "condition"))
+    return found
+
+
+def _params_beside_an_unregistered_field_taken(kind: str, value: JsonObject, at: str) -> list[Finding]:
+    """A nominal's `params` taken beside a `field` that names no registered field, as if that field's row
+    allowed the form `parameter_set`."""
+    field = value.get("field")
+    registered = isinstance(field, str) and field in VOCABULARY.fields
+    return [
+        finding
+        for finding in KIND_TOKENS(kind, value, at)
+        if not (kind == "nominal" and finding.pointer == f"{at}/params" and not registered)
+    ]
+
+
+def _fail_closed_on_any_claimed_suite(declaration: JsonObject, claims: Collection[Suite]) -> None:
+    """A build claiming a suite this version does not build failing closed whatever the declaration holds, a
+    declaration holding no member of it among them."""
+    for suite, words in NOT_BUILT.items():
+        if suite in claims:
+            raise NotImplementedError(f"a build claiming {suite}: {words}")
+
+
+def _combination_field_unread(finding: Finding, _: JsonObject) -> bool:
+    return re.fullmatch(
+        r"/models/[0-9]+/combinations/[0-9]+/[0-9]+", finding.pointer
+    ) is not None and finding.detail.endswith("is not in reads")
+
+
+def _region_condition_name(finding: Finding, _: JsonObject) -> bool:
+    return "/region_conditions/" in finding.pointer and "is not numeric" in finding.detail
+
+
+def _trainable_field_name(finding: Finding, _: JsonObject) -> bool:
+    return re.fullmatch(r"/models/[0-9]+/trainable/[0-9]+/field", finding.pointer) is not None
 
 
 # The ways of a stratum a mutant names whole: the token sweep's two ways of no slip, and the two ways where
@@ -1240,6 +1339,143 @@ MUTANTS = [
         ("sampling",),
         REFUSALS,
         "a `min_acceptance` of 0 taken by item 8",
+    ),
+    # The rules S7a-1p's review found no draw reached (the refusal paragraph's first and third rules that
+    # stand aside, item 8's arms, item 12's last members, the scene's, a claimed suite, names inside a
+    # member), each now drawn.
+    Mutant(
+        "min_acceptance_missing_left_to_the_shape_table",
+        "_suites",
+        "HP42",
+        replacing(
+            "_suites", _item_8_left_to_the_shape_table("a requirement samples, with no min_acceptance")
+        ),
+        ("sampling",),
+        REFUSALS,
+        "a `sampling` without `min_acceptance`, beside a requirement that samples, refused by the shape "
+        "table alone (BC-048), not item 8",
+    ),
+    Mutant(
+        "sampling_of_another_type_left_to_the_shape_table",
+        "_suites",
+        "HP42",
+        replacing(
+            "_suites", _item_8_left_to_the_shape_table("a requirement samples, and sampling is no object")
+        ),
+        ("sampling",),
+        REFUSALS,
+        "a `sampling` of another JSON type, beside a requirement that samples, refused by the shape table "
+        "alone (BC-048), not item 8",
+    ),
+    Mutant(
+        "min_acceptance_of_another_type_left_to_the_shape_table",
+        "_suites",
+        "HP42",
+        replacing("_suites", _min_acceptance_of_another_type_taken),
+        ("sampling",),
+        REFUSALS,
+        "a `min_acceptance` of another JSON type, a boolean among them, beside a requirement that samples, "
+        "refused by the shape table alone, not item 8",
+    ),
+    Mutant(
+        "population_level_judged_beside_a_represents_at_fault",
+        "_suites",
+        "HP42",
+        replacing("_suites", _population_level_judged_beside_a_represents_at_fault),
+        ("sampling",),
+        REFUSALS,
+        "the `population_level` rule judging a level beside a `represents` that is no token",
+    ),
+    Mutant(
+        "within_of_any_status_taken",
+        "_tokens",
+        "HP42",
+        replacing("_tokens", dropping(TOKENS, detail_says("a status object other than none"))),
+        ("sampling",),
+        REFUSALS,
+        "a `population_level`'s `within` of a status other than `none` taken",
+    ),
+    Mutant(
+        "item_12_after_the_shape_table",
+        "ORDER",
+        "HP42",
+        replacing("ORDER", (*ORDER[:-2], ORDER[-1], ORDER[-2])),
+        ("sampling",),
+        REFUSALS,
+        "a member both item 12 and the shape table name carrying the shape table's case, BC-048",
+    ),
+    Mutant(
+        "engine_over_a_path_left_to_item_12",
+        "_suites",
+        "HP42",
+        replacing("_suites", dropping(SUITES, detail_says("an engine model over a path"))),
+        ("engine",),
+        REFUSALS,
+        "item 7 not refusing an engine model checked over a path",
+    ),
+    Mutant(
+        "region_condition_names_unchecked",
+        "_tokens",
+        "HP42",
+        replacing("_tokens", dropping(TOKENS, _region_condition_name)),
+        ("region_conditions",),
+        REFUSALS,
+        "a condition's name in `region_conditions` that is no numeric condition taken",
+    ),
+    Mutant(
+        "trainable_location_taken_without_the_scene_suite",
+        "_suite_members",
+        "HP42",
+        replacing("_suite_members", members_without(lambda pointer, _: "/trainable/" in pointer)),
+        ("domain", "path"),
+        REFUSALS,
+        "a `trainable` entry at a region or an interval taken without the scene suite",
+    ),
+    Mutant(
+        "fail_closed_on_any_claimed_suite",
+        "_fail_closed",
+        "HP42",
+        replacing("_fail_closed", _fail_closed_on_any_claimed_suite),
+        ("domain", "path"),
+        "^the check raised NotImplementedError",
+        "a build claiming the scene suite, USD read or the sampling suite failing closed for a declaration "
+        "that holds no member of it",
+    ),
+    Mutant(
+        "waiver_condition_judged_beside_a_refused_code",
+        "_kind_tokens",
+        "HP41 tokens",
+        replacing("_kind_tokens", _waiver_condition_judged_beside_a_refused_code),
+        SWEPT,
+        "^refusals",
+        "a waiver's missing `condition` refused beside its never-waived `code`",
+    ),
+    Mutant(
+        "combination_field_unread_taken",
+        "_names",
+        "HP41 shape",
+        replacing("_names", dropping(NAMES, _combination_field_unread)),
+        ("breaks_holds",),
+        REFUSALS,
+        "a combination naming a registered field its model does not list in `reads` taken",
+    ),
+    Mutant(
+        "params_beside_an_unregistered_field_taken",
+        "_kind_tokens",
+        "HP41 shape",
+        replacing("_kind_tokens", _params_beside_an_unregistered_field_taken),
+        ("breaks_holds",),
+        REFUSALS,
+        "a nominal's `params` beside a `field` that names no registered field taken",
+    ),
+    Mutant(
+        "trainable_field_name_unchecked",
+        "_tokens",
+        "HP41 shape",
+        replacing("_tokens", dropping(TOKENS, _trainable_field_name)),
+        ("empty_list",),
+        REFUSALS,
+        "a `trainable` entry's `field` that names no registered field taken beside a `reads` at fault",
     ),
 ]
 
