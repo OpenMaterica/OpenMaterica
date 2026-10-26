@@ -427,10 +427,14 @@ every family entry goes in `families/CHANGELOG.md`.
   read the specification apart (defaults of 2026-10-26, which the maintainer has yet to confirm; the check's side
   follows in its own pull request, which also moves the check's comparison of a `trainable` entry's record, now
   of the record whole, to the model's, by its reference). A rule that judges one member against another stands
-  aside only as far as its verdict depends on the member at fault: what the judged member's own type, shape or
-  registered names settle, whichever value the member at fault holds, is still judged. An entry that is no
-  well-formed name (a reference without string `id`, `version` and `content_hash`, a `field` that is no string)
-  is neither the same as nor different from another, and no rule compares it. The
+  aside where the other is itself at fault, with three exceptions: a member is still held to what it must be
+  whichever value the other holds, namely its JSON type (a distribution parameter's value is a number; an
+  accepted difference's `value` is an object, a status object, judged as one, or `"any"`), a label that no
+  registered field has, and `params` where no registered field's row allows the form `parameter_set`. A rule the
+  text states for a member at fault still applies (a waiver whose `code` is no reason names no `condition`), an
+  entry that is no well-formed name (a reference without string `id`, `version` and `content_hash`, a `field`
+  that is no string) is neither the same as nor different from another, and no rule compares it, and an
+  acceptance that names no known kind keeps the rule above: none of its other members is judged. The
   model now names a record by its reference (`id`, `version`, `content_hash`) in `checked_over.records`, in a
   `trainable` entry's location and in the check for a name given twice, and compares a `trainable` entry's
   record by it, a record that is no reference compared with none; judges `records` beside another alternative of
@@ -439,12 +443,12 @@ every family entry goes in `families/CHANGELOG.md`.
   a distribution's parameter values beside a token that is none; reads a status object as an object whose only
   members are `status` and `reason`, in an accepted difference's `value` too; does not read a waiver's
   `condition` of another JSON type as also missing; names `region_conditions` and a `trainable` entry's `region`
-  or `interval` for item 12 whatever JSON type it holds; refuses a combination only where its registered fields
-  are all of one section; and gives an object holding two of the members it takes one of the object's own fault,
+  or `interval` for item 12 whatever JSON type it holds; refuses a combination for its sections only where
+  every entry is a registered field and all are of one section; and gives an object holding two of the members it takes one of the object's own fault,
   so that a `trainable` entry at a record and a region is item 12's refusal alone at the entry. Three open
   points are retired on those defaults (`member_judged_beside_a_faulty_one`, `combination_sections`,
   `trainable_location_in_a_scene`) and `exactly_one_of` is restated. `tests/reference/direct.py` holds 69 new
-  direct checks, 41 of which the model of `main` fails (counted by running them against it); the other 28 pin
+  direct checks, 42 of which the model of `main` fails (counted by running them against it); the other 27 pin
   what the model of `main` already held (the cross-kind location rule of a `trainable` entry, the parts of a
   record's name, a name given twice with another between, a record listed twice beside another alternative of
   `checked_over`, a `nominal` holding neither `value` nor `params`) and arms on which the sides already agreed,
