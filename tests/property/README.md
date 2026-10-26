@@ -507,35 +507,43 @@ check's reader (the last bullet).
 - **The build's results and verdict (S7a-2):** (22) the S7 design's HP43 to HP46 (`test_build_properties.py`, in
   the `build` shard), against an oracle written in the test from `declarations.md` sections 1, 2 and 4.2: section
   4.2's table as the test's own rows, the build's terms ("given", "applied", "located at", "covers", "trusted",
-  "used"), section 2 item 7's request, item 8's own reasons and the value a result rests on. `build_strategies.py`
-  draws records built from the build-check cases' values (a viscosity, a density as a constant, a grade's limits,
-  a table and an edged table), each value's label, review, conditions, tissue state and alternatives as a draw
-  asks, pinned, in a store or not, and declarations over them the text takes: one to three models over listed
-  records reading one or two fields, each with a requirement or none, beside waivers, implied conditions,
-  nominals and extrapolations at a record listed or elsewhere (another record, another version or hash of one,
-  another field). HP43 holds `judge` to section 4.2 and the build's terms, in three parts drawn directly
-  (`waivers`: one matching a reason, or differing in its code, its condition, its location, a region or an
-  interval among them, or its field; `assumptions`: a nominal or an extrapolation that the result's `assumption`
-  names or not, and a reason other than the one it covers; `never`: a `not_met` no row lists, `no_pick` and
-  `label_mismatch` beside a waiver naming them, a code no row lists, `at_edge` beside an extrapolation), and one
-  over whole builds (`indexes`), where each result's verdict is judged by its own model's acceptances, "applied"
-  read from the result (an implied condition whose value fills an entry, bit for bit; a nominal or an
-  extrapolation the `assumption` names), and each model's unused acceptances. HP44 holds each result's read to
-  the read of the request built from the declaration by item 7, member for member, the results to one per
-  model, listed record and field read, the build's reasons to adding only, the status to the worst of them all,
-  and `records` to those a read's step 1 found (`requests`: an operating value or range, an implied condition,
-  a nominal or an extrapolation at the record, elsewhere or both; `coverage`: a record listed or not, a field
-  with a requirement or none, two models over one record, a listed record absent from the store); on these
-  draws HP1's, HP2's and HP11's checks hold each read. HP45 holds the build's own reasons to the record as
-  stored (`label`: the stored label equal, another, absent, equal or absent under a refusal before step 12,
-  no stored value; `review`: reviewed, not checked, an unknown result, a slip, no `review` required) and a waiver
-  naming a label (`label_waiver`): the build raises where label trust could change the verdict, and elsewhere
-  such a waiver covers only where the label stored on the value the result rests on is its label and trusted.
-  HP45's `label_trust` part waits for label trust, after 0.1.0.dev4 (maintainer, 2026-10-21). HP46: `refused`
-  exactly where a refusal or a result not accepted is, and permuting models, listed records and acceptances
-  (indexes re-mapped) changes no verdict. Each drawing part is a test parametrized by strata of at most two of
-  its ways, each drawing its way first among its own, alike, as S7a-1's HP41 and HP42 were split once CI
-  measured their counts' variance; `indexes` and HP46 draw none.
+  "used"), section 2 item 7's request, item 8's own reasons and the value a result rests on.
+  `build_strategies.py` draws records built from the build-check cases' values (a viscosity, a density as a
+  constant, a grade's limits, a table and an edged table), each value's label, review, conditions, tissue state
+  and alternatives as a draw asks, pinned, in a store or not, and declarations over them the text takes: one to
+  three models over listed records reading one or two fields, each with a requirement or none, beside waivers,
+  implied conditions, nominals and extrapolations at a record listed or elsewhere (another record, another
+  version or hash of one, another field). HP43 holds `judge` to section 4.2 and the build's terms, in three parts
+  drawn directly (`waivers`: one matching a reason, or differing in its code, its condition, its location, a
+  region or an interval among them, or its field; `assumptions`: a nominal or an extrapolation that the result's
+  `assumption` names or not, a reason other than the one it covers, and the rows that need no condition of their
+  acceptance, a pick beside `no_pick` and an extrapolation beside `range_unstated` or `outside_coverage` (a pick
+  is drawn for `judge` alone: a build raises on one before any read, so the row's test over whole builds waits
+  for S7c); `never`: a `not_met` no row lists, `no_pick` and `label_mismatch` beside a waiver naming them, a code
+  no row lists, `at_edge` beside an extrapolation), and one over whole builds (`indexes`), where each result's
+  verdict is judged by its own model's acceptances, "applied" read from the result (an implied condition whose
+  value fills an entry, bit for bit; a nominal or an extrapolation the `assumption` names), and each model's
+  unused acceptances. HP44 holds each result's read to the read of the request built from the declaration by item
+  7, member for member, the results to one per model, listed record and field read, the build's reasons to adding
+  only, the status to the worst of them all, and `records` to those a read's step 1 found (`requests`: an
+  operating value or range, an implied condition, a nominal or an extrapolation at the record, elsewhere or both;
+  `coverage`: a record listed or not, a field with a requirement or none, two models over one record, a listed
+  record absent from the store); on these draws HP1's, HP2's and HP11's checks hold each read where each applies
+  (HP1's always; HP11's where no record of the store states a stale hash; HP2's where the record is stored, holds
+  the field as a form and the request gives no extrapolation, whose `assumption` HP2's check does not draw). HP45
+  holds the build's own reasons to the record as stored (`label`: the stored label equal, another, absent, equal
+  or absent under a refusal before step 12, no stored value, absent under a read that is `met`, where
+  `label_mismatch` is the result's one reason; `review`: reviewed, not checked, an unknown result, a slip, no
+  `review` required) and a waiver naming a label (`label_waiver`): the build raises where label trust could
+  change the verdict, and elsewhere such a waiver covers only where the label stored on the value the result
+  rests on is its label and trusted. HP45's `label_trust` part waits for label trust, after 0.1.0.dev4
+  (maintainer, 2026-10-21). HP46: `refused` exactly where a refusal or a result not accepted is, and permuting
+  models, listed records and acceptances (indexes re-mapped) permutes the results as it reorders the models and
+  listed records, compared as a list, and changes no verdict; its draws hold no declaration its check refuses, so
+  the law's arm of a refusal is the fuzz target's results relation's, held on every build-check case's report,
+  refused ones among them (`tests/unit/test_fuzz_build_results.py`). Each drawing part is a test parametrized by
+  strata of at most two of its ways, each drawing its way first among its own, alike, as S7a-1's HP41 and HP42
+  were split once CI measured their counts' variance; `indexes` and HP46 draw none.
 - **The anomaly check's reader:** the YAML reader of `scripts/check_anomalies.py` and its specifier syntax
   against PyYAML's `safe_load` and `packaging` (`test_anomaly_reader_properties.py`, in the `agreement` shard).
   A document the reader reads is read as PyYAML reads it; one PyYAML refuses is refused; one inside the subset
@@ -608,9 +616,10 @@ workers at `ci`, 2026-10-17; `SHARDS` in `tests/conftest.py`), and `--shard alte
 alternatives with its mutant searches (122 s on eight local workers at `ci`, 342 s of test time, 2026-10-19;
 `relations`, with HP12's draws of S4a's outcomes, took 163 s and 1,036 s after it, under the same lock), and
 `--shard build`, S7a's build check, the declaration's HP41 and HP42 and the build's results and verdict (HP43 to
-HP46), with their mutant searches (the S7 design's 6.1; HP43 to HP46 took 53 s on eight local workers at `ci`,
-255 s of test time, 2026-10-25, and 4 s for their 112 searches; its time on CI is measured at its own base, and
-it splits in two shards, `declarations` and `build`, if it passes a third of its 20-minute `ci` timeout).
+HP46), with their mutant searches (the S7 design's 6.1; HP43 to HP46 took 3 min 23 s on CI at `ci`, their 25
+property tests and 112 searches, 2026-10-26, before this pull request's fourth round added two tests and eight
+searches; it splits in two shards, `declarations` and `build`, if it passes a third of its 20-minute `ci`
+timeout).
 S2b-1's intervals and compositions added 13%
 to `conditions` and 7% to `relations`, each timed side by side with the tests before them (475 s against 420,
 588 against 549, at loads of 15 to 25), and HP3's third part 51 s of one worker to records (172 s). S2b-2's
@@ -2140,32 +2149,38 @@ three).
 the names it imports, `judge`, `located_at`, `read` and `BuildResult`; the vocabulary's reason table; and
 `BuildReport.refused`), and each dying at a way it names and at the assertion it names: the S7 design's mutants
 of HP43 to HP46 but label trust's five (its section 6.5, with the five the review of S7-cases-2 added, R01 to
-R03, R05 and R07; 36 rows, `test_build_mutant_table.py` holds each to the row that stands for it), and 20 more:
-the faults the reviews of S7a-2a, S7a-2b and S7a-2m showed no test of theirs catching (the acceptances given
-cut to the first, the build's claims dropped from the read and from the stored label, an implied condition
-applied only where it fills every condition, an implied range or token not recognised, an implied value
-compared by equality so that -0 is 0, the first alternative read under `want_mismatch`, an acceptance for
-another field of the section given, the location's version or id ignored, a record refused at steps 2 to 5
-resting on its field, an extrapolation counted applied under a nominal's assumption, label trust's raise where
-the result is decided), and the parts' other ways (a waiver's code ignored, `no_pick` waived, a code no row
-lists waived, `label_mismatch` left out beside a `not_met`, `not_reviewed` never given, a labelled waiver
-covering untrusted). Every one is searched over the draws of the one stratum of its part that holds the ways
-it names: none needs a planned search. Of the reviews' survivors, these are not here: the acceptances given
-in reverse order (`_applied` reads what the result shows, and a read's answer never depends on the order of
-the acceptances given it, `read_side_contract.md` section 1); a stored value that is no object read as
-`{"label": null}` (the same `label_mismatch` as no label: only its words differ); and the unused acceptances
-of one model reversed (the text gives `unused` per model and no order within one). The faults of label trust
-(`_trusted`: an inferred basis trusted, a stated one not, the basis read from the read result; `_label_rests`:
-review or label presence not checked) wait for label trust, after 0.1.0.dev4 (maintainer, 2026-10-21).
+R03, R05 and R07; 36 rows, `test_build_mutant_table.py` holds each to the row that stands for it), and 24 more:
+the faults the reviews of S7a-2a, S7a-2b, S7a-2m and S7a-2p showed no test of theirs catching (the acceptances
+given cut to the first, the build's claims dropped from the read and from the stored label, an implied condition
+applied only where it fills every condition, an implied range or token not recognised, an implied value compared
+by equality so that -0 is 0, the first alternative read under `want_mismatch`, an acceptance for another field of
+the section given, the location's version or id ignored, a record refused at steps 2 to 5 resting on its field,
+an extrapolation counted applied under a nominal's assumption, label trust's raise where the result is decided, a
+pick covering nothing, an extrapolation not covering `range_unstated` or `outside_coverage`, `label_mismatch`
+left out where the read is `met`), and the parts' other ways (a waiver's code ignored, `no_pick` waived, a code
+no row lists waived, `label_mismatch` left out beside a `not_met`, `not_reviewed` never given, a labelled waiver
+covering untrusted). Every one is searched over the draws of the one stratum of its part that holds the ways it
+names: none needs a planned search. A fault of the verdict drawn directly dies at `accepted` or `accepted_by`,
+the assertions it changes, and where the acceptance at fault may also cover another reason of the result, at
+`not_accepted` too (`COVERED` and `VERDICT` in `test_build_mutants.py`). Of the reviews' survivors, these are not
+here: the acceptances given in reverse order (`_applied` reads what the result shows, and a read's answer never
+depends on the order of the acceptances given it, `read_side_contract.md` section 1); a stored value that is no
+object read as `{"label": null}` (the same `label_mismatch` as no label: only its words differ); and the unused
+acceptances of one model reversed (the text gives `unused` per model and no order within one). The faults of
+label trust (`_trusted`: an inferred basis trusted, a stated one not, the basis read from the read result;
+`_label_rests`: review or label presence not checked) wait for label trust, after 0.1.0.dev4 (maintainer,
+2026-10-21).
 
 CI's first drift run of these searches (40 streams a size) killed `extrapolation_applied_under_any_assumption`
 and `implied_value_compared_by_equality` past the margin guard in several streams (the latest at the 845th and
-the 1,012th example): the whole builds of HP43's `indexes` reached their faults in about one example in 50 to
-250. Those builds now hold more in vivo values and intervals, give an in vivo value that states one of the two
-conditions an implied condition supplies the two-condition acceptance in half its draws, and put first in each
-choice the value those kills need, which a search draws most in its first examples (`build_strategies.py`,
-above `VISCOSITY_KINDS`). Run locally over the same 40 streams a size, every search of `indexes` and HP46 then
-died by its 166th example, and every search of HP44 by its 142nd; the drift on CI's matrix measures it again.
+the 1,012th example): the whole builds of HP43's `indexes` reached their faults in about one example in 50 to 250
+(a local probe of those draws, 2026-10-25). Those builds now hold more in vivo values and intervals, give an in
+vivo value that states one of the two conditions an implied condition supplies the two-condition acceptance in
+half its draws, and put first in each choice the value those kills need, which a search draws most in its first
+examples (`build_strategies.py`, above `VISCOSITY_KINDS`). Run locally over the same 40 streams a size, every
+search of `indexes` and HP46 then died by its 166th example, and every search of HP44 by its 142nd. CI's drift
+runs on the reweighted draws (2026-10-26, twice, 40 streams a size) found every search killed where it names, the
+latest at the 166th example and none near the guard.
 
 <!-- kill points of every search of test_build_mutants.py::test_the_build_mutant_is_killed (scripts/gen_kill_counts.py) -->
 | Mutant | Fault | At | Killed by | Dies at | Examples |
