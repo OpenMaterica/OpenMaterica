@@ -43,9 +43,9 @@ every family entry goes in `families/CHANGELOG.md`.
   maintainer's rulings of 2026-10-26 (a waiver's `condition` beside a `code` taken out, of another type or
   written as a slip, a records-located `trainable` entry beside a domain or a path, a `within` of another
   status refused at its `status`, a waiver's `label` of another type, a combination's entry that is no
-  registered field beside a field of its own section); each killed at both sizes at its way and its
-  assertion, over the stratum that draws it, their kill points recorded; an audit control for each drawing
-  part. A sixth Atheris target, `tests/fuzz/build_bytes.py`: raw bytes in place of one member of a build-check
+  registered field beside a field of its own section in about half the draws, of another in the rest); each
+  killed at both sizes at its way and its assertion, over the stratum that draws it, their kill points
+  recorded; an audit control for each drawing part. A sixth Atheris target, `tests/fuzz/build_bytes.py`: raw bytes in place of one member of a build-check
   case's declaration, failing where `check_build` raises anything but a `NotImplementedError` of what this
   version builds nothing past the declaration's check for, where a refusal's pointer names no member, where a
   refusal's case is none of the refusal paragraph's, or where the build's reference model refuses the
@@ -59,9 +59,10 @@ every family entry goes in `families/CHANGELOG.md`.
   until its rate is measured, and as `measure.yml`'s fuzz control `declarations`, whose report flags a run
   that ended on another failure with its own words; the fuzz job's timeout rises by 30 minutes, to 344, twice
   the control's 15 (the job's timeout is twice its slowest run). The input coverage's selection `declarations`
-  gains its `timing`, which plans its cuts in 133 slices on CI (an estimate from one local cut until the cut
+  gains its `timing`, which plans its cuts in 140 slices on CI (an estimate from one local cut until the cut
   kind measures it), and `measure.yml`'s request job 50 minutes, three times the recordings of every
-  selection.
+  selection. `scripts/pre_review.py` runs the fuzz target's oracle tests where `tests/fuzz/README.md` changes,
+  whose seed counts they read.
 - The build's own reasons, its verdict and its report (S7a-2b; `declarations.md` sections 2 and 4.2).
   `check_build` gives the report of a declaration that passes its own check. The build's own reasons join the
   read's (section 2 item 8): `no_requirement` for a field read with no requirement; `label_mismatch` where the
