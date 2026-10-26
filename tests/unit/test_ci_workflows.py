@@ -9976,7 +9976,7 @@ def test_the_measure_jobs_are_wired_as_the_readme_says(
 # (S7a-1p) is its local recording on four workers (`record_seconds`, 2026-10-26), until its cut dispatch
 # records it on CI; the request job's 50 minutes hold it at twice that too, as a runner may take (S4d's
 # longest cut took 1.97 times its local time there).
-RECORDING_SECONDS = {"table_alternatives": 411.7, "extrapolation": 128.1, "declarations": 216.6}
+RECORDING_SECONDS = {"table_alternatives": 411.7, "extrapolation": 128.1, "declarations": 244.1}
 REQUEST_MARGIN = 3
 
 
