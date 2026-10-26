@@ -28,14 +28,16 @@ missing member), and, for a missing member or a place's exclusive alternatives, 
 refusal per fault, of the case first in the refusal paragraph's order, and merges those of one case and
 pointer. A declaration that breaks no rule gives a `Declaration`.
 
-A rule that judges one member against another stands aside only as far as its verdict depends on the member
-at fault (section 1: one fault is one refusal), and the rest of the declaration is still checked for its own
-faults: a `population_level` beside a `represents` that is no token, a requirement against a `reads` at fault
-(an empty one too), and a waiver's missing `condition` beside a `code` refused as a token give no refusal of
-their own; but a waiver's `condition` beside a `code` that is no string names no condition whichever it is,
-and is refused. An acceptance that names no known kind is refused at itself, and none of its other members is
-judged. An entry that is no well-formed name (a reference without string `id`, `version` and `content_hash`, a
-`field` that is no string) is neither the same as nor different from another, and no rule compares it.
+A rule that judges one member against another stands aside where the other is at fault (section 1: one fault
+is one refusal), and the rest of the declaration is still checked for its own faults: a `population_level`
+beside a `represents` that is no token, a requirement against a `reads` at fault (an empty one too), and a
+waiver's missing `condition` beside a `code` refused as a token give no refusal of their own. The paragraph's
+three exceptions: a member is still held to what it must be whichever value the other holds (its JSON type, a
+label that no registered field has, `params` where no registered field's row allows `parameter_set`); a waiver
+whose `code` is no reason, of whatever type, names no `condition`, and one it gives is refused; and an entry
+that is no well-formed name (a reference without string `id`, `version` and `content_hash`, a `field` that is
+no string) is neither the same as nor different from another, and no rule compares it. An acceptance that
+names no known kind is refused at itself, and none of its other members is judged.
 """
 
 import dataclasses
