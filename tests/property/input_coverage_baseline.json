@@ -1105,10 +1105,10 @@
    "tests/property/test_declaration_mutant_table.py": "reads the parts' ways and strata (`PARTS`, `STRATA`, `HP42_WAYS`, `HP42_STRATA`) to hold the mutant table to them; it draws nothing"
   },
   "timing": {
-   "cuts": 2206,
-   "whole_cuts": 2206,
+   "cuts": 2208,
+   "whole_cuts": 2208,
    "seconds": 456.3,
-   "measured": "an estimate until the cut kind's first dispatch measures it: one cut not held took 231.6 s locally on two workers, alone (2026-10-26), times 1.97, the ratio of S4d's selection's longest cut on CI to its local one; whole_cuts: the selection has no `!` pattern, and its recordings make 2206 cuts at 4 and at 8 workers alike (2026-10-26)"
+   "measured": "an estimate until the cut kind's first dispatch measures it: one cut not held took 231.6 s locally on two workers, alone (2026-10-26), times 1.97, the ratio of S4d's selection's longest cut on CI to its local one; whole_cuts: the selection has no `!` pattern, and its recordings make 2208 cuts at 4 and at 8 workers alike (2026-10-26)"
   },
   "left_out": {
    "sites": 0,
