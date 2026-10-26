@@ -959,11 +959,11 @@ class DeclarationCheck:
             self.accepted_difference(typed, pointer)
         elif kind == "extrapolation" and "method" in typed:
             self.token(typed["method"], at(pointer, "method"), EXTRAPOLATION_METHODS)
-        elif kind == "nominal" and "params" in typed and "field" in typed and not takes_parameter_set(name):
+        elif kind == "nominal" and "params" in typed and not takes_parameter_set(name):
             # declarations.md:118 "`params` only for a field whose row allows"; read_side_contract.md:77-79 "a
             # nominal holding `params` and no `value`, for a field whose row allows none, breaks its shape".
-            # Beside a field that is not registered it is judged against every registered row (the comment at
-            # `ORDER`).
+            # Whenever the entry's `field` names no registered field (not registered, missing or no string) it
+            # is judged against every registered row (the comment at `ORDER`).
             self.fault(at(pointer, "params"))
         elif kind == "distribution":
             self.distribution(typed, pointer)

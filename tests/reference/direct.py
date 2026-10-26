@@ -689,6 +689,24 @@ DIVERGENCES: Final[tuple[Direct, ...]] = (
         ("BC-048", f"{ACCEPTANCE}/params"),
     ),
     refusing(
+        "a nominal holding params, its field missing",
+        declaration(
+            entry(
+                acceptances=[
+                    {k: v for k, v in nominal(params=RECORD).items() if k != "field"},
+                ]
+            )
+        ),
+        ("BC-048", ACCEPTANCE),
+        ("BC-048", f"{ACCEPTANCE}/params"),
+    ),
+    refusing(
+        "a nominal holding params, its field a number",
+        declaration(entry(acceptances=[nominal(field=1.0, params=RECORD)])),
+        ("BC-048", f"{ACCEPTANCE}/field"),
+        ("BC-048", f"{ACCEPTANCE}/params"),
+    ),
+    refusing(
         "a nominal holding params, its field registered and its row allowing none",
         declaration(entry(acceptances=[nominal(params=RECORD)])),
         ("BC-048", f"{ACCEPTANCE}/params"),
