@@ -12,7 +12,8 @@ here from the text.
 - HP44, the results are the reads: each result's read equals the read of the request built here from the
   declaration by section 2 item 7, member for member; one result per model, listed record and field read, none
   for a record not listed; the build's reasons only ever add, and the status is the worst. Two parts,
-  `requests` and `coverage`. On these draws, HP1's, HP2's and HP11's checks hold each result's read.
+  `requests` and `coverage`. On these draws, HP1's, HP2's and HP11's checks hold each result's read, where
+  each applies (`read_checks`).
 - HP45, the build's own reasons against the record as stored: `label_mismatch` exactly where the stored label
   of the value the result rests on differs or is absent, beside any other reason, and never where it rests on
   no stored value; `not_reviewed` exactly where `review` is required and the result's provenance holds no
@@ -20,8 +21,10 @@ here from the text.
   and where this version cannot tell, the build raises. Three parts, `label`, `review` and `label_waiver`;
   the fourth, `label_trust`, waits for label trust, after 0.1.0.dev4 (maintainer, 2026-10-21).
 - HP46, the refusal law and order: `refused` exactly when a refusal, or a result not accepted, exists;
-  permuting models, listed records and acceptances (their indexes re-mapped) permutes the results and changes
-  no verdict.
+  permuting models, listed records and acceptances (their indexes re-mapped) permutes the results, compared as
+  a list, and changes no verdict. Its draws are refused by no declaration's check (`built`), so the law's arm
+  of a refusal is held by the fuzz target's results relation, over every build-check case's report, refused
+  ones among them (`tests/unit/test_fuzz_build_results.py`).
 
 An implied condition's value is compared with a condition entry's bit for bit, as `read_side_contract.md`
 section 1 compares two implied values ("the same numbers bit for bit"). Where the text leaves a choice, the
@@ -812,7 +815,9 @@ def check_label_waiver(world: World) -> None:
 
 def check_refused(report: BuildReport) -> None:
     """Section 2 item 5 and the report's paragraph: the build refuses while the report holds a refusal, or a
-    result that is not accepted."""
+    result that is not accepted. On HP46's draws the report holds no refusal (`built` asserts it), so the arm
+    of a refusal is the fuzz relation's (`tests/fuzz/build_results_oracle.py`), which holds it on every
+    build-check case's report, refused ones among them."""
     wanted = bool(report.refusals) or any(not result.accepted for result in report.results)
     assert report.refused == wanted, f"refused {report.refused}, the text's {wanted}"
 
@@ -851,30 +856,55 @@ def permutations(draw: st.DrawFn, declared: JsonObject) -> Permutation:
     )
 
 
-def summary(report: BuildReport, moved: Mapping[str, Sequence[int]] | None = None) -> Counter[object]:
-    """Each result's verdict, its acceptances' indexes mapped by `moved` (per model: the new index of each
-    old one), and each unused acceptance, so mapped."""
+Moved = Mapping[str, Sequence[int]]
+
+
+def verdicts(report: BuildReport, moved: Moved | None = None) -> list[tuple[object, ...]]:
+    """Each result's verdict, in the report's order, its acceptances' indexes mapped by `moved` (per model:
+    the new index of each old one)."""
 
     def at(model: str, index: int) -> int:
         return index if moved is None else moved[model][index]
 
-    found: Counter[object] = Counter()
-    for result in report.results:
-        found[
-            (
-                result.model,
-                ref_of(result.record),
-                result.field,
-                result.status,
-                tuple(sorted(keys(result.reasons).items())),
-                result.accepted,
-                tuple(sorted(at(result.model, index) for index in result.accepted_by)),
-                tuple(sorted(keys(result.not_accepted).items())),
-            )
-        ] += 1
-    for unused in report.unused:
-        found[("unused", unused.model, at(unused.model, unused.acceptance))] += 1
-    return found
+    return [
+        (
+            result.model,
+            ref_of(result.record),
+            result.field,
+            result.status,
+            tuple(sorted(keys(result.reasons).items())),
+            result.accepted,
+            tuple(sorted(at(result.model, index) for index in result.accepted_by)),
+            tuple(sorted(keys(result.not_accepted).items())),
+        )
+        for result in report.results
+    ]
+
+
+def unused_acceptances(report: BuildReport, moved: Moved | None = None) -> Counter[tuple[str, int]]:
+    """Each model's unused acceptances, mapped by `moved`: a multiset, the text giving no order within a
+    model."""
+    return Counter(
+        (unused.model, unused.acceptance if moved is None else moved[unused.model][unused.acceptance])
+        for unused in report.unused
+    )
+
+
+def permuted_order(
+    results: Sequence[tuple[object, ...]], declared: JsonObject, permutation: Permutation
+) -> list[tuple[object, ...]]:
+    """The design's "permutes the results": `results` of `declared`'s build reordered as the permutation
+    reorders the models and each model's listed records, the order within one record of a model (its fields)
+    kept."""
+    models = [name_of(model) for model in models_of(declared)]
+
+    def placed(one: tuple[object, ...]) -> tuple[int, int]:
+        model = models.index(cast(str, one[0]))
+        listed = [ref_of(record) for record in listed_of(models_of(declared)[model])]
+        record = listed.index(cast(tuple[str, str, str], one[1]))
+        return (permutation.models.index(model), permutation.records[model].index(record))
+
+    return sorted(results, key=placed)
 
 
 def check_permuted(world: World, permutation: Permutation) -> None:
@@ -886,9 +916,13 @@ def check_permuted(world: World, permutation: Permutation) -> None:
         name_of(model): permutation.acceptances[index]
         for index, model in enumerate(models_of(world.declaration))
     }
-    assert summary(permuted) == summary(report, moved), (
-        f"permuted, the verdicts {sorted(map(str, summary(permuted).elements()))}; before,"
-        f" {sorted(map(str, summary(report, moved).elements()))}"
+    wanted = permuted_order(verdicts(report, moved), world.declaration, permutation)
+    assert verdicts(permuted) == wanted, (
+        f"permuted, the verdicts {verdicts(permuted)}; before, permuted, {wanted}"
+    )
+    assert unused_acceptances(permuted) == unused_acceptances(report, moved), (
+        f"permuted, the unused acceptances {sorted(unused_acceptances(permuted))}; before,"
+        f" {sorted(unused_acceptances(report, moved))}"
     )
     assert permuted.refused == report.refused, "refused changed by a permutation"
 
