@@ -1,0 +1,42 @@
+{
+  "case": "BC-048",
+  "variant": "distribution_parameters_beside_a_token_at_fault",
+  "suite": "build_checks",
+  "schema_version": "0.1.0",
+  "claims": {
+    "sampling": false
+  },
+  "inputs": {
+    "records": [
+      "water_fixture.json"
+    ],
+    "declaration": "bc048_distribution_parameters_beside_a_token_at_fault.json"
+  },
+  "request": {
+    "operation": "check_build"
+  },
+  "expected": {
+    "refusals": [
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/acceptances/1/distribution"
+      },
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/acceptances/1/distribution_parameters/mean"
+      },
+      {
+        "item": "BC-051",
+        "pointer": "/models/0/acceptances/1"
+      }
+    ]
+  },
+  "compare": {
+    "members": [
+      "refusals",
+      "results",
+      "watches",
+      "unused"
+    ]
+  }
+}

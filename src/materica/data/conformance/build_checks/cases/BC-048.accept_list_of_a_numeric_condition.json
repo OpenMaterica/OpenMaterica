@@ -1,0 +1,31 @@
+{
+  "case": "BC-048",
+  "variant": "accept_list_of_a_numeric_condition",
+  "suite": "build_checks",
+  "schema_version": "0.1.0",
+  "inputs": {
+    "records": [
+      "water_fixture.json"
+    ],
+    "declaration": "bc048_accept_list_of_a_numeric_condition.json"
+  },
+  "request": {
+    "operation": "check_build"
+  },
+  "expected": {
+    "refusals": [
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/requirements/0/conditions/temperature/accept"
+      }
+    ]
+  },
+  "compare": {
+    "members": [
+      "refusals",
+      "results",
+      "watches",
+      "unused"
+    ]
+  }
+}

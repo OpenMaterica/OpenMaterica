@@ -1241,6 +1241,12 @@ SCHEMA_DOES_NOT_STATE = {
     "BC-048.trainable_field_not_read": "a trainable entry for a field its model does not list in reads",
     "BC-048.trainable_record_not_checked_over": "a trainable entry at a location its model is not checked"
     " over",
+    "BC-048.trainable_record_over_a_domain": "a trainable entry at a record where its model is checked over a"
+    " domain, and section 1 item 12: a domain, without the scene suite",
+    "BC-048.trainable_record_over_a_path": "a trainable entry at a record where its model is checked over a"
+    " path, and section 1 item 12: a path, without the scene suite",
+    "BC-048.trainable_region_over_records": "a trainable entry at a region where its model is checked over"
+    " records, and section 1 item 12: a region, without the scene suite",
     "BC-048.two_models_of_one_name": "two models of one name",
     "BC-048.two_requirements_for_one_field": "two requirements for one field",
     "BC-050.requirement_without_review": "section 4.1 item 4: a waiver naming a label needs its requirement's"

@@ -1,0 +1,35 @@
+{
+  "case": "BC-048",
+  "variant": "records_listed_that_are_no_reference",
+  "suite": "build_checks",
+  "schema_version": "0.1.0",
+  "inputs": {
+    "records": [
+      "water_fixture.json"
+    ],
+    "declaration": "bc048_records_listed_that_are_no_reference.json"
+  },
+  "request": {
+    "operation": "check_build"
+  },
+  "expected": {
+    "refusals": [
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/checked_over/records/0/id"
+      },
+      {
+        "item": "BC-048",
+        "pointer": "/models/0/checked_over/records/1/id"
+      }
+    ]
+  },
+  "compare": {
+    "members": [
+      "refusals",
+      "results",
+      "watches",
+      "unused"
+    ]
+  }
+}

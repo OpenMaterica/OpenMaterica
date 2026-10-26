@@ -86,10 +86,10 @@ refuses a requirement's `label`, and S2a-2's step 0 runs PR-330's other requirem
 member one slip from `review` (`PR-330.near_typo_requirement_review`, S7a-2a), which the read has refused
 since then too, as it refuses a slip of every member section 1 names there.
 
-Of the 1638 case files, 1277 agree with plain read and the hash suite, 1219 with plain read alone, and 1277
-with the fits and reference data suite too; 1391 with the build checks, plain read and the hash suite, 1333
-with the build checks and plain read alone, the 114 of the build-check suite among each, and 1390 with the
-build checks, plain read, the hash suite and the fits and reference data suite, 113 of the build-check suite
+Of the 1681 case files, 1277 agree with plain read and the hash suite, 1219 with plain read alone, and 1277
+with the fits and reference data suite too; 1434 with the build checks, plain read and the hash suite, 1376
+with the build checks and plain read alone, the 157 of the build-check suite among each, and 1433 with the
+build checks, plain read, the hash suite and the fits and reference data suite, 156 of the build-check suite
 among them; the 35 of the
 table evaluation suite agree with the reference evaluator's configuration alone, since this implementation
 claims no evaluator, and the 197 of the record-check suite agree with none, since it claims no record checks.

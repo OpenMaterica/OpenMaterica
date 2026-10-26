@@ -1,0 +1,63 @@
+{
+  "consumer": {
+    "name": "conformance_consumer",
+    "version": "1.0.0"
+  },
+  "operating_conditions": {
+    "temperature": {
+      "value": 310.15,
+      "unit": "K"
+    },
+    "shear_rate": {
+      "range": [
+        50.0,
+        500.0
+      ],
+      "unit": "1/s"
+    }
+  },
+  "models": [
+    {
+      "model": {
+        "name": "drag",
+        "version": "1.0.0"
+      },
+      "model_configuration_hash": "sha256:46df0c2b3082576d2848959f99adb425293d93f6ebcc0b73552c124b3c2106d3",
+      "checked_over": {
+        "records": [
+          {
+            "id": "conformance/water_fixture",
+            "version": "1.0.0",
+            "content_hash": "sha256:c21a2c7f46e66bcfb5e74f18d2a08644468d5a92bafb4fa57a03651facf96e2d"
+          }
+        ]
+      },
+      "target": {},
+      "reads": [
+        "fluid.dynamic_viscosity"
+      ],
+      "consumer_parameters": [
+        "drag.viscosity"
+      ],
+      "requirements": [],
+      "families": {},
+      "combinations": [],
+      "acceptances": [
+        {
+          "acceptance": "waiver",
+          "record": {
+            "id": "conformance/water_fixture",
+            "version": "1.0.0",
+            "content_hash": "sha256:c21a2c7f46e66bcfb5e74f18d2a08644468d5a92bafb4fa57a03651facf96e2d"
+          },
+          "field": "fluid.dynamic_viscosity",
+          "condition": "shear_rate",
+          "code": "condition_unstated",
+          "reason": "the consumer treats water as Newtonian over the operating band; the source states no shear rate",
+          "label": null
+        }
+      ],
+      "chains": []
+    }
+  ]
+}
