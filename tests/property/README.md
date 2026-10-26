@@ -681,7 +681,7 @@ hold yet passes `--check`, so that a stacked branch's older commits stand, and f
 run.
 
 <!-- kill points summary (scripts/gen_kill_counts.py) -->
-`kill_points.json` records 1,454 searches, 727 mutants each at both sizes; the latest kill is at the 487th example (`upper_none_as_infinity`, original size).
+`kill_points.json` records 1,456 searches, 728 mutants each at both sizes; the latest kill is at the 487th example (`upper_none_as_infinity`, original size).
 <!-- end of kill points summary -->
 
 Three searches were planned because their kill sat in a long tail. With the pin, a search's kill is fixed by
@@ -1929,22 +1929,24 @@ seeded faults of its step-11 rows, each killed by a case file (`tests/reference/
 it runs (a rule's function, `_precedence`, `_holds`, `_suite_members`, `_join`, `TOKENS`, `_in_unit_interval`,
 `_ANY_KIND`, `_ITEM_7_MEMBERS`), and each dying at a way it names and at the assertion it names: the S7 design's
 35 mutants of HP41 and HP42 (its section 6.4; `test_declaration_mutant_table.py` holds each to the row that stands
-for it), and 39 more, the rules the build's reference model's listed survivors and S7a-1b's review's hand
+for it), and 40 more, the rules the build's reference model's listed survivors and S7a-1b's review's hand
 mutants leave to these properties, where the draws reach them: blank text refused, an empty condition reason
 given item 3's case, an empty `reads` or `accepts`, two exclusive alternatives, a `consumer`'s or a `model`'s
 shape, a range upside down, a number below zero, an index not whole, a status object where none is taken, a
 boolean taken as a number, a nominal's `params`, a distribution's parameters, a `basis` on another kind, a
-chain's members, an accepted difference of `"any"` refused, the never-waived code, a mixing rule, a family, a
-precision, a unit, a distribution's `space`, a waiver's condition token and its presence, a combination, a
-repeated `accepts` token, two `trainable` entries of one field at two records refused, a waiver's label beside
-an unregistered field, an acceptance at an interval, an engine model over a domain refused by item 7, a
-`sampling` block without `independence`, a `population_level` beside another `represents` or none,
-`min_acceptance` 1 and 0; a waiver's `label` of `null` judged by item 4 (maintainer, 2026-10-25: `null` names
-no label); and the three rules of the refusal paragraph's last round, each in its old reading: a
-requirement's or a `trainable` entry's `field` judged against an empty `reads`, an acceptance of no known kind
-judged by the members other kinds name, an engine value without `reason` or `basis` refused at the value beside
-the model's `engine`. Every one is searched over the draws of the one stratum of its part that holds the ways it
-names: none needs a planned search. The three that refuse what the text takes and that a planter's fault can
+chain's members, an accepted difference of `"any"` refused, an accepted difference's `value` judged beside
+its `fact` at fault ("that fact's shape", which a `fact` at fault does not give), the never-waived code, a
+mixing rule, a family, a precision, a unit, a distribution's `space`, a waiver's condition token and its
+presence, a combination, a repeated `accepts` token, two `trainable` entries of one field at two records
+refused, a waiver's label beside an unregistered field, an acceptance at an interval, an engine model over a
+domain refused by item 7, a `sampling` block without `independence`, a `population_level` beside another
+`represents` or none, `min_acceptance` 1 and 0; a waiver's `label` of `null` judged by item 4 (maintainer,
+2026-10-25: `null` names no label); and the three rules of the refusal paragraph's last round, each in its old
+reading: a requirement's or a `trainable` entry's `field` judged against an empty `reads`, an acceptance of no
+known kind judged by the members other kinds name, an engine value without `reason` or `basis` refused at the
+value beside the model's `engine`. Every one is searched over the draws of the one stratum of its part that
+holds the ways it names: none needs a planned search.
+The three that refuse what the text takes and that a planter's fault can
 show as well (blank text, a waiver's `basis`, two `trainable` entries of one field at two records) are searched
 over the `precedence` part's stratum of a text that is not JSON and a value that is not an object, whose faults
 no rule but the parse judges, so that each dies at the valid declaration alone. Not drawn, each with why: a fault at an engine model's requirement's
@@ -1988,6 +1990,7 @@ target's relation to the model lists as a known divergence).
 | `model_name_and_version_unchecked` | a `model` missing `name` or `version`, holding another member or of another type, taken | `_shape` | HP41, shape | `unknown`, `slip` | 19, 5 |
 | `boolean_taken_as_a_number` | a boolean taken where the table asks for another type | `_holds` | HP41, shape | `not_a_number` | 1, 1 |
 | `difference_of_any_refused` | an accepted difference of value `"any"` refused | `_shape` | HP41, locations | `unlocated`, `accepted_difference_unlocated` | 2, 2 |
+| `difference_judged_beside_its_fact_at_fault` | an accepted difference's `value` judged beside its `fact` at fault | `_shape` | HP41, tokens | `outside_list`, `other_members_token` | 1, 1 |
 | `review_unchecked` | a requirement's `review` holding any string taken | `TOKENS` | HP41, tokens | `outside_list`, `other_members_token` | 1, 1 |
 | `token_slip_taken` | a token one slip from one its member takes taken | `_tokens` | HP41, tokens | `slip_of_token`, `misspelt_name` | 1, 1 |
 | `tokens_compared_without_case` | a member's tokens compared without case | `TOKENS` | HP41, tokens | `other_case` | 1, 1 |

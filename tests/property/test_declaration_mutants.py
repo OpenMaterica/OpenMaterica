@@ -239,6 +239,18 @@ def _difference_of_any_refused(declaration: JsonObject) -> list[Finding]:
     return found
 
 
+def _difference_judged_beside_its_fact_at_fault(declaration: JsonObject) -> list[Finding]:
+    """An accepted difference's `value`, an object holding no `status`, refused as of no fact's shape where
+    its `fact` is at fault, beside the `fact`'s own refusal."""
+    found = SHAPE(declaration)
+    for visit in PLACES(declaration):
+        value, fact = visit.value.get("value"), visit.value.get("fact")
+        if visit.place == "accepted_difference" and isinstance(value, dict) and "status" not in value:
+            if fact not in VOCABULARY.facts:
+                found.append(Finding("BC-048", f"{visit.pointer}/value", "of no fact's shape"))
+    return found
+
+
 def _boolean_taken(holds: Holds, value: JsonValue, pointer: str) -> list[Finding]:
     """A boolean taken wherever the table asks for a value of a type, a number among them."""
     return [] if isinstance(value, bool) else HOLDS(holds, value, pointer)
@@ -784,6 +796,15 @@ MUTANTS = [
         UNLOCATED,
         f"{VALID}|^refused",
         'an accepted difference of value `"any"` refused',
+    ),
+    Mutant(
+        "difference_judged_beside_its_fact_at_fault",
+        "_shape",
+        "HP41 tokens",
+        replacing("_shape", _difference_judged_beside_its_fact_at_fault),
+        SWEPT,
+        REFUSALS,
+        "an accepted difference's `value` judged beside its `fact` at fault",
     ),
     # `_tokens` (the design's four; the reviews' token lists).
     Mutant(

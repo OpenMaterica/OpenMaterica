@@ -2032,10 +2032,21 @@ def write_implied_fact(p: Planting, bad: Bad) -> str:
 
 
 def write_difference_fact(p: Planting, bad: Bad) -> str:
-    """An accepted difference's `fact`, beside a `value` of `"any"`, which no fact's shape judges."""
+    """An accepted difference's `fact`, beside a `value` of `"any"` in about half the draws, and otherwise of
+    a fact's shape with a member it requires taken out: the `value` is "that fact's shape", which a `fact` at
+    fault does not give, so nothing inside it is judged (the refusal paragraph's rule that stands aside), and
+    the member taken out is planted for the oracle to set aside."""
     at, held = fresh("accepted_difference")(p)
     held["fact"] = bad(FACTS)
-    held["value"] = "any"
+    if p.draw(st.booleans()):
+        held["value"] = "any"
+        return at + "/fact"
+    name = p.choose(tuple(name for name in FACTS if REQUIRED.get(f"difference {name}")))
+    value = p.draw(fact(name, difference=True))
+    member = p.choose(REQUIRED[f"difference {name}"])
+    del value[member]
+    held["value"] = value
+    p.plant("missing_member", at + "/value", member)
     return at + "/fact"
 
 

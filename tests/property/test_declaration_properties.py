@@ -39,7 +39,7 @@ from materica.core.declarations import Declaration
 from materica.core.jsonio import JsonValue
 from materica.shapes import Suite
 from tests.property import declaration_strategies as strategies
-from tests.property.declaration_strategies import KINDS, Drawn, Planted, model_of
+from tests.property.declaration_strategies import FACTS, KINDS, Drawn, Planted, model_of
 from tests.property.strategies import SIZE
 from tests.property.support import feature
 
@@ -179,6 +179,23 @@ def kindless_and_unread(declaration: JsonValue | bytes) -> tuple[list[str], set[
     return kindless, unread
 
 
+def unshaped(declaration: JsonValue | bytes) -> list[str]:
+    """The `value`s of the accepted differences of `declaration` that no fact's shape judges, by pointer: an
+    object holding no `status` beside a `fact` at fault (missing, no string, or no fact of `provenance.md`
+    section 6.2)."""
+    found: list[str] = []
+    models = declaration.get("models") if isinstance(declaration, dict) else None
+    for m, model in enumerate(models if isinstance(models, list) else []):
+        listed = model.get("acceptances") if isinstance(model, dict) else None
+        for k, held in enumerate(listed if isinstance(listed, list) else []):
+            if not (isinstance(held, dict) and held.get("acceptance") == "accepted_difference"):
+                continue
+            value, fact = held.get("value"), held.get("fact")
+            if isinstance(value, dict) and "status" not in value and fact not in FACTS:
+                found.append(f"/models/{m}/acceptances/{k}/value")
+    return found
+
+
 def judged(planted: Sequence[Planted], declaration: JsonValue | bytes) -> list[Planted]:
     """The planted faults the refusal paragraph judges: "A rule that judges one member against another stands
     aside where the other is itself at fault, so that one fault is one refusal: ... a requirement's `field`
@@ -186,8 +203,12 @@ def judged(planted: Sequence[Planted], declaration: JsonValue | bytes) -> list[P
     itself, and none of its other members is judged." A field not read is judged against `reads` alike for a
     requirement and a `trainable` entry (the members table: "each for a field in `reads`", "a field in
     `reads`"). An acceptance of no kind keeps the fault of its kind alone: its `acceptance` missing, at it, or
-    no kind, at that member."""
+    no kind, at that member. An accepted difference's `value` is judged against its `fact` ("its `value` that
+    fact's shape", the members table): beside a `fact` at fault no shape asks a member of it or names one, so
+    nothing inside it is judged (the paragraph a ruling, applied to the pairs it does not name: maintainer,
+    2026-10-25)."""
     kindless, unread = kindless_and_unread(declaration)
+    shapeless = unshaped(declaration)
 
     def kept(fault: Planted) -> bool:
         for at in kindless:
@@ -195,6 +216,8 @@ def judged(planted: Sequence[Planted], declaration: JsonValue | bytes) -> list[P
                 return True
             if fault.pointer == at or fault.pointer.startswith(at + "/"):
                 return False
+        if any(fault.pointer == at or fault.pointer.startswith(at + "/") for at in shapeless):
+            return False
         return not (fault.fault == "unread" and model_of(fault.pointer) in unread)
 
     return [fault for fault in planted if kept(fault)]
