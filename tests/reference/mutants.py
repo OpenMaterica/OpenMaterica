@@ -3356,7 +3356,6 @@ BUILD_MUTANTS: Mapping[str, Mutant] = {
         "a nominal's `params` for a field whose row allows no parameter set taken",
         'declarations.md:118 "`params` only for a field whose row allows the form `parameter_set`"',
         {"DeclarationCheck.own_members": own_members_eased("nominal", params_dropped)},
-        "every nominal in the cases holds a `value`",
         module=build,
     ),
     "build_chains_unchecked": Mutant(

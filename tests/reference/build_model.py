@@ -953,8 +953,11 @@ class DeclarationCheck:
             self.accepted_difference(typed, pointer)
         elif kind == "extrapolation" and "method" in typed:
             self.token(typed["method"], at(pointer, "method"), EXTRAPOLATION_METHODS)
-        elif kind == "nominal" and "params" in typed and name and "parameter_set" not in FIELDS[name].forms:
-            # declarations.md:118 "`params` only for a field whose row allows"
+        elif kind == "nominal" and "params" in typed and "field" in typed and not takes_parameter_set(name):
+            # declarations.md:118 "`params` only for a field whose row allows"; read_side_contract.md:77-79 "a
+            # nominal holding `params` and no `value`, for a field whose row allows none, breaks its shape".
+            # Beside a field that is not registered it is judged against every registered row (the comment at
+            # `ORDER`).
             self.fault(at(pointer, "params"))
         elif kind == "distribution":
             self.distribution(typed, pointer)
@@ -1195,6 +1198,14 @@ def label_of(name: str | None) -> tuple[str, ...]:
         return tuple(sorted({row.label for row in FIELDS.values() if row.label}))
     label = FIELDS[name].label
     return (label,) if label else ()
+
+
+def takes_parameter_set(name: str | None) -> bool:
+    """Whether a nominal may hold `params` for the field: the row of a registered field allows the form
+    `parameter_set`, and beside a field that is not registered, the row of some registered field does."""
+    # read_side_contract.md:77-78 "only where the row of the field it names allows the form `parameter_set`"
+    rows = [FIELDS[name]] if name else list(FIELDS.values())
+    return any("parameter_set" in row.forms for row in rows)
 
 
 def unlisted(record: JsonValue, records: Iterable[JsonValue]) -> bool:

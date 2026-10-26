@@ -530,7 +530,8 @@ judged. An entry that is no well-formed name (a reference without string `id`, `
 So a record is named by its reference, whatever else it holds, in `checked_over.records`, in a `trainable`
 entry's location and in the check for a name given twice; a `trainable` entry's record that is no reference is
 not compared with the listed ones; a label beside a field that is not registered is judged against every
-registered label; a distribution's parameter values are judged beside a token that is none, their names are
+registered label, and a nominal's `params` against every registered field's row (none allows `parameter_set`);
+a distribution's parameter values are judged beside a token that is none, their names are
 not; `records` is judged beside another alternative of `checked_over` (a record listed twice is judged on
 neither side there). Three further points of the same default: a combination is refused where its registered
 fields are all of one section, not where two are; a waiver's `condition` of another JSON type is the member at
@@ -547,7 +548,7 @@ otherwise they return.
 (a rule none of them names has no fault, and the table is no proof that every rule has one). Each is run against every build-check file by `test_seeded_faults.py` as the read model's are,
 against `BUILD_EXCEPTIONS`, and failing those against the direct checks; a fault that makes the model raise
 fails its check (its control: the token check replaced by a function raising `TypeError`, `KeyError` or
-`AssertionError`). 86 are killed, 51 by a case file and 35 by a direct check alone, and 28 survive: for each
+`AssertionError`). 87 are killed, 51 by a case file and 36 by a direct check alone, and 27 survive: for each
 survivor no case file does kill it, and `mutants.py` says why beside it. They are what HP41 and HP42 (S7a-1p)
 must kill. Measured over every build-check file, 2026-10-25: none makes the model raise, and 25 die to one
 case file alone. Item 7's fault (`build_item_7_pointers_placed`, a fault inside an engine model's `engine`
@@ -592,7 +593,7 @@ listing does not. The table says only whether a fault is killed or survives; a t
 | `build_combination_unchecked` | a combination unchecked | killed |
 | `build_distribution_parameters_unchecked` | a distribution's parameters other than its token's taken | survives |
 | `build_repeated_accepts_taken` | a repeated `accepts` token taken | survives |
-| `build_params_taken` | a nominal's `params` for a field with no parameter set taken | survives |
+| `build_params_taken` | a nominal's `params` for a field with no parameter set taken | killed |
 | `build_chains_unchecked` | a chain unchecked | survives |
 | `build_item_3_unchecked` | a tolerance or accept list without `reason` refused as BC-048 | killed |
 | `build_item_3_on_tolerances_alone` | an accept list without `reason` refused as BC-048 | killed |
