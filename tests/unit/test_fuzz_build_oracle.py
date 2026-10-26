@@ -7,11 +7,14 @@ no seed shows, one change to a seed's pointer does, and the design's unnarrowed 
 once."""
 
 import contextlib
+import copy
 import json
+import re
 import sys
 from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
+from typing import cast
 
 import pytest
 
@@ -22,8 +25,21 @@ from materica.core.declarations import Finding, JsonObject
 from materica.core.jsonio import JsonValue
 from materica.core.record import RecordStore
 from materica.core.report import BuildRefusal, BuildReport
-from tests.fuzz.build_oracle import check_declaration, index_of, placed, resolves, tokens_of
+from scripts.measure import CONTROLS
+from tests.fuzz import build_oracle
+from tests.fuzz.build_oracle import (
+    KNOWN_DIVERGENCES,
+    NOT_BUILT,
+    check_declaration,
+    index_of,
+    member_at,
+    placed,
+    resolves,
+    tokens_of,
+)
 from tests.fuzz.seeded_fault import faulty_reasons
+from tests.reference import build_model
+from tests.reference.direct import BUILD
 
 BUILD_CHECKS = Path(materica.__file__).parent / "data" / "conformance" / "build_checks"
 # A declaration the check takes: BC-016's, one model over water with one waiver.
@@ -137,6 +153,149 @@ def test_a_refusal_of_another_case_fails_the_relations() -> None:
         check_declaration(VALID, store(), refused(BuildRefusal("BC-016", "")))
 
 
+# The model's relation: the check's refusals held to the model's where it refuses with every rule placed.
+
+
+def test_the_model_s_relation_fails_where_the_check_refuses_otherwise() -> None:
+    at = "/models/0/acceptances/0"
+    check_declaration(WITHOUT_REASON, store(), refused(BuildRefusal("BC-005", at)))
+    with pytest.raises(
+        AssertionError, match=re.escape(f"[('BC-048', '{at}')], the model [('BC-005', '{at}')]")
+    ):
+        check_declaration(WITHOUT_REASON, store(), refused(BuildRefusal("BC-048", at)))
+    with pytest.raises(AssertionError, match=re.escape(f"gives [], the model [('BC-005', '{at}')]")):
+        check_declaration(WITHOUT_REASON, store(), refused())
+    with pytest.raises(AssertionError, match=re.escape(f"gives [], the model [('BC-005', '{at}')]")):
+        check_declaration(WITHOUT_REASON, store(), raising(NotImplementedError(next(iter(NOT_BUILT)))))
+
+
+def test_the_model_s_relation_holds_nothing_where_the_model_gives_no_verdict() -> None:
+    """The model gives no verdict for a declaration that passes its own check, nor where it places some
+    rule's refusals not: an engine model over a domain, which item 7 may refuse (S11)."""
+    check_declaration(VALID, store(), refused(BuildRefusal("BC-048", "/models/0/model")))
+    over_a_domain = placed(VALID, "/models/0/checked_over", {"domain": "lumen"})
+    engine: JsonValue = {
+        "crosswalk": {"id": "materica/crosswalk", "version": "1.0.0", "sha256": "f" * 64},
+        "values": {},
+    }
+    over_a_domain = placed(over_a_domain, "/models/0/engine", engine)
+    verdict = build_model.check_build(json.dumps(over_a_domain).encode(), BUILD)
+    assert not isinstance(verdict, build_model.Refused) or verdict.unplaced, verdict
+    check_declaration(over_a_domain, store(), refused(BuildRefusal("BC-048", "/models/0/engine")))
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "the declaration passed its own check, and this version reads none of its records while it holds "
+        "what a later piece reads: S7a-3 reads the target /models/0/target",
+        "a read whose target is an overlay is not built yet",
+        "want: fit on a field holding a fit record is not read yet",
+        "the waiver /acceptances/0 names the label 'x', and would cover a reason only where that label is "
+        "trusted",
+    ],
+)
+def test_a_not_implemented_error_of_a_piece_to_come_passes_the_relations(message: str) -> None:
+    check_declaration(VALID, store(), raising(NotImplementedError(message)))
+
+
+def test_a_declaration_holding_what_a_later_piece_reads_passes_the_relations() -> None:
+    with_a_target = placed(VALID, "/models/0/target/tissue_state", {"token": "ex_vivo_fresh"})
+    with pytest.raises(NotImplementedError, match="S7a-3"):
+        check_build(with_a_target, store())
+    check_declaration(with_a_target, store())
+
+
+# Each known divergence: an example the check and the model refuse apart, which the relation lets through
+# with the divergence listed and fails without it.
+
+INPUTS = BUILD_CHECKS / "inputs"
+
+
+def loaded(name: str) -> JsonValue:
+    return cast(JsonValue, json.loads((INPUTS / name).read_bytes()))
+
+
+def taken_out(value: JsonValue, pointer: str, name: str) -> JsonValue:
+    copied = copy.deepcopy(value)
+    found = member_at(copied, pointer)
+    assert found is not None
+    assert isinstance(found[0], dict)
+    del found[0][name]
+    return copied
+
+
+def put(name: str, *changes: tuple[str, JsonValue]) -> JsonValue:
+    value = loaded(name)
+    for pointer, member in changes:
+        value = placed(value, pointer, member)
+    return value
+
+
+WITHOUT_REASON = taken_out(VALID, "/models/0/acceptances/0", "reason")
+TWO_ALTERNATIVES = put(
+    "bc048_trainable_field_not_read.json",
+    ("/models/0/checked_over/path", "lumen"),
+    ("/models/0/checked_over/records/0/version", {"x": 1.0}),
+)
+DIVERGENCES: dict[str, JsonValue] = {
+    "waiver_label_of_another_type": put(
+        "bc050_requirement_without_review.json", ("/models/0/acceptances/0/label", 1.0)
+    ),
+    "waiver_condition_beside_a_code_at_fault": taken_out(
+        loaded("bc002_both_records_listed.json"), "/models/0/acceptances/0", "code"
+    ),
+    "waiver_condition_of_another_type": put(
+        "bc002_both_records_listed.json", ("/models/0/acceptances/0/condition", None)
+    ),
+    "trainable_location_beside_a_fault": put(
+        "bc048_trainable_field_not_read.json", ("/models/0/trainable/0/record/id", None)
+    ),
+    "name_given_twice_beside_a_fault": put(
+        "bc048_record_listed_twice.json", ("/models/0/checked_over/records/0/x", 1.0)
+    ),
+    "status_object_off_its_shape": put(
+        "bc005_accepted_difference_without_reason.json", ("/models/0/acceptances/1/value/x", 1.0)
+    ),
+    "label_beside_an_unregistered_field": put(
+        "bc050_requirement_without_review.json",
+        ("/models/0/requirements/0/field", "K"),
+        ("/models/0/requirements/0/label", "x"),
+    ),
+    "inside_a_member_at_fault": put(
+        "bc004_tolerance_without_reason.json",
+        ("/models/0/requirements/0/conditions/test_method/tolerance", {"value": "x", "unit": 1.0}),
+    ),
+    "inside_one_of_two_alternatives": TWO_ALTERNATIVES,
+    "parameters_beside_a_distribution_at_fault": put(
+        "bc051_distribution_acceptance.json",
+        ("/models/0/acceptances/1/distribution", "drag"),
+        ("/models/0/acceptances/1/distribution_parameters/stock", ""),
+    ),
+    "combination_beside_its_fields_at_fault": put(
+        "bc048_trainable_field_not_read.json", ("/models/0/combinations", [["", ""]])
+    ),
+    "region_conditions_of_another_type": put(
+        "bc051_region_conditions.json", ("/models/0/region_conditions", None)
+    ),
+}
+
+
+def test_every_known_divergence_has_an_example() -> None:
+    assert set(DIVERGENCES) == set(KNOWN_DIVERGENCES)
+
+
+@pytest.mark.parametrize("name", sorted(DIVERGENCES))
+def test_a_known_divergence_passes_the_relation_and_fails_it_unlisted(
+    name: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    check_declaration(DIVERGENCES[name], store())
+    others = {other: explains for other, explains in KNOWN_DIVERGENCES.items() if other != name}
+    monkeypatch.setattr(build_oracle, "KNOWN_DIVERGENCES", others)
+    with pytest.raises(AssertionError, match=r"^the implementation gives "):
+        check_declaration(DIVERGENCES[name], store())
+
+
 # The target, through its own `test_one_input`.
 
 
@@ -224,6 +383,24 @@ def test_no_seed_shows_the_control_fault_and_one_change_of_a_pointer_does(
         assert ("BC-048", "/models/0/acceptances/2") in after, name
         shown += 1
     assert shown == 7
+
+
+def test_the_control_s_fault_fails_the_model_s_relation_with_the_line_ci_reads_as_its_find(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """BC-005's seed of a second acceptance without its `reason`, that acceptance written a third time: the
+    relation passes it, and fails it with S7a-1's control fault seeded, with a line that `ci.yml`'s control
+    step and `scripts/measure.py`'s fuzz kind read as the control's find (`CONTROLS["declarations"]`)."""
+    seed = loaded("bc005_accepted_difference_without_reason.json")
+    acceptances = member_at(seed, "/models/0/acceptances")
+    assert acceptances is not None
+    assert isinstance(acceptances[0], list)
+    changed = placed(seed, "/models/0/acceptances/2", acceptances[0][1])
+    check_declaration(changed, store())
+    monkeypatch.setattr(declarations, "_reasons", faulty_reasons)
+    with pytest.raises(AssertionError) as found:
+        check_declaration(changed, store())
+    assert re.search(CONTROLS["declarations"].found, f"AssertionError: {found.value}"), str(found.value)
 
 
 def test_seven_seeds_show_the_design_s_fault_unnarrowed(

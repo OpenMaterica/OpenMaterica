@@ -66,15 +66,16 @@
 - In the declaration's own check, S7a-1's control for `build_bytes.py` (the S7 design's 6.4): item 4 skips
   every acceptance after a model's second, so that a third acceptance without its `reason` or `basis` is
   refused only by the shape table, as a member missing (BC-048), where the text gives BC-005. Nothing raises,
-  and the pointer and the case are ones the target allows: only the build's reference model tells it wrong,
-  so the control waits for the model's relation in the target. The design's fault skipped every acceptance
-  after the first: seven of the 113 seed declarations, BC-005's arms of a second acceptance without its
-  `reason` or `basis`, show that one unchanged (2026-10-25), so the fuzzer would find it at once and show
-  nothing; no seed holds a third acceptance without either.
+  and the pointer and the case are ones the target allows: only the target's relation to the build's
+  reference model tells it wrong. The design's fault skipped every acceptance after the first: seven of the
+  113 seed declarations, BC-005's arms of a second acceptance without its `reason` or `basis`, show that one
+  unchanged (2026-10-25), so the fuzzer would find it at once and show nothing; no seed holds a third
+  acceptance without either.
 
 Each of the first four raises its own message, and so does the seventh, so that CI can tell which fault a run
-found; the fifth, the sixth and the ninth are found by the oracle's assertion that the implementation and the
-model disagree, and the eighth by the oracle's assertion that an extrapolation breaking its shape is refused.
+found; the fifth, the sixth, the ninth and the tenth are found by the oracle's assertion that the
+implementation and the model disagree, and the eighth by the oracle's assertion that an extrapolation breaking
+its shape is refused.
 
 The first three targets seed the first two faults when `MATERICA_FUZZ_SEEDED_FAULT` is set, and pytest seeds
 them when loaded as a plugin, `python -m pytest -p tests.fuzz.seeded_fault`. Only the fourth target seeds the
