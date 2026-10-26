@@ -434,7 +434,7 @@ the codes that name a condition) are held to the vocabulary (`test_tables.py`).
 the case of the first rule that names it (BC-004, BC-005, BC-040, BC-044, BC-043, BC-037, BC-050, BC-051 and
 BC-048, in that order), two faults of one case and pointer one refusal; and the report of a refused
 declaration, which holds its refusals and, where the text is JSON, the declaration as given and its
-`consumer`. A fault is one member at fault (maintainer, 2026-10-24; `declarations.md:156-163`, and the suite's
+`consumer`. A fault is one member at fault (maintainer, 2026-10-24; `declarations.md:157-168`, and the suite's
 README, "a fault the token rule names too"): a member two rules name is one fault holding both, so a waiver's
 `label` that item 4 and the token rule both refuse gives BC-050 alone, a `domain`, `path` or `sampling` of
 another JSON type, which item 12 and the shape rule both name, gives BC-051 alone where the suite is not
@@ -445,7 +445,7 @@ missing from an object is that object's fault, apart from the object's own and f
 which the text gives their own cases. A pick is
 located by its `record`, a `region` or an `interval` being named beside it: one naming either and no `record`
 is refused as unlocated (BC-037), whatever the build claims (maintainer, 2026-10-24; the pick row,
-`declarations.md:357`, and `declaration.json`, which requires it).
+`declarations.md:362`, and `declaration.json`, which requires it).
 
 **What it does not.** A declaration that passes its own check it takes no further: its no verdict there,
 `PAST_THE_DECLARATION`, hands the declaration to the results model ("The build's results model", below), and
@@ -478,15 +478,15 @@ fail-closed choice, each listed once in its `OPEN_POINTS` and named where it is 
 | `token_operating_condition` | a token condition in `operating_conditions` or `region_conditions` is refused at it |
 | `families_values` | a `families` value, the family version, is not judged: only the key, a parameter-set field, is |
 | `waiver_label_beside_an_unregistered_field` | a waiver's `label` beside a `field` that is not registered, or beside no `field`, is refused by item 4 as well as the field's own fault, or the missing `field`'s: two faults at two members |
-| `implied_status_object_pointer` | a status object as an implied condition's value is refused at the member that holds it, `implies/<condition>`, as a target fact's is at `/target/<fact>`: `declarations.md:359` gives the refusal in the target's words and not the pointer, and the ruling of 2026-10-24 on the target's is extended to it |
+| `implied_status_object_pointer` | a status object as an implied condition's value is refused at the member that holds it, `implies/<condition>`, as a target fact's is at `/target/<fact>`: `declarations.md:364` gives the refusal in the target's words and not the pointer, and the ruling of 2026-10-24 on the target's is extended to it |
 
 S7a-1b's clauses (maintainer, 2026-10-24) are on `main`, and the model cites them: a `basis` on a kind but an
 extrapolation, a nominal and a distribution is a member the table does not name (`declarations.md:117`), a
 `population_level` is held only beside a `represents` of `population`, beside none it too (`declarations.md:109`
 and BC-043's row), a waiver of `condition_unknown_name` is refused at its `code` (`declarations.md:118`, BC-048),
 a watch's `unit` is S7a-4's, and a refused report holds the declaration and its `consumer`
-(`declarations.md:264`). The refusal paragraph's rule that a rule judging one member against another stands
-aside where the other is at fault (`declarations.md:156-160`) is applied to the `population_level` rule beside a
+(`declarations.md:269`). The refusal paragraph's rule that a rule judging one member against another stands
+aside where the other is at fault (`declarations.md:157-161`) is applied to the `population_level` rule beside a
 `represents` that is no token, a requirement's `field` against a `reads` at fault (an empty one too), a waiver's
 missing `condition` beside a refused `code`, and an acceptance of no known kind, refused at itself with none of
 its other members judged. Item 7's refusals are one a model, at its `engine`. The rule's text names three
@@ -738,7 +738,7 @@ least that can be said before the generated file's shape is known; S7a-2b's gene
 comparison replace it), and a build whose acceptance module exists without the file fails, never skips; its
 controls miss the first, the last and several reasons, and write the codes as list values and as keys. `main` has
 no `coverage.json` yet (S7a-2b brings it), so the file's check runs on none today. The first row lists three codes
-and not `condition_unknown_name`, which the text says section 4.2 never accepts (`declarations.md:396-397`), and a
+and not `condition_unknown_name`, which the text says section 4.2 never accepts (`declarations.md:401-402`), and a
 control shows the model's row listing it again is found.
 
 Where the text leaves a point open, the model takes the maintainer's ruling where there is one, else the
@@ -749,7 +749,7 @@ named where it is applied:
 |---|---|
 | `label_of_no_stored_value` | a result resting on no stored value is checked against no label; a refusal at step 0 is told by a read of the same request over no records, which gives `absent` exactly where step 0 passes, and one at steps 1 to 6 by a reason only those steps give, or `absent` |
 | `alternative_a_result_rests_on` | a result over alternatives rests on one exactly where it holds `conditions`; the alternative its reasons name, or, where none names one, any where every alternative stores the same label, else no verdict |
-| `implied_applied_by_the_value_shown` | an implied condition filled a condition where the entry shows the value it supplies, with basis `implied` (`declarations.md:293-294`, which states no condition on the specimen), whether or not the field's specimen states its fact and token; the row for supplying (`declarations.md:359`, "on fields whose specimen states that fact and token") and the read side's ("its specimen states each one's fact and token") do, and the two readings differ only for an implied condition whose token the specimen does not state, beside one that supplies the same value |
+| `implied_applied_by_the_value_shown` | an implied condition filled a condition where the entry shows the value it supplies, with basis `implied` (`declarations.md:298-299`, which states no condition on the specimen), whether or not the field's specimen states its fact and token; the row for supplying (`declarations.md:364`, "on fields whose specimen states that fact and token") and the read side's ("its specimen states each one's fact and token") do, and the two readings differ only for an implied condition whose token the specimen does not state, beside one that supplies the same value |
 | `record_a_read_resolved` | a record a read resolved is the one step 1 found, pinned by `id`, `version` and `content_hash` among the sources (one, or several of identical bytes) on a read that passed step 0, whether or not steps 2 to 5 then refuse it; the text says "resolved" and names no step |
 
 **Agreement with the cases.** With the declaration's own check, the build's models agree with every one of the
@@ -768,7 +768,7 @@ for the read model's read), read over the suite's fixtures, each with the answer
 file pins: R05 (`not_reviewed` beside a read's `not_met` that carries a value), a nominal at another record or
 for another field neither given nor applied, an extrapolation given beside the nominal a read applied, two
 implied conditions that agree, one whose token the specimen does not state (applied too: read from
-`declarations.md:293-294`, which states no condition on the specimen, beside the row for supplying, which does:
+`declarations.md:298-299`, which states no condition on the specimen, beside the row for supplying, which does:
 the open point `implied_applied_by_the_value_shown`), one naming two conditions, and implied values of `0` and
 `-0` (which differ, bit for bit, as `read_side_contract.md:110-112` says; the same zeros agree, the control), no `label_mismatch` past step 0's `want_mismatch`
 or `request_incomplete` or past a record refused at steps 2 to 5 (`other_version`, `malformed`,

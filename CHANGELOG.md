@@ -259,6 +259,13 @@ every family entry goes in `families/CHANGELOG.md`.
 - A build-check case that compares results it expects names the members of each result it compares:
   `case.json` requires `compare.result_members` there. Before, such a case without it compared each result's
   `model`, location and `field` alone. A refusal case, which compares results and expects none, names none.
+- Two sentences of `declarations.md` section 1 (the maintainer's rulings of 2026-10-26, as recommended after a
+  comparison of the declaration check with the build's reference model; `docs/specification/changes.md`): a rule
+  that judges one member against another stands aside only as far as its verdict depends on the member at fault,
+  and an entry that is no well-formed name is neither the same as nor different from another, which no rule
+  compares; and a `trainable` entry at a `record` where its model is checked over a domain or a path, or at a
+  `region` or an `interval` where it is checked over `records`, is at a location its model is not checked over
+  (BC-048 at the location). No schema, vocabulary or case file changes.
 
 ### Verification
 - PR-330's arm of a member one slip from a requirement's `review` (`PR-330.near_typo_requirement_review`,

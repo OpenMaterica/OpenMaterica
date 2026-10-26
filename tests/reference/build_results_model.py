@@ -87,7 +87,7 @@ class _Undecided(Exception):
 @dataclass(frozen=True)
 class Row:
     """A row of section 4.2's table: the reasons it lists, their status, and what covers them, under the row's
-    own condition (declarations.md:301-302 "is of a kind section 4.2's row for that reason names, under that
+    own condition (declarations.md:306-307 "is of a kind section 4.2's row for that reason names, under that
     row's own condition (the code and condition named; the `assumption`)")."""
 
     reasons: tuple[str, ...]
@@ -102,32 +102,32 @@ class Row:
     undecided: str | None = None  # the kind of `UNDECIDED` the row's condition needs
 
 
-# declarations.md:396-397 "This table is the only place that says which acceptance covers which reason (other
+# declarations.md:401-402 "This table is the only place that says which acceptance covers which reason (other
 # documents cite it). A" and "reason not listed is never accepted"
 COVERAGE: Final = (
-    # declarations.md:396-397 "reason not listed is never accepted, `condition_unknown_name` among them: a
+    # declarations.md:401-402 "reason not listed is never accepted, `condition_unknown_name` among them: a
     # condition name the reader does not know": the first row lists three codes, and not that one.
     Row(("condition_unstated", "condition_unchecked", "condition_uncertain"), "unknown", "waiver",
         names_code=True, names_condition=True),
-    # declarations.md:404 "`entries_withheld`, `not_reviewed` | unknown | a `waiver` naming that code |"
+    # declarations.md:409 "`entries_withheld`, `not_reviewed` | unknown | a `waiver` naming that code |"
     Row(("no_requirement", "stated_without_origin", "outside_check_points", "fill_in_version_mismatch",
          "entries_withheld", "not_reviewed"), "unknown", "waiver", names_code=True),
-    # declarations.md:405 "| `no_pick` | unknown | a `pick` only |"
+    # declarations.md:410 "| `no_pick` | unknown | a `pick` only |"
     Row(("no_pick",), "unknown", "pick", undecided="picks_and_overlays"),
-    # declarations.md:406 "| `range_unstated`, `outside_coverage` | unknown | an `extrapolation` only |"
+    # declarations.md:411 "| `range_unstated`, `outside_coverage` | unknown | an `extrapolation` only |"
     Row(("range_unstated", "outside_coverage"), "unknown", "extrapolation"),
-    # declarations.md:407 "an `extrapolation`, only on a result whose `assumption` names it"
+    # declarations.md:412 "an `extrapolation`, only on a result whose `assumption` names it"
     Row(("outside_range",), "not_met", "extrapolation", on_assumption=True),
-    # declarations.md:408 "a `nominal`, only on a result whose `assumption` names it"
+    # declarations.md:413 "a `nominal`, only on a result whose `assumption` names it"
     Row(("want_mismatch",), "not_met", "nominal", on_assumption=True,
         qualifier="for a value read from an interval, or a vector read from a parameter set with none"),
-    # declarations.md:409 "| `engine_mass_not_comparable` | unknown | a `waiver` naming that code |"
+    # declarations.md:414 "| `engine_mass_not_comparable` | unknown | a `waiver` naming that code |"
     Row(("engine_mass_not_comparable",), "unknown", "waiver", names_code=True),
-    # declarations.md:410 "an `overlay_scope` naming every member that differs"
+    # declarations.md:415 "an `overlay_scope` naming every member that differs"
     Row(("overlay_scope_mismatch",), "not_met", "overlay_scope", undecided="picks_and_overlays"),
-    # declarations.md:411 "| a specimen difference | (not a status) | an `accepted_difference` |"
+    # declarations.md:416 "| a specimen difference | (not a status) | an `accepted_difference` |"
     Row((), "(not a status)", "accepted_difference", differences=True, undecided="specimen_differences"),
-    # declarations.md:412 "on a field listed in `trainable` | any | its `trainable` entry (section 7), on a"
+    # declarations.md:417 "on a field listed in `trainable` | any | its `trainable` entry (section 7), on a"
     Row(("outside_range", "range_unstated", "outside_coverage"), "any", "trainable",
         qualifier="on a field listed in `trainable`", condition_reasons=True, differences=True,
         undecided="trainable"),
@@ -136,7 +136,7 @@ COVERAGE: Final = (
 ROW_OF: Final = {code: row for row in COVERAGE if row.kind != "trainable" for code in row.reasons}
 
 # read_side_contract.md:64-65 "take only the kinds `pick`, `overlay`, `extrapolation`, `nominal`," and
-# "`implied_condition` and `trainable`"; declarations.md:310 "section 1), overlays aside (which overlays it
+# "`implied_condition` and `trainable`"; declarations.md:315 "section 1), overlays aside (which overlays it
 # gives a read is [not yet covered]), that name the read's field": a `trainable` acceptance is section 7's,
 # made from a `trainable` entry, on which the model gives no verdict.
 GIVEN_KINDS: Final = ("pick", "extrapolation", "nominal", "implied_condition")
@@ -173,7 +173,7 @@ class Made:
 
 @dataclass(frozen=True)
 class Report:
-    """The build's report (declarations.md:254 "The build gives one report:"): no refusal, each result judged,
+    """The build's report (declarations.md:259 "The build gives one report:"): no refusal, each result judged,
     the acceptances unused, and the members the model does not decide, by kind."""
 
     consumer: JsonValue
@@ -185,12 +185,12 @@ class Report:
 
     @property
     def refused(self) -> bool:
-        # declarations.md:251 "The build MUST refuse to build while any result is not accepted, and reports
+        # declarations.md:256 "The build MUST refuse to build while any result is not accepted, and reports
         # every such result, not only"
         return any(result["accepted"] is not True for result in self.results)
 
     def to_json(self) -> JsonObject:
-        # declarations.md:254-256 "The build gives one report:" and "`records`, every record a read resolved,
+        # declarations.md:259-261 "The build gives one report:" and "`records`, every record a read resolved,
         # as"; the watches are S7a-4's, and a build that does not emit them leaves them out
         return {
             "consumer": self.consumer,
@@ -253,12 +253,12 @@ def report(declaration: JsonObject, sources: Sequence[bytes], claims: frozenset[
 
 
 def later_pieces(model: JsonObject) -> None:
-    # declarations.md:326 "For each fact the target names, the build compares the record's fact"; a target
+    # declarations.md:331 "For each fact the target names, the build compares the record's fact"; a target
     # of `{}` names none (declarations.md:78-79 "a `target` of `{}` names no fact"), so a result lists no
     # specimen difference
     if members(model.get("target")) or entries(model.get("combinations")):
         raise _Undecided("specimen_differences")
-    # declarations.md:471-472 "The build gives each read of that field there a `trainable` acceptance"
+    # declarations.md:476-477 "The build gives each read of that field there a `trainable` acceptance"
     if entries(model.get("trainable")):
         raise _Undecided("trainable")
 
@@ -266,7 +266,7 @@ def later_pieces(model: JsonObject) -> None:
 def model_results(
     declaration: JsonObject, model: JsonObject, sources: Sequence[bytes], claims: frozenset[str]
 ) -> list[Made]:
-    """One result per record listed and field read, in that order: declarations.md:215 "The build reads every
+    """One result per record listed and field read, in that order: declarations.md:220 "The build reads every
     required field in every region, interval or record a model is checked over"."""
     requirements = {
         str(members(requirement).get("field")): members(requirement)
@@ -290,12 +290,12 @@ def field_result(
     sources: Sequence[bytes],
     claims: frozenset[str],
 ) -> Made:
-    # declarations.md:217 "with `model`, the location it was read for, `record`, `field`,
-    # `specimen_differences`, `accepted`,"; declarations.md:241-242 "Over records the location is the record
+    # declarations.md:222 "with `model`, the location it was read for, `record`, `field`,
+    # `specimen_differences`, `accepted`,"; declarations.md:246-247 "Over records the location is the record
     # read: the result holds" and "`record` and neither `region` nor `interval`"
     location: JsonObject = {"model": members(model.get("model")).get("name"), "record": record, "field": name}
     if requirement is None:
-        # declarations.md:166-168 "A field in `reads` with no requirement gives" ... "the build reads nothing
+        # declarations.md:171-173 "A field in `reads` with no requirement gives" ... "the build reads nothing
         # for it, so its result holds `status`," and "`reasons` and the build's members alone"
         return Made({"status": "unknown", "reasons": [{"code": "no_requirement"}], **location})
     acceptances = entries(model.get("acceptances"))
@@ -307,7 +307,7 @@ def field_result(
     # always known (Open point: alternative_a_result_rests_on).
     stored = stored_value(read, record, name, sources) if passed_step_0 and "label" in requirement else None
     reasons: list[JsonValue] = [*entries(read["reasons"]), *build_reasons(requirement, read, stored)]
-    # declarations.md:313-315 "The build's own reasons (`no_requirement`, `label_mismatch`, `not_reviewed`)
+    # declarations.md:318-320 "The build's own reasons (`no_requirement`, `label_mismatch`, `not_reviewed`)
     # join the read's, and the" ... "result's status is the worst of them all. Every other member of the
     # result is as the read returned it," and "including `value`, where the read returned one"
     result: JsonObject = {**read, "status": status_of(reasons), "reasons": reasons, **location}
@@ -325,7 +325,7 @@ def read_of(request: JsonObject, sources: Sequence[bytes], claims: frozenset[str
 
 
 def given_to(acceptances: Sequence[JsonValue], record: JsonObject, name: str) -> tuple[int, ...]:
-    """declarations.md:309-311 "The build gives each read the acceptances of the kinds a read takes" ... "that
+    """declarations.md:314-316 "The build gives each read the acceptances of the kinds a read takes" ... "that
     name the read's field" and "and are located at its location"."""
     return tuple(
         index
@@ -337,7 +337,7 @@ def given_to(acceptances: Sequence[JsonValue], record: JsonObject, name: str) ->
 
 
 def located_at(acceptance: JsonObject, record: JsonObject) -> bool:
-    """declarations.md:297-299 "is **located at** a result's location when it names the record read, equal in
+    """declarations.md:302-304 "is **located at** a result's location when it names the record read, equal in
     `id`, `version`" and "and `content_hash`; one located at a region or an interval is located at no
     record, and an accepted difference" ... "with no location is located at every location its model is
     checked over"."""
@@ -356,7 +356,7 @@ def request_for(
     requirement: JsonObject,
     given: list[JsonValue],
 ) -> JsonObject:
-    """declarations.md:308-309 "The build's own read request holds the requirement's `want` and `conditions`,
+    """declarations.md:313-314 "The build's own read request holds the requirement's `want` and `conditions`,
     and the declared operating" and "conditions. The build gives each read the acceptances", with the target
     the read is for (read_side_contract.md:14 "`{"record": {"id", "version", "content_hash"}, "field":
     "<section>.<field>"}`") and the acceptances given it; its records are supplied beside it."""
@@ -403,9 +403,9 @@ def resolved_by_step_1(record: JsonObject, sources: Sequence[bytes]) -> bool:
 
 
 def stored_value(read: JsonObject, record: JsonObject, name: str, sources: Sequence[bytes]) -> Stored | None:
-    """The value a result rests on, as stored, or None where it rests on none: declarations.md:316 "stored on
+    """The value a result rests on, as stored, or None where it rests on none: declarations.md:321 "stored on
     the value the result rests on (the field, or the alternative read), whether or not the read" and
-    declarations.md:317-318 "A result that rests on no stored value (its" and "record or field not found, a
+    declarations.md:322-323 "A result that rests on no stored value (its" and "record or field not found, a
     refusal before step 7 finds the field, or no single alternative:". The read passed step 0 (its caller
     asks). Open point: label_of_no_stored_value."""
     if any(members(reason).get("code") in BEFORE_THE_FIELD for reason in entries(read["reasons"])):
@@ -445,11 +445,11 @@ def stored_value(read: JsonObject, record: JsonObject, name: str, sources: Seque
 def build_reasons(requirement: JsonObject, read: JsonObject, stored: Stored | None) -> list[JsonObject]:
     """The build's own reasons on a field read under a requirement."""
     reasons: list[JsonObject] = []
-    # declarations.md:176-177 "A requirement with a `label` gives `not_met` with the reason `label_mismatch`
+    # declarations.md:181-182 "A requirement with a `label` gives `not_met` with the reason `label_mismatch`
     # when the label stored on the" and "value the result rests on differs or is absent"
     if "label" in requirement and stored is not None and not same(stored.label, requirement["label"]):
         reasons.append({"code": "label_mismatch"})
-    # declarations.md:197-200 "A requirement holding it gives" ... "`unknown` with the reason `not_reviewed`
+    # declarations.md:202-205 "A requirement holding it gives" ... "`unknown` with the reason `not_reviewed`
     # on a result whose `provenance.review`" ... "is not a completed review: one holding `result` `reviewed`"
     # and "A result that holds no `provenance` gets no such reason."
     if "review" in requirement and "provenance" in read and not completed(read["provenance"]):
@@ -468,9 +468,9 @@ def status_of(reasons: Iterable[JsonValue]) -> Status:
 
 
 def applied_by(read: JsonObject, given: Sequence[int], acceptances: Sequence[JsonValue]) -> tuple[int, ...]:
-    """The acceptances given to the read that it applied: declarations.md:292-294 "A read **applied** an
+    """The acceptances given to the read that it applied: declarations.md:297-299 "A read **applied** an
     acceptance given to it where its result shows it: an implied condition that filled a" ... "a nominal or an
-    extrapolation that the result's `assumption` names"; declarations.md:295-296 "An implied condition,
+    extrapolation that the result's `assumption` names"; declarations.md:300-301 "An implied condition,
     nominal, extrapolation or `trainable` acceptance given and not so shown was not applied"."""
     applied: list[int] = []
     for index in given:
@@ -484,12 +484,12 @@ def applied_by(read: JsonObject, given: Sequence[int], acceptances: Sequence[Jso
 
 
 def filled(read: JsonObject, implied: JsonObject) -> bool:
-    """Whether the implied condition filled a condition of the result: declarations.md:293-294 "condition (a
+    """Whether the implied condition filled a condition of the result: declarations.md:298-299 "condition (a
     `conditions` entry whose `record` is the value the implied condition supplies, with basis". Each implied
     condition whose value an entry shows with basis `implied` filled it, so that two supplying one value are
     both applied, and values compare as two values do (read_side_contract.md:110-112 "Two values differ
     unless they are of one shape, a value, a range or a token"). The sentence states no condition on the
-    specimen; the row for supplying does (declarations.md:359 "on fields whose specimen states that fact and
+    specimen; the row for supplying does (declarations.md:364 "on fields whose specimen states that fact and
     token"). Open point: implied_applied_by_the_value_shown."""
     for entry in entries(read.get("conditions")):
         held = members(members(entry).get("record"))
@@ -500,7 +500,7 @@ def filled(read: JsonObject, implied: JsonObject) -> bool:
 
 
 def without_basis(value: JsonObject) -> JsonObject:
-    # declarations.md:359 "a record condition's shapes without `basis` (one there is ignored)"
+    # declarations.md:364 "a record condition's shapes without `basis` (one there is ignored)"
     return {name: held for name, held in value.items() if name != "basis"}
 
 
@@ -515,11 +515,11 @@ def names(assumption: JsonValue, acceptance: JsonObject) -> bool:
 
 
 def covers(acceptance: JsonObject, reason: JsonObject, result: JsonObject) -> bool:
-    """declarations.md:299-303 "An acceptance **covers** a reason or" ... "a specimen difference of a result
+    """declarations.md:304-308 "An acceptance **covers** a reason or" ... "a specimen difference of a result
     when it names the result's field" ... "located at the result's location, and is of a kind section 4.2's
     row for that reason names" ... "own condition (the code and condition named; the `assumption`), and, for a
     waiver naming a label, as section" and "4.1 item 4 says. A label is **trusted** on a result";
-    declarations.md:414 "A waiver covers a reason whatever its `alternative`"."""
+    declarations.md:419 "A waiver covers a reason whatever its `alternative`"."""
     code = reason.get("code")
     row = ROW_OF.get(str(code))
     if row is None or acceptance.get("acceptance") != row.kind:
@@ -535,13 +535,13 @@ def covers(acceptance: JsonObject, reason: JsonObject, result: JsonObject) -> bo
     if row.undecided is not None:
         raise _Undecided(row.undecided)
     if "label" in acceptance:
-        # declarations.md:389 "It covers its reason only on a result whose stored label"
+        # declarations.md:394 "It covers its reason only on a result whose stored label"
         raise _Undecided("label_trust")
     return True
 
 
 def judge(made: Made, model: JsonObject) -> JsonObject:
-    """The result judged: declarations.md:246-249 "`accepted` is true when each reason and each specimen
+    """The result judged: declarations.md:251-254 "`accepted` is true when each reason and each specimen
     difference of the result is covered as the table in" ... "section 4.2 says, and `accepted_by` lists the
     0-based indexes, in the model's `acceptances`, of every" ... "acceptance used, the ones the read itself
     applied (a pick, an overlay, an implied condition) included." and "`not_accepted` lists each reason and
@@ -558,7 +558,7 @@ def judge(made: Made, model: JsonObject) -> JsonObject:
         used |= covering
         if not covering:
             uncovered.append(reason)
-    # declarations.md:332-333 "A result that holds no `specimen`" ... "lists no specimen differences", and a
+    # declarations.md:337-338 "A result that holds no `specimen`" ... "lists no specimen differences", and a
     # target naming no fact gives none (`later_pieces`)
     return {
         **made.result,
@@ -570,8 +570,8 @@ def judge(made: Made, model: JsonObject) -> JsonObject:
 
 
 def unused_of(model: JsonObject, judged: Sequence[JsonObject]) -> list[JsonObject]:
-    """declarations.md:320 "The build lists in `unused`, per model, each acceptance not used (the build's
-    terms)"; declarations.md:305-306 "An acceptance is **used** where it covers a reason or a
+    """declarations.md:325 "The build lists in `unused`, per model, each acceptance not used (the build's
+    terms)"; declarations.md:310-311 "An acceptance is **used** where it covers a reason or a
     specimen difference of a result, or a read applied it": the indexes `accepted_by` lists, per result."""
     used = {
         index for result in judged for index in entries(result["accepted_by"]) if isinstance(index, float)
@@ -585,7 +585,7 @@ def unused_of(model: JsonObject, judged: Sequence[JsonObject]) -> list[JsonObjec
 
 
 def distinct(records: Iterable[JsonObject]) -> list[JsonObject]:
-    # declarations.md:256 "`records`, every record a read resolved, as `{"id", "version", "content_hash"}`"
+    # declarations.md:261 "`records`, every record a read resolved, as `{"id", "version", "content_hash"}`"
     found: list[JsonObject] = []
     for record in records:
         if not any(same(record, earlier) for earlier in found):
