@@ -555,7 +555,7 @@ otherwise they return.
 (a rule none of them names has no fault, and the table is no proof that every rule has one). Each is run against every build-check file by `test_seeded_faults.py` as the read model's are,
 against `BUILD_EXCEPTIONS`, and failing those against the direct checks; a fault that makes the model raise
 fails its check (its control: the token check replaced by a function raising `TypeError`, `KeyError` or
-`AssertionError`). 87 are killed, 51 by a case file and 36 by a direct check alone, and 27 survive: for each
+`AssertionError`). 88 are killed, 52 by a case file and 36 by a direct check alone, and 26 survive: for each
 survivor no case file does kill it, and `mutants.py` says why beside it. They are what HP41 and HP42 (S7a-1p)
 must kill. Measured over every build-check file, 2026-10-25: none makes the model raise, and 25 die to one
 case file alone. Item 7's fault (`build_item_7_pointers_placed`, a fault inside an engine model's `engine`
@@ -679,7 +679,7 @@ listing does not. The table says only whether a fault is killed or survives; a t
 | `build_empty_accepts_taken` | an `overlay_scope` accepting nothing taken | survives |
 | `build_blank_reason_refused` | a `reason` or `basis` of whitespace alone refused | survives |
 | `build_empty_condition_reason_is_item_3` | an empty `reason` on a requirement condition refused as item 3, BC-004, not as BC-048 | survives |
-| `build_population_level_shape_unchecked` | a requirement's `population_level` of another shape taken | survives |
+| `build_population_level_shape_unchecked` | a requirement's `population_level` of another shape taken | killed |
 | `build_represents_token_unchecked` | a requirement's `represents` holding any string taken | killed |
 | `build_waiver_label_beside_an_unregistered_field_not_judged` | a waiver's `label` beside a `field` that is not registered not refused by item 4 | survives |
 | `build_precision_unchecked` | a `precision` holding any string taken | survives |
