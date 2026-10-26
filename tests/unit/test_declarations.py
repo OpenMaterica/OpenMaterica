@@ -987,9 +987,9 @@ def test_item_7_finds_an_engine_values_missing_member_whatever_the_crosswalk() -
     }
 
 
-# The check beside the build's reference model (the rulings of 2026-10-26): where the two read the text apart,
-# and what the text now says. Each test holds a control, a declaration the same rule judges the other way, so
-# that it can fail.
+# The check beside the build's reference model (the defaults of 2026-10-26): where the two read the text
+# apart, and what the text now says. Each test holds a control, a declaration the same rule judges the other
+# way, so that it can fail.
 
 LABEL = "materica.fluid.newtonian.v1"
 UNLISTED: Json = {"id": "conformance/unlisted", "version": "1.0.0", "content_hash": "sha256:" + "0" * 64}
@@ -1069,8 +1069,8 @@ def test_a_waivers_label_that_is_a_string_is_still_judged_in_every_situation(sit
 def test_a_condition_beside_a_code_that_names_none_is_refused_whichever_value_the_code_holds(
     code: JsonValue,
 ) -> None:
-    """What a faulty member's own type settles whichever value it holds is still judged (section 1): the
-    `condition` is refused at itself, and the `code` at fault is refused at itself."""
+    """What the judged member's own type settles, whichever value the member at fault holds, is still judged
+    (section 1): the `condition` is refused at itself, and the `code` at fault is refused at itself."""
     declaration = a_declaration(lambda d: waiver_of(d).update(code=code))
     assert refusals(declaration) == {("BC-048", f"{WAIVER}/code"), ("BC-048", f"{WAIVER}/condition")}
     assert isinstance(Declaration.from_json(a_declaration()), Declaration)  # the control: a code naming one
@@ -1284,6 +1284,7 @@ COMBINATIONS: list[tuple[list[JsonValue], Refusals]] = [
     # An entry that is no registered field has no section: one registered field is not a combination of one.
     (["magnetic.remanence", "magnetic.no_such_field"], {("BC-048", "/models/0/combinations/0/1")}),
     (["bulk.density", 1.0], {("BC-048", "/models/0/combinations/0/1")}),
+    (["magnetic.remanence", "bulk.density", "x.nope"], {("BC-048", "/models/0/combinations/0/2")}),
     # A combination is refused only where all its registered fields are of one section.
     (["bulk.density", "magnetic.remanence", "magnetic.saturation_magnetisation"], set()),
     (["magnetic.remanence", "bulk.density"], set()),
@@ -1299,3 +1300,17 @@ def test_a_combination_of_registered_fields_of_one_section_is_refused_beside_an_
         assert isinstance(Declaration.from_json(declaration), Declaration)
     else:
         assert refusals(declaration) == expected
+
+
+def test_a_trainable_entrys_record_is_judged_against_checked_over_beside_a_second_location() -> None:
+    """The entry's two exclusive locations and item 12 are one refusal at the entry, and the region is a
+    location a model over records has not; the record is judged as a reference all the same, and is refused
+    where the model is not checked over it. The control: a listed record is not refused."""
+    at = TRAINABLE_0
+    entry: Json = entry_at(record=UNLISTED, region="lumen")
+    found = refusals(a_declaration(lambda d: model(d).update(trainable=[entry])))
+    assert found == {("BC-051", at), ("BC-048", f"{at}/region"), ("BC-048", f"{at}/record")}
+    listed: Json = entry_at(record=WATER, region="lumen")
+    assert refusals(a_declaration(lambda d: model(d).update(trainable=[listed]))) == found - {
+        ("BC-048", f"{at}/record")
+    }

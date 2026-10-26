@@ -863,7 +863,7 @@ def _names(declaration: JsonObject) -> list[Finding]:
                             "BC-048", f"{here}/{name}", f"a {name} where the model is checked over {kind}"
                         )
                     )
-            reference = _reference(entry.get("record")) if locations == ["record"] else None
+            reference = _reference(entry.get("record"))
             if reference is not None and records is not None and reference not in records:
                 found.append(Finding("BC-048", f"{here}/record", "a record its model is not checked over"))
         for position, acceptance in _entries(model, "acceptances"):
