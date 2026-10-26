@@ -989,9 +989,9 @@ def test_item_7_finds_an_engine_values_missing_member_whatever_the_crosswalk() -
     }
 
 
-# The check beside the build's reference model (the defaults of 2026-10-26): where the two read the text
-# apart, and what the text now says. Each test holds a control, a declaration the same rule judges the other
-# way, so that it can fail.
+# The check beside the build's reference model (the maintainer's rulings of 2026-10-26): where the two read
+# the text apart, and what the text now says. Each test holds a control, a declaration the same rule judges
+# the other way, so that it can fail.
 
 LABEL = "materica.fluid.newtonian.v1"
 UNLISTED: Json = {"id": "conformance/unlisted", "version": "1.0.0", "content_hash": "sha256:" + "0" * 64}

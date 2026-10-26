@@ -742,49 +742,49 @@ RESULTS_MUTANTS: Mapping[str, Mutant] = {
     # The request (HP44 `_request`)
     "results_acceptance_at_another_record_given": mutant(
         "an acceptance a read takes given to the read of another record",
-        'declarations.md:318-319 "that name the read\'s field" and "and are located at its location"',
+        'declarations.md:327-328 "that name the read\'s field" and "and are located at its location"',
         {"given_to": given_at_any_record},
     ),
     "results_acceptance_of_another_field_given": mutant(
         "an acceptance a read takes given to the read of another field",
-        'declarations.md:318 "section 1), overlays aside (which overlays it gives a read is [not yet '
+        'declarations.md:327 "section 1), overlays aside (which overlays it gives a read is [not yet '
         "covered]), that name the read's field\"",
         {"given_to": given_for_any_field},
     ),
     "results_waivers_given": mutant(
         "an acceptance of a kind a read does not take (a waiver) given to the read",
-        'declarations.md:317 "The build gives each read the acceptances of the kinds a read takes"',
+        'declarations.md:326 "The build gives each read the acceptances of the kinds a read takes"',
         {"given_to": given_of_every_kind},
     ),
     "results_requirement_label_given": mutant(
         "the requirement given whole, its `label` and `review` with it (so `request_incomplete`)",
-        "declarations.md:316 \"The build's own read request holds the requirement's `want` and "
+        "declarations.md:325 \"The build's own read request holds the requirement's `want` and "
         '`conditions`"',
         {"request_for": request_changed(requirement_whole)},
     ),
     "results_unnamed_operating_condition_dropped": mutant(
         "an operating condition the requirement does not name left out of the request (a table's axis)",
-        'declarations.md:316-317 "and the declared operating" and "conditions. The build gives each read '
+        'declarations.md:325-326 "and the declared operating" and "conditions. The build gives each read '
         'the acceptances"',
         {"request_for": request_changed(unnamed_operating_dropped)},
     ),
     "results_want_defaulted": mutant(
         "the request's `want` defaulted to `value`",
-        "declarations.md:316 \"The build's own read request holds the requirement's `want` and "
+        "declarations.md:325 \"The build's own read request holds the requirement's `want` and "
         '`conditions`"',
         {"request_for": request_changed(want_defaulted)},
     ),
     # The build's own reasons, and the stored value (HP45 `_stored`, `_build_reasons`)
     "results_label_read_from_the_result": mutant(
         "the label stored read from the result's labels, which a refusal before step 12 hides",
-        'declarations.md:324-325 "whether or not the read" and "reached step 12, so a label never hides '
+        'declarations.md:333-334 "whether or not the read" and "reached step 12, so a label never hides '
         'behind another refusal"',
         {"stored_value": label_from_the_result},
     ),
     "results_label_checked_on_no_stored_value": mutant(
         "a result that rests on no stored value (its record or field not found, or no single alternative) "
         "checked against a value holding no label",
-        'declarations.md:325-326 "A result that rests on no stored value (its" and "record or field not '
+        'declarations.md:334-335 "A result that rests on no stored value (its" and "record or field not '
         'found, a refusal before step 7 finds the field, or no single alternative:"',
         {"stored_value": stored_wherever},
     ),
@@ -795,101 +795,101 @@ RESULTS_MUTANTS: Mapping[str, Mutant] = {
     ),
     "results_label_of_the_field_holding_alternatives": mutant(
         "the label checked against the field holding the alternatives, not the alternative read",
-        'declarations.md:324 "stored on the value the result rests on (the field, or the alternative '
+        'declarations.md:333 "stored on the value the result rests on (the field, or the alternative '
         'read), whether or not the read"',
         {"stored_value": field_holding_alternatives_stored},
     ),
     "results_label_of_the_section": mutant(
         "the label read from the section holding the field, not the field's",
-        'declarations.md:324 "stored on the value the result rests on (the field, or the alternative '
+        'declarations.md:333 "stored on the value the result rests on (the field, or the alternative '
         'read), whether or not the read"',
         {"stored_value": section_stored},
     ),
     "results_any_stored_label_matches": mutant(
         "a stored label that differs taken as the one required",
-        'declarations.md:184-185 "when the label stored on the" and "value the result rests on differs or '
+        'declarations.md:193-194 "when the label stored on the" and "value the result rests on differs or '
         'is absent"',
         {"build_reasons": reasons_dropping(any_label_matches)},
     ),
     "results_label_compared_without_case": mutant(
         "a stored label that differs from the one required in case alone taken as the one required",
-        'declarations.md:184-185 "when the label stored on the" and "value the result rests on differs or '
+        'declarations.md:193-194 "when the label stored on the" and "value the result rests on differs or '
         'is absent"',
         {"build_reasons": reasons_dropping(case_blind_label_matches)},
     ),
     "results_absent_label_matches": mutant(
         "a label absent from the value the result rests on taken as the one required",
-        'declarations.md:184-185 "when the label stored on the" and "value the result rests on differs or '
+        'declarations.md:193-194 "when the label stored on the" and "value the result rests on differs or '
         'is absent"',
         {"build_reasons": reasons_dropping(absent_label_matches)},
     ),
     "results_not_checked_with_a_reason_reviewed": mutant(
         "a review `not_checked` with a `reason` taken as completed",
-        'declarations.md:207 "section 2) is not a completed review: one holding `result` `reviewed`"',
+        'declarations.md:216 "section 2) is not a completed review: one holding `result` `reviewed`"',
         {"completed": reason_taken_as_review},
     ),
     "results_not_reviewed_without_provenance": mutant(
         "`not_reviewed` given to a result that holds no `provenance` (R04)",
-        'declarations.md:208 "A result that holds no `provenance` gets no such reason."',
+        'declarations.md:217 "A result that holds no `provenance` gets no such reason."',
         {"build_reasons": reasons_adding(reviewed_without_provenance)},
     ),
     "results_not_reviewed_unrequired": mutant(
         "`not_reviewed` given where the requirement holds no `review`",
-        'declarations.md:205-206 "A requirement holding it gives" and "`unknown` with the reason '
+        'declarations.md:214-215 "A requirement holding it gives" and "`unknown` with the reason '
         '`not_reviewed`"',
         {"build_reasons": reasons_adding(unreviewed_unrequired)},
     ),
     "results_not_reviewed_as_not_met": mutant(
         "`not_reviewed` making the status `not_met`",
-        'declarations.md:205-206 "A requirement holding it gives" and "`unknown` with the reason '
+        'declarations.md:214-215 "A requirement holding it gives" and "`unknown` with the reason '
         '`not_reviewed`"',
         {"status_of": status_from(not_reviewed_not_met)},
     ),
     "results_build_reasons_leave_the_status": mutant(
         "the build's own reasons leaving the read's status",
-        'declarations.md:321-322 "join the read\'s, and the" and "result\'s status is the worst of them all"',
+        'declarations.md:330-331 "join the read\'s, and the" and "result\'s status is the worst of them all"',
         {"status_of": status_from(worst_without_the_build)},
     ),
     "results_not_reviewed_lowers_not_met": mutant(
         "`not_reviewed` making the status `unknown` over a read's `not_met` (R05)",
-        'declarations.md:321-322 "join the read\'s, and the" and "result\'s status is the worst of them all"',
+        'declarations.md:330-331 "join the read\'s, and the" and "result\'s status is the worst of them all"',
         {"status_of": status_from(not_reviewed_unknown)},
     ),
     "results_best_status": mutant(
         "the status the best of the reasons",
-        'declarations.md:321-322 "join the read\'s, and the" and "result\'s status is the worst of them all"',
+        'declarations.md:330-331 "join the read\'s, and the" and "result\'s status is the worst of them all"',
         {"status_of": status_from(best_of)},
     ),
     "results_value_dropped_by_the_build": mutant(
         "the read's `value` dropped where the build's `label_mismatch` makes the result `not_met`",
-        'declarations.md:322-323 "Every other member of the result is as the read returned it," and '
+        'declarations.md:331-332 "Every other member of the result is as the read returned it," and '
         '"including `value`, where the read returned one"',
         {"field_result": field_result_changed(value_dropped_by_the_build)},
     ),
     "results_unrequired_field_read": mutant(
         "a field in `reads` with no requirement read as if wanted as a value",
-        'declarations.md:175 "the build reads nothing for it, so its result holds `status`,"',
+        'declarations.md:184 "the build reads nothing for it, so its result holds `status`,"',
         {"field_result": unrequired_field_read},
     ),
     # What the read applied (HP43 `judge`)
     "results_given_counted_applied": mutant(
         "every acceptance given counted applied (an implied condition that filled nothing, an "
         "extrapolation at an `at_edge` read)",
-        'declarations.md:303-304 "An implied condition, nominal, extrapolation or `trainable`" and '
+        'declarations.md:312-313 "An implied condition, nominal, extrapolation or `trainable`" and '
         '"acceptance given and not so shown was not applied"',
         {"applied_by": given_applied},
     ),
     "results_implied_applied_only_where_the_specimen_states_it": mutant(
         "an implied condition that filled a condition counted applied only where the field's specimen states "
         "its fact and token",
-        'declarations.md:301-302 "condition (a `conditions` entry whose `record` is the value the implied '
+        'declarations.md:310-311 "condition (a `conditions` entry whose `record` is the value the implied '
         'condition supplies, with basis" (OPEN_POINTS: implied_applied_by_the_value_shown)',
         {"field_result": implied_applied_where_the_specimen_states_it},
     ),
     "results_implied_value_of_the_first_entry_supplied": mutant(
         "an implied condition's value taken from its first `implies` entry, whatever the condition an entry "
         "names",
-        'declarations.md:301-302 "condition (a `conditions` entry whose `record` is the value the implied '
+        'declarations.md:310-311 "condition (a `conditions` entry whose `record` is the value the implied '
         'condition supplies, with basis"',
         {"filled": filled_by_the_first_entry_supplied},
     ),
@@ -909,19 +909,19 @@ RESULTS_MUTANTS: Mapping[str, Mutant] = {
     "results_implied_filled_whatever_the_basis": mutant(
         "an implied condition counted applied where an entry holds its value with a basis other than "
         "`implied`",
-        'declarations.md:301-302 "condition (a `conditions` entry whose `record` is the value the implied '
+        'declarations.md:310-311 "condition (a `conditions` entry whose `record` is the value the implied '
         'condition supplies, with basis"',
         {"filled": filled_whatever_the_basis},
     ),
     "results_first_implied_only": mutant(
         "of two implied conditions that agree, the first alone counted applied",
-        'declarations.md:301-302 "condition (a `conditions` entry whose `record` is the value the implied '
+        'declarations.md:310-311 "condition (a `conditions` entry whose `record` is the value the implied '
         'condition supplies, with basis"',
         {"applied_by": first_implied_only},
     ),
     "results_applied_indexed_among_the_given": mutant(
         "an applied acceptance indexed among those given, not in the model's `acceptances`",
-        'declarations.md:319-320 "It maps the ones the read" and "applied to their indexes in the '
+        'declarations.md:328-329 "It maps the ones the read" and "applied to their indexes in the '
         "model's `acceptances` for `accepted_by`\"",
         {"applied_by": indexed_among_the_given},
     ),
@@ -936,100 +936,100 @@ RESULTS_MUTANTS: Mapping[str, Mutant] = {
     ),
     "results_applied_uncited": mutant(
         "`accepted_by` without the acceptances the read applied",
-        'declarations.md:256 "acceptance used, the ones the read itself applied (a pick, an overlay, an '
+        'declarations.md:265 "acceptance used, the ones the read itself applied (a pick, an overlay, an '
         'implied condition) included."',
         {"judge": applied_uncited},
     ),
     # Covers (HP43 `_covers`, `_located_at`)
     "results_waiver_covers_not_met": mutant(
         "a waiver covering a reason no row of section 4.2 lists for it (`condition_outside`, `form_invalid`)",
-        'declarations.md:404-405 "This table is the only place that says which acceptance covers which '
+        'declarations.md:413-414 "This table is the only place that says which acceptance covers which '
         'reason (other documents cite it). A" and "reason not listed is never accepted"',
         {"ROW_OF": rows_changed(waiver_of_any_code)},
     ),
     "results_waiver_condition_ignored": mutant(
         "a waiver covering a condition reason whatever condition it names",
-        'declarations.md:411 "| a `waiver` naming that condition and code |"',
+        'declarations.md:420 "| a `waiver` naming that condition and code |"',
         {"ROW_OF": rows_changed(conditions_unnamed)},
     ),
     "results_waiver_code_ignored": mutant(
         "a waiver covering a reason of its row whatever code it names",
-        'declarations.md:411 "| a `waiver` naming that condition and code |"',
+        'declarations.md:420 "| a `waiver` naming that condition and code |"',
         {"ROW_OF": rows_changed(codes_unnamed)},
     ),
     "results_waiver_field_ignored": mutant(
         "an acceptance covering a reason of a result whatever field it names",
-        'declarations.md:307-308 "An acceptance **covers** a reason or" and "a specimen difference of a '
+        'declarations.md:316-317 "An acceptance **covers** a reason or" and "a specimen difference of a '
         "result when it names the result's field\"",
         {"covers": covers_changed(field_taken)},
     ),
     "results_location_ignored": mutant(
         "an acceptance covering a reason of a result whatever record it names",
-        "declarations.md:309 \"located at the result's location, and is of a kind section 4.2's row for "
+        "declarations.md:318 \"located at the result's location, and is of a kind section 4.2's row for "
         'that reason names"',
         {"covers": covers_changed(location_taken)},
     ),
     "results_located_by_id_alone": mutant(
         "an acceptance located at a record by its `id` alone (R06)",
-        'declarations.md:305-306 "when it names the record read, equal in `id`, `version`" and "and '
+        'declarations.md:314-315 "when it names the record read, equal in `id`, `version`" and "and '
         '`content_hash`; one located at a region or an interval is located at no record"',
         {"located_at": located_by_id},
     ),
     "results_located_ignoring_the_version": mutant(
         "an acceptance located at a record by its `id` and `content_hash`, its `version` ignored",
-        'declarations.md:305-306 "when it names the record read, equal in `id`, `version`" and "and '
+        'declarations.md:314-315 "when it names the record read, equal in `id`, `version`" and "and '
         '`content_hash`; one located at a region or an interval is located at no record"',
         {"located_at": located_by("id", "content_hash")},
     ),
     "results_located_ignoring_the_id": mutant(
         "an acceptance located at a record by its `version` and `content_hash`, its `id` ignored",
-        'declarations.md:305-306 "when it names the record read, equal in `id`, `version`" and "and '
+        'declarations.md:314-315 "when it names the record read, equal in `id`, `version`" and "and '
         '`content_hash`; one located at a region or an interval is located at no record"',
         {"located_at": located_by("version", "content_hash")},
     ),
     "results_region_located_at_a_record": mutant(
         "an acceptance naming a region or an interval beside the record located at that record",
-        'declarations.md:306 "one located at a region or an interval is located at no record"',
+        'declarations.md:315 "one located at a region or an interval is located at no record"',
         {"located_at": region_at_a_record},
         "a declaration that passes its own check names no region or interval unless the build claims the "
         "scene suite, under which the model gives no verdict",
     ),
     "results_alternative_reasons_uncovered": mutant(
         "a waiver covering no reason that carries an `alternative` (R07)",
-        'declarations.md:422 "A waiver covers a reason whatever its `alternative`"',
+        'declarations.md:431 "A waiver covers a reason whatever its `alternative`"',
         {"covers": covers_changed(alternatives_uncovered)},
     ),
     "results_nominal_covers_without_assumption": mutant(
         "a nominal covering `want_mismatch` where the result's `assumption` does not name it, step 0's "
         "among them",
-        'declarations.md:416 "a `nominal`, only on a result whose `assumption` names it"',
+        'declarations.md:425 "a `nominal`, only on a result whose `assumption` names it"',
         {"ROW_OF": rows_changed(assumption_unnamed("want_mismatch"))},
     ),
     "results_extrapolation_covers_without_assumption": mutant(
         "an extrapolation covering `outside_range` where the result's `assumption` does not name it",
-        'declarations.md:415 "an `extrapolation`, only on a result whose `assumption` names it"',
+        'declarations.md:424 "an `extrapolation`, only on a result whose `assumption` names it"',
         {"ROW_OF": rows_changed(assumption_unnamed("outside_range"))},
     ),
     "results_extrapolation_covers_at_edge": mutant(
         "an extrapolation covering `at_edge`",
-        'declarations.md:404-405 "This table is the only place that says which acceptance covers which '
+        'declarations.md:413-414 "This table is the only place that says which acceptance covers which '
         'reason (other documents cite it). A" and "reason not listed is never accepted"',
         {"ROW_OF": rows_changed(covered_like("at_edge", "range_unstated"))},
     ),
     "results_waiver_covers_label_mismatch": mutant(
         "a waiver naming `label_mismatch` covering it",
-        'declarations.md:404-405 "This table is the only place that says which acceptance covers which '
+        'declarations.md:413-414 "This table is the only place that says which acceptance covers which '
         'reason (other documents cite it). A" and "reason not listed is never accepted"',
         {"ROW_OF": rows_changed(covered_like("label_mismatch", "not_reviewed"))},
     ),
     "results_waiver_covers_no_pick": mutant(
         "a waiver naming `no_pick` covering it",
-        'declarations.md:413 "| `no_pick` | unknown | a `pick` only |"',
+        'declarations.md:422 "| `no_pick` | unknown | a `pick` only |"',
         {"ROW_OF": rows_changed(covered_like("no_pick", "not_reviewed"))},
     ),
     "results_condition_unknown_name_waivable": mutant(
         "a waiver naming `condition_unknown_name` and its condition covering it",
-        'declarations.md:404-405 "reason not listed is never accepted, `condition_unknown_name` among them: '
+        'declarations.md:413-414 "reason not listed is never accepted, `condition_unknown_name` among them: '
         'a condition name the reader does not"',
         {"ROW_OF": rows_changed(covered_like("condition_unknown_name", "condition_unstated"))},
         "the condition a `condition_unknown_name` carries is one the reader's version does not register, "
@@ -1038,128 +1038,128 @@ RESULTS_MUTANTS: Mapping[str, Mutant] = {
     ),
     "results_label_resting_waiver_trusted": mutant(
         "a waiver naming a label covering as one naming none, whatever the label's trust",
-        'declarations.md:397 "It covers its reason only on a result whose stored label"',
+        'declarations.md:406 "It covers its reason only on a result whose stored label"',
         {"covers": covers_changed(label_trusted)},
     ),
     "results_label_resting_waiver_undecided_anywhere": mutant(
         "a waiver naming a label given no verdict though it covers nothing by the other tests",
-        'declarations.md:307-309 "An acceptance **covers** a reason or" ... "located at the result\'s '
+        'declarations.md:316-318 "An acceptance **covers** a reason or" ... "located at the result\'s '
         "location, and is of a kind section 4.2's row for that reason names\"",
         {"covers": covers_changed(label_undecided_anywhere)},
     ),
     "results_label_resting_waiver_undecided_before_its_code": mutant(
         "a waiver naming a label given no verdict before its code is tested against the reason's",
-        'declarations.md:307-309 "An acceptance **covers** a reason or" ... "located at the result\'s '
+        'declarations.md:316-318 "An acceptance **covers** a reason or" ... "located at the result\'s '
         "location, and is of a kind section 4.2's row for that reason names\"",
         {"covers": covers_changed(label_undecided_after(nothing_tested))},
     ),
     "results_label_resting_waiver_undecided_before_its_condition": mutant(
         "a waiver naming a label given no verdict before its condition is tested against the reason's",
-        'declarations.md:307-309 "An acceptance **covers** a reason or" ... "located at the result\'s '
+        'declarations.md:316-318 "An acceptance **covers** a reason or" ... "located at the result\'s '
         "location, and is of a kind section 4.2's row for that reason names\"",
         {"covers": covers_changed(label_undecided_after(code_named))},
     ),
     # The judgement and `unused` (HP43 `judge`, `unused`)
     "results_another_model_s_acceptances": mutant(
         "a model's reason covered by another model's acceptance (R02)",
-        'declarations.md:255 "section 4.2 says, and `accepted_by` lists the 0-based indexes, in the '
+        'declarations.md:264 "section 4.2 says, and `accepted_by` lists the 0-based indexes, in the '
         "model's `acceptances`, of every\"",
         {"report": report_from(judge_of=judged_by_every_model)},
     ),
     "results_covered_reasons_not_accepted": mutant(
         "`not_accepted` holding a covered reason",
-        'declarations.md:257 "`not_accepted` lists each reason and each specimen difference that nothing '
+        'declarations.md:266 "`not_accepted` lists each reason and each specimen difference that nothing '
         'covers, empty exactly"',
         {"judge": judged_changed(everything_not_accepted)},
     ),
     "results_acceptance_covering_nothing_cited": mutant(
         "`accepted_by` holding an acceptance of the result's field at its location that covered nothing",
-        'declarations.md:313-314 "An acceptance is **used** where it covers a reason" and "or a specimen '
+        'declarations.md:322-323 "An acceptance is **used** where it covers a reason" and "or a specimen '
         'difference of a result, or a read applied it."',
         {"judge": judged_changed(every_acceptance_of_the_field_cited)},
     ),
     "results_build_reasons_unjudged": mutant(
         "the build's own reasons left out of the judgement, so a `label_mismatch` refuses nothing",
-        'declarations.md:254 "`accepted` is true when each reason and each specimen difference of the '
+        'declarations.md:263 "`accepted` is true when each reason and each specimen difference of the '
         'result is covered as the table in"',
         {"judge": build_reasons_unjudged},
     ),
     "results_status_raised_when_accepted": mutant(
         "an accepted result's status made `met`",
-        'declarations.md:247-248 "It states a fact about the record against the" and "requirement, and '
+        'declarations.md:256-257 "It states a fact about the record against the" and "requirement, and '
         'declarations never change it"',
         {"judge": judged_changed(status_raised_when_accepted)},
     ),
     "results_specimen_differences_left_out": mutant(
         "a result without `specimen_differences`",
-        'declarations.md:225 "with `model`, the location it was read for, `record`, `field`, '
+        'declarations.md:234 "with `model`, the location it was read for, `record`, `field`, '
         '`specimen_differences`, `accepted`,"',
         {"judge": judged_changed(specimen_differences_left_out)},
     ),
     "results_unused_lists_the_applied": mutant(
         "an acceptance the read applied, and that covered nothing, listed in `unused`",
-        'declarations.md:313-314 "An acceptance is **used** where it covers a reason" and "or a specimen '
+        'declarations.md:322-323 "An acceptance is **used** where it covers a reason" and "or a specimen '
         'difference of a result, or a read applied it."',
         {"report": report_from(unused_of=unused_without_the_applied)},
     ),
     "results_unused_named_after_the_first_model": mutant(
         "each acceptance unused named after the first model (R01)",
-        'declarations.md:328 "The build lists in `unused`, per model, each acceptance not used (the '
+        'declarations.md:337 "The build lists in `unused`, per model, each acceptance not used (the '
         "build's terms)\"",
         {"report": report_from(unused_of=unused_after_the_first)},
     ),
     "results_unused_shared_by_the_models": mutant(
         "one set of used acceptances shared by every model (R03)",
-        'declarations.md:328 "The build lists in `unused`, per model, each acceptance not used (the '
+        'declarations.md:337 "The build lists in `unused`, per model, each acceptance not used (the '
         "build's terms)\"",
         {"report": report_from(unused_of=unused_shared)},
     ),
     "results_used_listed_unused": mutant(
         "every acceptance listed in `unused`, used or not",
-        'declarations.md:328 "The build lists in `unused`, per model, each acceptance not used (the '
+        'declarations.md:337 "The build lists in `unused`, per model, each acceptance not used (the '
         "build's terms)\"",
         {"unused_of": unused_listing_every_one},
     ),
     # The results and the verdict (HP44 `check_build`, HP46)
     "results_every_record_of_the_store_read": mutant(
         "every record in the store read, listed or not",
-        'declarations.md:223 "The build reads every required field in every region, interval or record a '
+        'declarations.md:232 "The build reads every required field in every region, interval or record a '
         'model is checked over"',
         {"model_results": every_record_of_the_store},
     ),
     "results_one_result_a_field": mutant(
         "the results de-duplicated by field alone",
-        'declarations.md:223-224 "The build reads every required field in every region, interval or record '
+        'declarations.md:232-233 "The build reads every required field in every region, interval or record '
         'a model is checked over" and "and returns one result each"',
         {"report": report_from(results_of=one_result_a_field)},
     ),
     "results_refused_by_the_first_model": mutant(
         "the verdict read from the first model's results alone",
-        'declarations.md:259 "The build MUST refuse to build while any result is not accepted, and reports '
+        'declarations.md:268 "The build MUST refuse to build while any result is not accepted, and reports '
         'every such result, not only"',
         {"Report.refused": property(refused_by_the_first_model)},
     ),
     "results_never_refused": mutant(
         "no refusal while a result is not accepted",
-        'declarations.md:259 "The build MUST refuse to build while any result is not accepted, and reports '
+        'declarations.md:268 "The build MUST refuse to build while any result is not accepted, and reports '
         'every such result, not only"',
         {"Report.refused": property(never_refused)},
     ),
     "results_unresolved_record_listed": mutant(
         "a record listed in `records` though its read resolved none",
-        'declarations.md:264 "`records`, every record a read resolved, as `{"id", "version", '
+        'declarations.md:273 "`records`, every record a read resolved, as `{"id", "version", '
         '"content_hash"}`"',
         {"field_result": field_result_changed(every_listed_record_resolved)},
     ),
     "results_unread_record_listed": mutant(
         "a record listed in `records` though nothing was read for it (a field with no requirement)",
-        'declarations.md:264 "`records`, every record a read resolved, as `{"id", "version", '
+        'declarations.md:273 "`records`, every record a read resolved, as `{"id", "version", '
         '"content_hash"}`"',
         {"field_result": field_result_changed(unread_record_resolved)},
     ),
     "results_later_pieces_decided": mutant(
         "a target naming a fact, combinations or a `trainable` entry decided as if absent",
-        'declarations.md:334 "For each fact the target names, the build compares the record\'s fact"',
+        'declarations.md:343 "For each fact the target names, the build compares the record\'s fact"',
         {"later_pieces": later_pieces_decided},
     ),
     "results_found_before_the_field_by_absent_alone": mutant(
@@ -1169,25 +1169,25 @@ RESULTS_MUTANTS: Mapping[str, Mutant] = {
     ),
     "results_other_version_taken_to_find_the_field": mutant(
         "a record refused as `other_version` taken to have found the field, its label checked",
-        'declarations.md:325-326 "A result that rests on no stored value (its" and "record or field not '
+        'declarations.md:334-335 "A result that rests on no stored value (its" and "record or field not '
         'found, a refusal before step 7 finds the field, or no single alternative:"',
         {"BEFORE_THE_FIELD": before_the_field_without("other_version")},
     ),
     "results_malformed_taken_to_find_the_field": mutant(
         "a record refused as `malformed` taken to have found the field, its label checked",
-        'declarations.md:325-326 "A result that rests on no stored value (its" and "record or field not '
+        'declarations.md:334-335 "A result that rests on no stored value (its" and "record or field not '
         'found, a refusal before step 7 finds the field, or no single alternative:"',
         {"BEFORE_THE_FIELD": before_the_field_without("malformed")},
     ),
     "results_unknown_type_taken_to_find_the_field": mutant(
         "a record refused as `unknown_type` taken to have found the field, its label checked",
-        'declarations.md:325-326 "A result that rests on no stored value (its" and "record or field not '
+        'declarations.md:334-335 "A result that rests on no stored value (its" and "record or field not '
         'found, a refusal before step 7 finds the field, or no single alternative:"',
         {"BEFORE_THE_FIELD": before_the_field_without("unknown_type")},
     ),
     "results_later_pieces_of_the_first_model_alone": mutant(
         "a target naming a fact, combinations or a `trainable` entry looked for in the first model alone",
-        'declarations.md:334 "For each fact the target names, the build compares the record\'s fact"',
+        'declarations.md:343 "For each fact the target names, the build compares the record\'s fact"',
         {"report": report_from(pieces_of=first_model_alone)},
     ),
     "results_unnamed_alternative_decided_as_none": mutant(
@@ -1203,7 +1203,7 @@ RESULTS_MUTANTS: Mapping[str, Mutant] = {
     ),
     "results_read_without_a_verdict_decided": mutant(
         "a read the read model gives no verdict on taken as a read that gives no reason",
-        'declarations.md:322-323 "Every other member of the result is as the read returned it," and '
+        'declarations.md:331-332 "Every other member of the result is as the read returned it," and '
         '"including `value`, where the read returned one"',
         {"read_of": read_undecided_as_no_reason},
     ),
