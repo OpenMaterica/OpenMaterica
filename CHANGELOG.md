@@ -126,6 +126,13 @@ every family entry goes in `families/CHANGELOG.md`.
   no assumption or `trainable` acceptance covers, the report is refused exactly where a refusal or a result
   not accepted is, and where the build's results model decides, the report is the model's), each shown failing
   by `tests/unit/test_fuzz_build_results.py`; the target that calls them and its control arrive with S7a-1's.
+  The whole builds of HP43's `indexes` hold more in vivo values and intervals, and put first in each choice the
+  value its rarest kills need, after CI's first drift run killed two of its searches past the margin guard; run
+  locally over the same 40 streams a size, every search of `indexes`, HP44 and HP46 then died by its 166th
+  example. The input coverage gains the selection `build` (163 sites, 587 cuts, seven empty, five draws uncut),
+  its timing measured locally until the cut kind's first dispatch; `measure.yml`'s request job, which records
+  every selection a pull request's change scopes one after the other, has 40 minutes (was 30), three times the
+  three selections' recordings.
 - The build's reads over records (S7a-2a; `declarations.md` section 2). `check_build` reads a declaration that
   passes its own check: for each model, each record its `checked_over` lists, in the order listed, and each
   field in its `reads`, in that order, one result (`BuildResult`: the model, the record, the field and the
