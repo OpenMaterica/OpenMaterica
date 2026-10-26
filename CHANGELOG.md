@@ -434,7 +434,8 @@ every family entry goes in `families/CHANGELOG.md`.
   model now names a record by its reference (`id`, `version`, `content_hash`) in `checked_over.records`, in a
   `trainable` entry's location and in the check for a name given twice, and compares a `trainable` entry's
   record by it, a record that is no reference compared with none; judges `records` beside another alternative of
-  `checked_over`; judges a label beside an unregistered field against every registered label; keeps the check of
+  `checked_over`; judges a label beside an unregistered field against every registered label, and a nominal's `params` against
+  every registered field's row; keeps the check of
   a distribution's parameter values beside a token that is none; reads a status object as an object whose only
   members are `status` and `reason`, in an accepted difference's `value` too; does not read a waiver's
   `condition` of another JSON type as also missing; names `region_conditions` and a `trainable` entry's `region`
@@ -442,13 +443,14 @@ every family entry goes in `families/CHANGELOG.md`.
   are all of one section; and gives an object holding two of the members it takes one of the object's own fault,
   so that a `trainable` entry at a record and a region is item 12's refusal alone at the entry. Three open
   points are retired on those defaults (`member_judged_beside_a_faulty_one`, `combination_sections`,
-  `trainable_location_in_a_scene`) and `exactly_one_of` is restated. `tests/reference/direct.py` holds 66 new
-  direct checks, 40 of which the model of `main` fails (counted by running them against it); the other 26 pin
+  `trainable_location_in_a_scene`) and `exactly_one_of` is restated. `tests/reference/direct.py` holds 69 new
+  direct checks, 41 of which the model of `main` fails (counted by running them against it); the other 28 pin
   what the model of `main` already held (the cross-kind location rule of a `trainable` entry, the parts of a
   record's name, a name given twice with another between, a record listed twice beside another alternative of
   `checked_over`, a `nominal` holding neither `value` nor `params`) and arms on which the sides already agreed,
-  and each fails on a hand mutant of the model that drops what it pins. Two seeded faults the new checks kill are
-  no longer listed as survivors (`build_trainable_at_a_region_taken`, `build_trainable_twice_by_field`).
+  and each fails on a hand mutant of the model that drops what it pins. Three seeded faults the new checks kill are
+  no longer listed as survivors (`build_trainable_at_a_region_taken`, `build_trainable_twice_by_field`,
+  `build_params_taken`).
 
 ## [0.1.0.dev3] - 2026-10-22
 

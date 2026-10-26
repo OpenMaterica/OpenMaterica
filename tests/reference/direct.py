@@ -306,6 +306,10 @@ def accepted_difference(value: JsonValue) -> JsonObject:
     }
 
 
+def nominal(**members: JsonValue) -> JsonObject:
+    return acceptance("nominal", basis=REASON, **members)
+
+
 NOMINAL_AT_A_REGION: Final[JsonObject] = {
     "acceptance": "nominal",
     "reason": REASON,
@@ -674,6 +678,25 @@ DIVERGENCES: Final[tuple[Direct, ...]] = (
         declaration(entry(acceptances=[NOMINAL_AT_A_REGION])),
         ("BC-048", ACCEPTANCE),
         ("BC-051", ACCEPTANCE),
+    ),
+    # `params` is judged beside a field that is not registered against every registered field's row, none of
+    # which allows `parameter_set`; a field whose row allows none refuses it as before, and a `value` is not
+    # refused by this rule.
+    refusing(
+        "a nominal holding params, its field not registered",
+        declaration(entry(acceptances=[nominal(field="fluid.not a field", params=RECORD)])),
+        ("BC-048", f"{ACCEPTANCE}/field"),
+        ("BC-048", f"{ACCEPTANCE}/params"),
+    ),
+    refusing(
+        "a nominal holding params, its field registered and its row allowing none",
+        declaration(entry(acceptances=[nominal(params=RECORD)])),
+        ("BC-048", f"{ACCEPTANCE}/params"),
+    ),
+    refusing(
+        "a nominal holding a value, its field not registered",
+        declaration(entry(acceptances=[nominal(field="fluid.not a field", value=1.0)])),
+        ("BC-048", f"{ACCEPTANCE}/field"),
     ),
     Direct(
         "a nominal at a region holding neither value nor params, the scene suite claimed",
