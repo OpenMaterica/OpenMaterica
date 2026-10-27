@@ -9974,9 +9974,14 @@ def test_the_measure_jobs_are_wired_as_the_readme_says(
 # four workers), in seconds: the request job records every selection that a change to a module scopes, one
 # after the other, to count the cuts the scope holds (`scripts/measure.py` `scope_cuts`). The declaration's
 # (S7a-1p) is its local recording on four workers (`record_seconds`, 2026-10-26), until its cut dispatch
-# records it on CI; the request job's 50 minutes hold it at twice that too, as a runner may take (S4d's
-# longest cut took 1.97 times its local time there).
-RECORDING_SECONDS = {"table_alternatives": 411.7, "extrapolation": 128.1, "declarations": 244.1}
+# records it on CI. The build's (S7a-2p) is its recording on four workers run locally (2026-10-25), until the
+# cut kind's first dispatch of it measures it.
+RECORDING_SECONDS = {
+    "table_alternatives": 411.7,
+    "extrapolation": 128.1,
+    "declarations": 244.1,
+    "build": 117.1,
+}
 REQUEST_MARGIN = 3
 
 
@@ -10172,7 +10177,10 @@ def test_a_pull_request_asks_for_what_its_base_and_head_change(tmp_path: Path, g
     ("selection", "slices"),
     [
         ("extrapolation", ["extrapolation"]),
-        ("all:whole", ["table_alternatives:whole", "extrapolation:whole", "declarations:whole"]),
+        (
+            "all:whole",
+            ["table_alternatives:whole", "extrapolation:whole", "declarations:whole", "build:whole"],
+        ),
     ],
 )
 def test_a_cut_dispatch_makes_the_slices_of_each_selection_its_timing_plans(

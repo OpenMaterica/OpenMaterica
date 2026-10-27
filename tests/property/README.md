@@ -2472,7 +2472,18 @@ previous run's longest cut, 873.0 s, would have planned 266, more than the 256 j
 longest, 629.8 s, would plan 192, so the estimate can be replaced by the measurement in a later piece. The baseline
 lists its 29 uncut draws, among them the way of HP41's strata (30 ways across the strata), `every_fault`'s and
 HP42's planters beside (34 and 32) and the field an acceptance covers under `every_fault`'s planters (31 values,
-a field read twice a value at each of its places), each above the 24 values a site may hold to be cut. Every cut of S4d's ran on 2026-10-24, after the owner rule; of S3c's, the 80 whose sites the rule left with
+a field read twice a value at each of its places), each above the 24 values a site may hold to be cut.
+
+S7a-2's selection (`build`: `build_strategies.py` under HP43 to HP46 and their searches) has 163 sites and 542
+cuts, seven of them empty (a stratum of one way, and the one `unknown` code no row of section 4.2 lists, each
+drawn alone) and five draws uncut, each listed with why. Its 32 other cuts of a way drawn first ran locally on
+2026-10-25 (on two workers a cut, four at once), each held, at its feature audit or a mutant search, in 6 to 162
+s; its other 503 cuts wait for the cut kind on CI's measurement matrix, and are not counted here as held or not.
+Its `timing` is local until that dispatch measures it: a cut that holds nothing runs what the recording runs,
+181.7 s on two workers (117.1 s on four, the request job's figure), so the cut kind plans its 542 cuts in 14
+slices.
+
+Every cut of S4d's ran on 2026-10-24, after the owner rule; of S3c's, the 80 whose sites the rule left with
 the same calls keep their results of 2026-10-23, and the other 127 ran on 2026-10-24. Under the rule, S4d's
 own sites reach only the draws its own tests make, and the operating range's upper end above the double
 above, held before at HP12's `a_range_across_the_readable_end_outside` through HP12's draws, is held by no
