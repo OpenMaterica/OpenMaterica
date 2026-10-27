@@ -9709,5 +9709,66 @@
    "tests/property/declaration_strategies.py::hp42::st.sampled_from(BESIDE)": "HP42's faults beside its member, 32 of HP41's local planters, above the 24 values a site may hold to be cut: each is a way, or a draw of a way, of HP41's parts, held there",
    "tests/property/declaration_strategies.py::every_fault > LOCAL[name](p) > tests/property/declaration_strategies.py::acceptance::st.sampled_from(fields)": "the field an acceptance covers under `every_fault`'s local planters, among the fields its model reads: a field read twice, which `reads_twice` plants beside, is a value of its own at each of its places, so 31 values across its calls, above the 24 a site may hold to be cut; each is a registered field the check judges by its list (`_tokens`), and the same draw under HP41's and HP42's owners is cut value by value"
   }
+ },
+ "build": {
+  "tests": [
+   "tests/property/test_build_properties.py",
+   "tests/property/test_build_mutants.py"
+  ],
+  "sites": [
+   "tests/property/build_strategies.py::*"
+  ],
+  "excused": {
+   "tests/property/test_build_mutant_table.py": "reads the parts' ways and strata (`HP43_PARTS`, `HP44_PARTS`, `HP45_PARTS`, `STRATA`) to hold the mutant table to them; it draws nothing"
+  },
+  "timing": {
+   "cuts": 542,
+   "whole_cuts": 542,
+   "seconds": 181.7,
+   "measured": "run locally (2026-10-25), until the cut kind's first dispatch on CI measures it: a cut that holds nothing runs what the selection's recording runs, which took 181.7 s on two workers, as a cut runs (117.1 s on four); no `!` pattern, so a whole recording makes the same 542 cuts, at two workers and at four"
+  },
+  "left_out": {
+   "sites": 0,
+   "cuts": 0,
+   "uncut": 0,
+   "reason": "none: no `!` pattern, since `build_strategies.py` draws no other module's strategy (it reads `strategies.Size` alone)"
+  },
+  "cuts": {
+   "tests/property/build_strategies.py::judged > draw(_never(way, at, field)) > tests/property/build_strategies.py::_never::st.sampled_from(UNLISTED_UNKNOWN) :: drop 'condition_unknown_name'": {
+    "result": "empty",
+    "reason": "equivalent: the one `unknown` code no row of section 4.2 lists (`no_pick`, which the `pick` row lists, aside), drawn alone; section 4.2 names it as never accepted"
+   },
+   "tests/property/build_strategies.py::judged::st.sampled_from(tuple(ways)) :: drop 'at_edge'": {
+    "result": "empty",
+    "reason": "equivalent: a stratum of one way, drawn alone (`STRATA`, the S7 design's 6.1 split of a test function), so the cut leaves the call nothing to draw"
+   },
+   "tests/property/build_strategies.py::judged::st.sampled_from(tuple(ways)) :: drop 'field_differs'": {
+    "result": "empty",
+    "reason": "equivalent: a stratum of one way, drawn alone (`STRATA`, the S7 design's 6.1 split of a test function), so the cut leaves the call nothing to draw"
+   },
+   "tests/property/build_strategies.py::judged::st.sampled_from(tuple(ways)) :: drop 'other_reason'": {
+    "result": "empty",
+    "reason": "equivalent: a stratum of one way, drawn alone (`STRATA`, the S7 design's 6.1 split of a test function), so the cut leaves the call nothing to draw"
+   },
+   "tests/property/build_strategies.py::labels::st.sampled_from(tuple(ways)) :: drop 'no_stored_value'": {
+    "result": "empty",
+    "reason": "equivalent: a stratum of one way, drawn alone (`STRATA`, the S7 design's 6.1 split of a test function), so the cut leaves the call nothing to draw"
+   },
+   "tests/property/build_strategies.py::requests::st.sampled_from(tuple(ways)) :: drop 'extrapolation'": {
+    "result": "empty",
+    "reason": "equivalent: a stratum of one way, drawn alone (`STRATA`, the S7 design's 6.1 split of a test function), so the cut leaves the call nothing to draw"
+   },
+   "tests/property/build_strategies.py::reviews::st.sampled_from(tuple(ways)) :: drop 'not_required'": {
+    "result": "empty",
+    "reason": "equivalent: a stratum of one way, drawn alone (`STRATA`, the S7 design's 6.1 split of a test function), so the cut leaves the call nothing to draw"
+   }
+  },
+  "uncut": {
+   "tests/property/build_strategies.py::builds > draw(a_model(name, drawn, size, at)) > tests/property/build_strategies.py::placed::st.sampled_from(others)": "another listed record's reference, which `placed` moves an acceptance to: the records are pinned afresh at every draw, so the values are computed; which of the others it is changes nothing a rule reads, an acceptance there being at another record alike",
+   "tests/property/build_strategies.py::coverage > draw(a_model(name, listing, size, at, reads=reads)) > tests/property/build_strategies.py::placed::st.sampled_from(others)": "another listed record's reference, which `placed` moves an acceptance to: the records are pinned afresh at every draw, so the values are computed; which of the others it is changes nothing a rule reads, an acceptance there being at another record alike",
+   "tests/property/build_strategies.py::coverage::st.sampled_from(drawn)": "the record an `absent_record` draw leaves out of the store, among the records drawn: pinned afresh at every draw, so the values are computed; which one is absent changes nothing a rule reads",
+   "tests/property/build_strategies.py::judged > draw(_never(way, at, field)) > tests/property/build_strategies.py::_never::st.sampled_from(UNLISTED_NOT_MET)": "the `not_met` code no row of section 4.2 lists, beside a waiver naming it: one kind to the rule, which `waiver_covers_not_met` and `waiver_covers_a_code_no_row_lists` show at any",
+   "tests/property/build_strategies.py::judged > draw(st.lists(a_reason((*WAIVED_WITH_A_CONDITION, *WAIVED, *UNLISTED_NO… > tests/property/build_strategies.py::a_reason::st.sampled_from(codes)": "the codes of the reasons drawn beside the planted one, of three lists: any code beside it; the planted reason's own draws are cut"
+  }
  }
 }
