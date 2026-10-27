@@ -59,10 +59,16 @@ every family entry goes in `families/CHANGELOG.md`.
   until its rate is measured, and as `measure.yml`'s fuzz control `declarations`, whose report flags a run
   that ended on another failure with its own words; the fuzz job's timeout rises by 30 minutes, to 344, twice
   the control's 15 (the job's timeout is twice its slowest run). The input coverage's selection `declarations`
-  gains its `timing`, which plans its cuts in 140 slices on CI (an estimate from one local cut until the cut
-  kind measures it), and `measure.yml`'s request job 50 minutes, three times the recordings of every
-  selection. `scripts/pre_review.py` runs the fuzz target's oracle tests where `tests/fuzz/README.md` changes,
-  whose seed counts they read.
+  (2,186 cuts) ran in CI's cut kind and, for the 90 cuts without a CI result, locally as its jobs run them: 46
+  held, 2,131 not held, 9 empty, 29 draws uncut. Each cut not held or empty is listed in the baseline with its
+  reason, 1,842 not held as gaps and 289 as equivalents; holding the gaps is a later piece, after 0.1.0.dev4
+  (maintainer, 2026-10-26), and no test holds them yet. Its strategies' unique lists are bounded by their pools,
+  and a model reading two sections draws its combinations' sections as a permutation, the same outcomes, so that
+  no cut of them is an impossible draw (25 were). Its `timing` plans its cuts in 139 slices on CI from an
+  estimate of one local cut, as the longest cut CI measured (873.0 s) would plan 266, more than a matrix's 256
+  jobs; `measure.yml`'s request job gets 50 minutes, three times the recordings of every selection, the
+  declaration's as recorded locally (244.1 s). `scripts/pre_review.py` runs the fuzz target's oracle tests where
+  `tests/fuzz/README.md` changes, whose seed counts they read.
 - The build's own reasons, its verdict and its report (S7a-2b; `declarations.md` sections 2 and 4.2).
   `check_build` gives the report of a declaration that passes its own check. The build's own reasons join the
   read's (section 2 item 8): `no_requirement` for a field read with no requirement; `label_mismatch` where the
