@@ -9970,23 +9970,24 @@ def test_the_measure_jobs_are_wired_as_the_readme_says(
     assert (problems == []) if not problem else any(problem in line for line in problems), problems
 
 
-# The longest recording of each selection in a cut job on CI (the pull request's first run of the cut kind,
-# four workers), in seconds: the request job records every selection that a change to a module scopes, one
-# after the other, to count the cuts the scope holds (`scripts/measure.py` `scope_cuts`). The declaration's
-# (S7a-1p) is its local recording on four workers (`record_seconds`, 2026-10-26), until its cut dispatch
-# records it on CI. The build's (S7a-2p) is its recording on four workers run locally (2026-10-26), until the
-# cut kind's first dispatch of it measures it.
+# The longest recording of each selection in a cut job on CI (four workers: two a cut, two cuts at once), in
+# seconds, each CI's: the request job records every selection that a change to a module scopes, one after the
+# other, to count the cuts the scope holds (`scripts/measure.py` `scope_cuts`). The table alternatives' in
+# the pull request run 40321465281 (2026-10-26; 411.7 in its first run of the cut kind); the extrapolation's
+# in its first run of the cut kind (122.6 and 123.6 in the runs since); the declarations' in the pull request
+# run 40384724498 (2026-10-26, 236.1 to 517.3 over its jobs; 244.1 locally); the build's in the pull request
+# run 40321465281 (120.1 to 246.6 over its 29 jobs; 220.6 in its first run, 40268159596; 110.1 locally).
 RECORDING_SECONDS = {
-    "table_alternatives": 411.7,
+    "table_alternatives": 422.7,
     "extrapolation": 128.1,
-    "declarations": 244.1,
-    "build": 110.1,
+    "declarations": 517.3,
+    "build": 246.6,
 }
 REQUEST_MARGIN = 3
 
 
 def test_the_request_job_has_three_times_the_time_to_record_every_selection_a_change_scopes() -> None:
-    """A declared 50 minutes, held to what was measured: the recordings of every selection, with a margin for
+    """A declared 66 minutes, held to what was measured: the recordings of every selection, with a margin for
     a slower runner and the checkout."""
     assert set(RECORDING_SECONDS) == set(measure.baseline_of(REPOSITORY))
     minutes = as_number(setting(workflow(MEASURE)["jobs"]["request"].get("timeout-minutes"), {}))
