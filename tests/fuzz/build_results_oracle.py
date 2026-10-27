@@ -15,8 +15,8 @@ need no model, cheap enough to check on every input, and the build's results mod
   declaration's own refusals, or each result's status, reasons, verdict, `accepted_by` and `not_accepted`,
   the acceptances unused and `refused`, are the model's.
 
-The target that calls these, `build_bytes.py`, with its control (`_covers` letting a waiver naming
-`condition_outside` cover it, which 4.2's own law and the model both see), arrives with S7a-1's (#100).
+`build_bytes.py` holds every report the build gives to these, the two cheap ones first; the design's control
+for it (`_covers` letting a waiver naming `condition_outside` cover it) 4.2's own law and the model both see.
 """
 
 import json
