@@ -2320,33 +2320,37 @@ draws the sites through another module is not found so. S4d's selection (`table_
 alternatives, its searches and the planned searches of `test_model_mutant_table.py`; under the rule these hold
 none of S4d's own sites (HP12's strategy draws S4d's composite inside its own, so those draws are HP12's, for an
 HP12 selection to judge), and they add only to the time of a cut. Three selections are checked so far: two run
-locally on 2026-10-23 and 2026-10-24 (on two workers a cut, four cuts at once), and a third on CI's cut kind and,
-for the cuts it could not give, locally as its jobs run them:
+locally on 2026-10-23 and 2026-10-24 (on two workers a cut, four cuts at once), and a third on CI's cut kind alone:
 
 | Selection | Sites | Cuts | Held | Not held: gaps, equivalents | Empty | Uncut | A cut, nothing holding it | A cut held |
 |---|---|---|---|---|---|---|---|---|
 | `table_alternatives` (S4d) | 29 | 93 | 15 | 72, 6 | 5 | 5 | 284 to 342 s | 103 to 369 s |
 | `extrapolation` (S3c) | 64 | 213 | 56 | 127, 30 | 6 | 19 | 77 to 147 s | 16 to 107 s |
-| `declarations` (S7a-1) | 458 | 2,186 | 46 | 1,842, 289 | 9 | 29 | 220 to 873 s (CI) | 27 to 252 s (CI) |
+| `declarations` (S7a-1) | 458 | 2,186 | 46 | 1,842, 289 | 9 | 29 | 233 to 630 s (CI) | 23 to 217 s (CI) |
 
 S7a-1's selection (`declarations`, HP41's and HP42's properties and their mutant searches, over
-`declaration_strategies.py`, which draws no other module's strategy) ran in the cut kind on the CI matrix in
-its pull request's run of 2026-10-26, on two workers a cut, two cuts at once: 2,192 of its then 2,208 cuts, the
-16 of one slice whose runner shut down left without a result. Twenty-five were invalid, each a unique list held
-to a size its pool cannot reach at some calls (a token condition's accept list held to three where
-`density_kind`'s row has two tokens, a model's `trainable` pairs held to two where it has one, a combination's
-sections held to three, or one dropped, where the model reads two sections); the strategies now bound each such
-list by its pool and draw two sections as a permutation, the same outcomes either way. Its counts above are of
-its recording at the head (2,186 cuts, alike at four and at eight workers): 2,087 cuts keep CI's results, and
-the 90 that have none (those of the four sites the fix renamed, the lost slice's 16 and 13 values a field read
-twice gives) ran locally as a cut job runs them, two workers a cut (six cuts run both ways, three of them held,
-gave CI's result, failing test and count of calls changed each), the 25 invalid ones among them, each not held
-under its new name. Each cut not held, and each empty one, is listed in the baseline with its reason: 1,842 gaps,
-each naming what no test needs, and 289 equivalents, each naming the code that treats the value as one that
-stays (maintainer, 2026-10-26: listed in this piece; holding the gaps is a later piece, after 0.1.0.dev4). No test
-holds those gaps yet. Its `timing` stays the estimate of one local cut (231.6 s on two workers, times 1.97, S4d's
-ratio of its cut on CI to its local one), which plans 139 slices: the run's longest cut, 873.0 s, would plan 266
-of this selection alone, more than the 256 jobs a matrix holds, so how to plan it is an open point. The baseline
+`declaration_strategies.py`, which draws no other module's strategy) ran in the cut kind on the CI matrix, on two
+workers a cut, two cuts at once, at this head's draws (the pull request's run 40427835785 of 2026-10-27, all 139 slices):
+every one of its 2,186 cuts has CI's result at this head, and none was run locally. An earlier run of 2026-10-26, on
+the previous head's draws, gave 2,192 of its 2,208 cuts (one slice lost with its runner); 2,087 of its results were
+kept for the cuts whose names had not changed, 90 cuts without one were run locally, and 25 cuts were invalid, each
+a unique list held to a size its pool cannot reach at some calls (a token condition's accept list held to three
+where `density_kind`'s row has two tokens, a model's `trainable` pairs held to two where it has one, a combination's
+sections held to three, or one dropped, where the model reads two sections). The strategies now bound each such list
+by its pool and draw two sections as a permutation, the same outcomes either way, and none of the 2,186 cuts is
+invalid. The draws moved with that fix, and six cuts moved with them: three that the baseline listed as not held, on
+the results kept from the previous head's draws, are held in CI's run (no accepted difference without a location, under `every_fault`; a model's
+`consumer_parameters` never two names, under `every_fault`; and the kinds a model draws without `overlay_scope`,
+under `every_fault`), and three that the baseline did not list are not held (an `overlay_scope`'s `accepts` always one token, and
+an accepted difference's `value` never with a `basis`, both under `every_fault`; and HP41's slip planter pinned to its
+highest draw, where its lowest draw is held by the slipped-code mutant's search); the baseline now agrees with CI's
+results at this head. Each cut not held, and each empty
+one, is listed in the baseline with its reason: 1,842 gaps, each naming what no test needs, and 289 equivalents, each
+naming the code that treats the value as one that stays (maintainer, 2026-10-26: listed in this piece; holding the
+gaps is a later piece, after 0.1.0.dev4). No test holds those gaps yet. Its `timing` stays the estimate of one local
+cut (231.6 s on two workers, times 1.97, S4d's ratio of its cut on CI to its local one), which plans 139 slices. The
+previous run's longest cut, 873.0 s, would have planned 266, more than the 256 jobs a matrix holds; this head's
+longest, 629.8 s, would plan 192, so the estimate can be replaced by the measurement in a later piece. The baseline
 lists its 29 uncut draws, among them the way of HP41's strata (30 ways across the strata), `every_fault`'s and
 HP42's planters beside (34 and 32) and the field an acceptance covers under `every_fault`'s planters (31 values,
 a field read twice a value at each of its places), each above the 24 values a site may hold to be cut. Every cut of S4d's ran on 2026-10-24, after the owner rule; of S3c's, the 80 whose sites the rule left with

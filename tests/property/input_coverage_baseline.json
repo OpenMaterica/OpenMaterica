@@ -1123,7 +1123,7 @@
    },
    "tests/property/declaration_strategies.py::<module>::st.one_of(st.sampled_from((' ', '\\t\\n', 'about 2 % per kelvin near 37 °… :: drop st.text(st.characters(codec='utf-8'), min_size=1, max_size=…": {
     "result": "not held",
-    "reason": "equivalent: the check judges every text `TEXTS` draws (a `reason`, a `basis`, a `law`, an engine value's or `sampling`'s `reason`) by its JSON type and its length alone (`_reasons`: a string of at least one character; a `law` by `_one_character`), and the listed texts, which stay, are such strings"
+    "reason": "equivalent: the check reads a string's content in one place, `jsonio.parse` (the quotes and brackets `_STRING_OR_BRACKET` skips, the unpaired surrogate `_SURROGATE` refuses), which reads every string alike wherever it sits, and `NAMES` (arbitrary UTF-8, `st.characters(codec='utf-8')`) still draws the consumer's name and every model's name of every declaration; the rules judge every text `TEXTS` draws (a `reason`, a `basis`, a `law`, an engine value's or `sampling`'s `reason`) by its JSON type and its length alone (`_reasons`: a string of at least one character; a `law` by `_one_character`), and the listed texts, which stay, are such strings"
    },
    "tests/property/declaration_strategies.py::<module>::st.sampled_from((' ', '\\t\\n', 'about 2 % per kelvin near 37 °C', 'recal… :: drop ' '": {
     "result": "not held",
@@ -1640,6 +1640,10 @@
    "tests/property/declaration_strategies.py::every_fault > LOCAL[name](p) > tests/property/declaration_strategies.py::fact::st.booleans()#3 :: drop False": {
     "result": "not held",
     "reason": "a gap: no test needs `basis` of an accepted difference's `value` absent, as the boolean's false value leaves it; `_difference` gives it as optional, a token, so these draws would not show a check requiring it"
+   },
+   "tests/property/declaration_strategies.py::every_fault > LOCAL[name](p) > tests/property/declaration_strategies.py::fact::st.booleans()#3 :: drop True": {
+    "result": "not held",
+    "reason": "a gap: no test needs `basis` of an accepted difference's `value` present, as the boolean's true value draws it; `_difference` gives it as optional, a token, so these draws would not show a check refusing a valid one"
    },
    "tests/property/declaration_strategies.py::every_fault > LOCAL[name](p) > tests/property/declaration_strategies.py::fact::st.booleans()#4 :: drop False": {
     "result": "not held",
@@ -2232,6 +2236,10 @@
    "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::acceptance::st.integers(0, 3) :: keep off the high end": {
     "result": "not held",
     "reason": "equivalent: the high end, 3, draws a fact's shape, and 2, which stays, draws the same, so no declaration is lost"
+   },
+   "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::acceptance::st.lists(st.sampled_from(ACCEPTS), min_size=1, max_size=3, unique=True) :: hold to the least size": {
+    "result": "not held",
+    "reason": "a gap: no test needs an `overlay_scope`'s `accepts` longer than one token; these draws would not show a check that judged only its first entries"
    },
    "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::acceptance::st.lists(st.sampled_from(ACCEPTS), min_size=1, max_size=3, unique=True) :: keep off the least size": {
     "result": "not held",
@@ -2861,10 +2869,6 @@
     "result": "not held",
     "reason": "a gap: no test needs a valid accepted difference located at a record (`_kind`: its location optional)"
    },
-   "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::located_or_not::st.sampled_from(('record', None)) :: drop None": {
-    "result": "not held",
-    "reason": "a gap: no test needs a valid accepted difference at no location; these draws would not show a check requiring one (`_locations`)"
-   },
    "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::model_entry::st.booleans() :: drop False": {
     "result": "not held",
     "reason": "a gap: no test needs `requirements` of a valid model entry absent, as the boolean's false value leaves it; `SHAPE['model entry']` gives it as optional, so these draws would not show a check requiring it"
@@ -2924,10 +2928,6 @@
    "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::model_entry::st.lists(NAMES, max_size=2) :: hold to the greatest size": {
     "result": "not held",
     "reason": "a gap: no test needs `consumer_parameters` shorter than two names; these draws would not show a check refusing one"
-   },
-   "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::model_entry::st.lists(NAMES, max_size=2) :: keep off the greatest size": {
-    "result": "not held",
-    "reason": "a gap: no test needs `consumer_parameters` of two names; these draws would not show a check that judged only fewer entries"
    },
    "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::model_entry::st.lists(st.sampled_from(CHECKED_KINDS), max_size=size.members) :: hold to the least size": {
     "result": "not held",
@@ -3068,10 +3068,6 @@
    "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::model_entry::st.sampled_from(CHECKED_KINDS) :: drop 'overlay'": {
     "result": "not held",
     "reason": "a gap: no test needs a valid acceptance's kind `overlay` drawn here; the check holds a valid acceptance's kind to `KINDS` and each kind's own row of `SHAPE`, so these draws would not show a list of them that lacked `overlay`"
-   },
-   "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::model_entry::st.sampled_from(CHECKED_KINDS) :: drop 'overlay_scope'": {
-    "result": "not held",
-    "reason": "a gap: no test needs a valid acceptance's kind `overlay_scope` drawn here; the check holds a valid acceptance's kind to `KINDS` and each kind's own row of `SHAPE`, so these draws would not show a list of them that lacked `overlay_scope`"
    },
    "tests/property/declaration_strategies.py::every_fault > draw(declarations(size)) > tests/property/declaration_strategies.py::model_entry::st.sampled_from(CHECKED_KINDS) :: drop 'pick'": {
     "result": "not held",
@@ -5948,6 +5944,10 @@
    "tests/property/declaration_strategies.py::hp41 > planters[way](p) > tests/property/declaration_strategies.py::plant_slip::st.integers(0, 4) :: keep off the low end": {
     "result": "not held",
     "reason": "equivalent: the low end, 0, draws the slip by chance, as 2 to 4, which stay, do"
+   },
+   "tests/property/declaration_strategies.py::hp41 > planters[way](p) > tests/property/declaration_strategies.py::plant_slip::st.integers(0, 4) :: pin to the high end": {
+    "result": "not held",
+    "reason": "a gap: pinned to 4 the planter plants no slipped waiver `code` beside the `condition` it names (only the draw 1 plants one, which 0 and 4 alike do not make), and the slipped-code mutant's search holds the cut pinned to 0 and not this one, so no test reliably needs that branch; these draws would not show a check that left a `condition` beside a slipped `code` unjudged"
    },
    "tests/property/declaration_strategies.py::hp41 > planters[way](p) > tests/property/declaration_strategies.py::plant_slip::st.integers(0, 4) :: keep off the high end": {
     "result": "not held",
