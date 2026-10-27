@@ -10185,15 +10185,17 @@ def test_the_measure_jobs_are_wired_as_the_readme_says(
 
 
 # The longest recording of each selection in a cut job on CI (four workers: two a cut, two cuts at once), in
-# seconds, each CI's: the request job records every selection that a change to a module scopes, one after the
-# other, to count the cuts the scope holds (`scripts/measure.py` `scope_cuts`). The table alternatives' in
-# the pull request run 40321465281 (2026-10-26; 411.7 in its first run of the cut kind); the extrapolation's
-# in its first run of the cut kind (122.6 and 123.6 in the runs since); the declarations' in the pull request
-# run 40384724498 (2026-10-26, 236.1 to 517.3 over its jobs; 244.1 locally); the build's in the pull request
-# run 40321465281 (120.1 to 246.6 over its 29 jobs; 220.6 in its first run, 40268159596; 110.1 locally).
+# seconds, each CI's, the self-test's cut jobs among them: the request job records every selection that a
+# change to a module scopes, one after the other, to count the cuts the scope holds (`scripts/measure.py`
+# `scope_cuts`). The table alternatives' in the pull request run 40427835785 (2026-10-27, its records fetched
+# while it ran; 422.7 in 40321465281, 411.7 in its first run of the cut kind); the extrapolation's in the
+# self-test's cut job of the pull request run 40384724498 (2026-10-26; 128.1 in its first run of the cut kind,
+# 122.6 to 123.6 in the cut jobs since); the declarations' in the pull request run 40384724498 (236.1 to 517.3
+# over its jobs; 244.1 locally); the build's in the pull request run 40321465281 (120.1 to 246.6 over its 29
+# jobs; 220.6 in its first run, 40268159596; 110.1 locally).
 RECORDING_SECONDS = {
-    "table_alternatives": 422.7,
-    "extrapolation": 128.1,
+    "table_alternatives": 423.7,
+    "extrapolation": 128.6,
     "declarations": 517.3,
     "build": 246.6,
 }
