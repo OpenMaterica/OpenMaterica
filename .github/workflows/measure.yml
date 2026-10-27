@@ -82,10 +82,9 @@ jobs:
     name: the request, checked
     runs-on: ubuntu-24.04
     # A pull request that changes a strategy module has the cuts its scope holds counted from the selection's
-    # recording, here (the longest, about seven minutes on a runner; the declaration's, about four locally, and
-    # the build's, about two, not yet measured on one), three times their sum at least
-    # (tests/unit/test_ci_workflows.py).
-    timeout-minutes: 50
+    # recording, here: the four selections' longest recordings on a runner come to 21.9 minutes, and the job
+    # has three times their sum at least (`RECORDING_SECONDS`, tests/unit/test_ci_workflows.py).
+    timeout-minutes: 66
     outputs:
       matrix: ${{ steps.jobs.outputs.matrix }}
       max_parallel: ${{ steps.cap.outputs.max_parallel }}
