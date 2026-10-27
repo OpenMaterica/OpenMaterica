@@ -598,9 +598,9 @@ failure prints a blob that replays it anywhere.
 
 ## Shards
 
-CI runs the groups in nine shards, the three longest of them, `agreement`, `relations` and `alternatives`, in two parts each
-(`--shard agreement_1of2` and `--shard agreement_2of2`, and the same for `relations` and `alternatives`: the shard's tests split in
-two parts of about equal time, `tests/partition.py`), so in twelve jobs side by side: `pytest tests/property --shard
+CI runs the groups in nine shards, the four longest of them, `agreement`, `relations`, `alternatives` and `build`, in two parts each
+(`--shard agreement_1of2` and `--shard agreement_2of2`, and the same for `relations`, `alternatives` and `build`: the shard's tests split in
+two parts of about equal time, `tests/partition.py`), so in thirteen jobs side by side: `pytest tests/property --shard
 json`, which also holds the tables group, `--shard records`, which holds the record and step-8 groups, `--shard writer`, `--shard agreement`, the
 two validators' agreement (below), `--shard step8_mutants`, step 8's mutant searches, which keep no example
 database and were most of the records shard's time, `--shard conditions`, steps 9 and 10's group and the
@@ -616,10 +616,11 @@ workers at `ci`, 2026-10-17; `SHARDS` in `tests/conftest.py`), and `--shard alte
 alternatives with its mutant searches (122 s on eight local workers at `ci`, 342 s of test time, 2026-10-19;
 `relations`, with HP12's draws of S4a's outcomes, took 163 s and 1,036 s after it, under the same lock), and
 `--shard build`, S7a's build check, the declaration's HP41 and HP42 and the build's results and verdict (HP43 to
-HP46), with their mutant searches (the S7 design's 6.1; HP43 to HP46 took 3 min 23 s on CI at `ci`, their 25
-property tests and 112 searches, 2026-10-26, before this pull request's fourth round added two tests and eight
-searches; it splits in two shards, `declarations` and `build`, if it passes a third of its 20-minute `ci`
-timeout).
+HP46), with their mutant searches (the S7 design's 6.1), in two parts of about equal time as the three above,
+not by piece: on CI at `ci`, run apart, HP43 to HP46's took 2.1 minutes in pytest's wall time and HP41 and HP42's
+3.2 and 4.6 in two runs (2026-10-26 and 27), so 5.3 to 6.7 together, about a third of the shard's 20-minute
+timeout, and at `deep` about 58 minutes whole by estimate, past its default 45 (`.github/workflows/ci.yml`'s
+comment); locally the shard whole took 132 s at `ci` on eight workers, 881 s of test time (2026-10-27).
 S2b-1's intervals and compositions added 13%
 to `conditions` and 7% to `relations`, each timed side by side with the tests before them (475 s against 420,
 588 against 549, at loads of 15 to 25), and HP3's third part 51 s of one worker to records (172 s). S2b-2's

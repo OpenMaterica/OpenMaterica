@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """Parts of a pytest run: the tests it selects, split into parts that run side by side in jobs of their own.
 
-CI runs the `tests` job in two parts, the `controls` job in four on Python 3.11 and two on 3.15, and three
-of the Hypothesis job's shards (`agreement`, `relations`, `alternatives`) in two (`--shard agreement_1of2`).
-Each part runs `--partition I/N`, the I-th of N parts of what the other selection options leave. The parts
-of one selection are a partition: every selected test is in exactly one, whatever the weights, because every
-part computes the same assignment of every selected test and keeps its own (`parts_of`).
-`tests/unit/test_partition.py` holds that, with controls that fail where a test is in none or in two, and
-`tests/unit/test_ci_workflows.py` holds it for the parts CI's matrices run, on the tests they really
+CI runs the `tests` job in two parts, the `controls` job in four on Python 3.11 and two on 3.15, and four of
+the Hypothesis job's shards (`agreement`, `relations`, `alternatives`, `build`) in two (`--shard
+agreement_1of2`). Each part runs `--partition I/N`, the I-th of N parts of what the other selection options
+leave. The parts of one selection are a partition: every selected test is in exactly one, whatever the
+weights, because every part computes the same assignment of every selected test and keeps its own
+(`parts_of`). `tests/unit/test_partition.py` holds that, with controls that fail where a test is in none or in
+two, and `tests/unit/test_ci_workflows.py` holds it for the parts CI's matrices run, on the tests they really
 collect.
 
 The weights decide only how even the parts are, never which tests run. Each is the seconds a test took in a CI

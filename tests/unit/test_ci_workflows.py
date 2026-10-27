@@ -3865,8 +3865,10 @@ def test_a_job_whose_timeout_signals_the_group_fails_the_interrupt_check(job_id:
 # dispatched runs ci.yml's comment gives: 39002750375 (2026-10-17; `step8_mutants`), 39540221119 (2026-10-21;
 # `writer`, `conditions`, `agreement`), 39553647007 (2026-10-21; `relations`, `json`, `alternatives`) and
 # 39578840767 (2026-10-21; `records`, 09:41:51 to 10:46:07). A shard that CI runs in parts (`agreement`,
-# `relations`, `alternatives`) is held, in each part, at `ci` to the time of the shard whole, measured before
-# the split, and at `deep` to its slowest part's. A shard not measured yet is not held.
+# `relations`, `alternatives`, `build`) is held, in each part, at `ci` to the time of the shard whole,
+# measured before the split, and at `deep` to its slowest part's. A shard not measured yet is not held.
+# `build` at `ci` is the sum of its two pieces' pytest wall times, each measured apart before they shared the
+# shard (runs 40321465190 and 40384724598, 2026-10-26; 5.27 with run 40427835712's in place of the second).
 MEASURED_ON_CI = {
     "ci": {
         "agreement": 5.93,
@@ -3877,6 +3879,7 @@ MEASURED_ON_CI = {
         "relations": 7.42,
         "conditions": 5.09,
         "alternatives": 6.64,
+        "build": 6.69,
     },
     "deep": {
         "writer": 67.43,
@@ -3889,6 +3892,9 @@ MEASURED_ON_CI = {
         # By estimate: its slowest part measured, 38.73, and S4d's properties at `deep` (ci.yml's comment),
         # until a `deep` run measures it.
         "alternatives": 52.6,
+        # By estimate, from its properties' and searches' test times at `ci` on CI (ci.yml's comment), until a
+        # `deep` run measures it.
+        "build": 29.1,
     },
 }
 PROFILE_EVENTS = {"ci": "pull_request", "deep": "schedule"}
@@ -3984,6 +3990,11 @@ def test_each_hypothesis_shard_has_twice_its_slowest_run_on_ci() -> None:
             "startsWith(matrix.shard, 'agreement') && 365",
             "hypothesis (deep, agreement_2of2) times out at 365 minutes, above GitHub's 360",
         ),
+        (
+            "|| startsWith(matrix.shard, 'build') && 65",
+            "",
+            "hypothesis (deep, build_1of2) is interrupted at 42 minutes, less than twice its 29.1 measured",
+        ),
     ],
     ids=[
         "records-deep-at-131",
@@ -3994,6 +4005,7 @@ def test_each_hypothesis_shard_has_twice_its_slowest_run_on_ci() -> None:
         "default-deep-at-5",
         "alternatives-deep-clause-gone",
         "agreement-deep-at-365",
+        "build-deep-clause-gone",
     ],
 )
 def test_the_margin_check_can_fail(old: str, new: str, problem: str) -> None:
@@ -4854,6 +4866,7 @@ NUMBERS = {
     "ten": 10,
     "eleven": 11,
     "twelve": 12,
+    "thirteen": 13,
 }
 
 
@@ -4883,9 +4896,9 @@ def test_the_workflows_readme_names_the_jobs_and_shards_of_ci() -> None:
     ("old", "new", "problem"),
     [
         ("| `controls` |", "| `mutants` |", "the table's jobs are"),
-        ("twelve jobs side by side", "eleven jobs side by side", "the table's shards are eleven"),
-        (", `build`)", ")", "the table's shards are twelve"),
-        ("in twelve jobs side by side (", "in twelve jobs (", "names no jobs"),
+        ("thirteen jobs side by side", "twelve jobs side by side", "the table's shards are twelve"),
+        (", `build_2of2`)", ")", "the table's shards are thirteen"),
+        ("in thirteen jobs side by side (", "in thirteen jobs (", "names no jobs"),
     ],
     ids=["a-job-renamed", "a-count-wrong", "a-shard-missing", "no-shards"],
 )
