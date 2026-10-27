@@ -14,6 +14,35 @@ every family entry goes in `families/CHANGELOG.md`.
 
 ## [Unreleased]
 
+## [0.1.0.dev4] - 2026-10-27
+
+A development pre-release. It holds the build check over records, up to the build's verdict: S7a-1, a declaration
+checked on its own, and S7a-2, the build's results, verdict and report. `materica.check_build(declaration, store)`
+reads a declaration, JSON text or a value, and checks it against the table of its shape and the rules of
+`declarations.md` section 1: a declaration that departs from them gives a report of its refusals alone, one refusal
+for each fault, each its rule's case and a JSON pointer. One that passes is built: for each model, each record its
+`checked_over` lists and each field it reads, one result, the read of the build's own request, joined by the build's
+own reasons (`no_requirement`, `label_mismatch`, `not_reviewed`), with the worst status of them all and a verdict by
+the model's acceptances, which cover a reason as section 4.2's table says (now generated into the vocabulary's
+`coverage.json`). Each result names what accepted it (`accepted_by`) and the reasons nothing covers
+(`not_accepted`), and the report lists each model's acceptances that no result used. `BuildReport` holds the records
+read, the results, the refusals and the unused acceptances, with `refused`, `result()` and `status_lines()`. The
+schemas of the declaration and of the build report (`declaration.json`, `build_report.json`), the clauses of
+`declarations.md` ruled with the two pieces and their build-check case files come with it, and the declaration's
+check and the build's results and verdict are held by property tests (HP41 to HP46) and a fuzz target that sets the
+build against a reference model written from the text. The reader changes in three places: a request whose
+requirement holds `review`, or a member one slip from it, is refused at step 0 (`request_incomplete`); a value
+field's optional `label_basis` is named at the field's place, so a slip of it, or it beside `alternatives`, refuses
+the field; and a request holding a `trainable` acceptance raises `NotImplementedError`. Picks, overlays, a read
+whose target is an overlay record, a region target and `want: fit` on a field holding a fit record raise
+`NotImplementedError` until later steps. So does the build, before any read, for a declaration holding a pick, an
+overlay, a non-empty `target` or `combinations` or a non-empty `trainable`, naming each and the piece that reads
+it; so does it where a waiver naming a label fits a reason of a result that label trust could still accept (label
+trust comes after this release), and where it claims the scene suite, the USD read or the sampling suite for a
+declaration holding a member they check. The report has no `combinations` member, and `BuildReport.watches`
+raises: both wait for later steps. The schema 0.1 files may still change before 0.1.0. The entries below are
+everything since 0.1.0.dev3.
+
 ### Added
 - HP41 and HP42, the declaration's own check's properties (S7a-1p; the S7 design's 6.4), in a ninth Hypothesis
   shard, `build` (`tests/conftest.py`'s `SHARDS`, `ci.yml`'s matrix, at the default timeouts until CI measures
@@ -465,7 +494,8 @@ every family entry goes in `families/CHANGELOG.md`.
   own check. `tests/reference/test_cases.py` compares a build's results as the specification's README says: the
   models agree with every one of the 114 build-check files, S7a-2's 58 included, under every configuration of
   build claims each allows, and none is listed. Its table of section 4.2 is held to the table parsed from the
-  text, since `main` has no `coverage.json` yet, and to `coverage.json` once the file exists (a build whose
+  text and, now that the file exists (it came in this release, after this entry), to `coverage.json`
+  (a build whose
   acceptance module exists without it fails); 45 direct checks hold what no file pins; 79 seeded faults, 76
   killed (47 by the files, 29 by the direct checks) and 3 listed as survivors; its citations and layering are
   held as the other models' are. Four open points, each listed once: three the model's readings of the text
@@ -593,7 +623,8 @@ every family entry goes in `families/CHANGELOG.md`.
   before the whole-repository run.
 - The build's reference model of a declaration is changed at the points where it and the declaration check
   read the specification apart (the maintainer's rulings of 2026-10-26; the check's side
-  follows in its own pull request, which also moves the check's comparison of a `trainable` entry's record, now
+  came in a pull request of its own, in this release, which also moves the check's comparison of a
+  `trainable` entry's record, now
   of the record whole, to the model's, by its reference). A rule that judges one member against another stands
   aside where the other is itself at fault, with three exceptions: a member is still held to what it must be
   whichever value the other holds, namely its JSON type (a distribution parameter's value is a number; an
