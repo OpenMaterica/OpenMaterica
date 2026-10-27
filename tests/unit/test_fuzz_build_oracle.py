@@ -5,7 +5,9 @@ check as it is and failing on a check broken for it, the model's where it refuse
 takes one; and, through the target's own `test_one_input` with
 Atheris stubbed, every seed passing the target, with no fault seeded and with S7a-1's control fault, which
 no seed shows, one change to a seed's pointer does, and the design's unnarrowed fault seven seeds show at
-once."""
+once; the declarations a first byte past the seeds' picks, each with a waiver of `condition_outside` planted,
+passing it too; and the target holding every report to the results relations, each failing through it on a
+build broken for it."""
 
 import contextlib
 import copy
@@ -20,7 +22,7 @@ from typing import cast
 import pytest
 
 import materica
-from materica.core import declarations
+from materica.core import acceptance, declarations
 from materica.core.build import check_build
 from materica.core.declarations import Finding, Holds, JsonObject
 from materica.core.jsonio import JsonValue
@@ -43,6 +45,7 @@ from tests.fuzz.seeded_fault import faulty_reasons
 from tests.reference import build_model
 from tests.reference.direct import BUILD
 from tests.reference.read_model import NoVerdict
+from tests.unit.test_fuzz_build_results import first_model_alone, waiver_covers_condition_outside
 
 BUILD_CHECKS = Path(materica.__file__).parent / "data" / "conformance" / "build_checks"
 # A declaration the check takes: BC-016's, one model over water with one waiver.
@@ -549,3 +552,84 @@ def test_seven_seeds_show_the_design_s_fault_unnarrowed(
     plain = seed_refusals(target)
     monkeypatch.setattr(declarations, "_reasons", after_the_first)
     assert sum(before != after for before, after in zip(plain, seed_refusals(target), strict=True)) == 7
+
+
+# The results relations, through the target (S7a-2, the S7 design's 6.5).
+
+OUTSIDE_READ = (
+    "bc001_condition_outside_at_another_temperature.json",
+    "bc001_declared_range_against_a_stated_value.json",
+    "bc017_implied_value_outside_the_tolerance.json",
+    "bc027_label_mismatch_beside_condition_outside.json",
+)
+WAIVED_ALREADY = "bc038_waiver_of_condition_outside.json"
+LAW = "accepted with condition_outside, which no assumption or trainable acceptance covers"
+
+
+def target_input(choice: int, pointer: str, member: JsonValue) -> bytes:
+    return bytes([choice]) + pointer.encode() + b"\n" + json.dumps(member).encode()
+
+
+def kept(choice: int, value: JsonValue) -> bytes:
+    """The input that picks `choice` and puts its declaration's own `consumer` back in place: the
+    declaration unchanged, a planted waiver kept."""
+    assert isinstance(value, dict)
+    return target_input(choice, "/consumer", value["consumer"])
+
+
+def test_a_first_byte_past_the_seeds_picks_a_declaration_read_outside_with_a_waiver_of_it_planted(
+    target: ModuleType,
+) -> None:
+    """The control `judge`'s seeds (the S7 design's 6.5): every declaration whose cases give a result
+    `condition_outside`, BC-038's holding a waiver naming it already and each other one, picked by a first
+    byte past the seeds', with one planted; every member of each at its pointer passes the target, with no
+    fault seeded, the planted waiver covering nothing."""
+    names = [name for name, _, _ in target.SEEDS]
+    assert sorted(target.OUTSIDE) == sorted((*OUTSIDE_READ, WAIVED_ALREADY))
+    assert [names[index] for index, _ in target.PLANTED] == list(OUTSIDE_READ)
+    assert len(target.CHOICES) == len(names) + len(OUTSIDE_READ) <= 256
+    for choice in range(len(names), len(target.CHOICES)):
+        value: JsonValue = target.CHOICES[choice][0]
+        assert value != target.SEEDS[target.PLANTED[choice - len(names)][0]][1]
+        target.test_one_input(kept(choice, value))
+        for pointer, member in target.members(value):
+            target.test_one_input(target_input(choice, pointer, member))
+
+
+def test_4_2s_own_law_fails_through_the_target_where_a_waiver_covers_condition_outside(
+    target: ModuleType, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`_covers` letting a waiver naming `condition_outside` cover it (the design's fault for the control
+    `judge`): BC-038's seed fails the target at 4.2's own law, unchanged, and so does each planted choice
+    whose result holds no other reason a waiver cannot cover; BC-027's, whose `label_mismatch` keeps its
+    result refused, fails at the results model's relation alone, the verdict's `accepted_by` and
+    `not_accepted`."""
+    names = [name for name, _, _ in target.SEEDS]
+    monkeypatch.setattr(acceptance, "_covers", waiver_covers_condition_outside)
+    seed = names.index(WAIVED_ALREADY)
+    with pytest.raises(AssertionError, match=LAW):
+        target.test_one_input(kept(seed, target.SEEDS[seed][1]))
+    for offset, (index, value) in enumerate(target.PLANTED):
+        modelled = names[index].startswith("bc027_")
+        wanted = (
+            r"^\('drag', .*\): \('not_met', .*, False, .*\), the model's \('not_met', " if modelled else LAW
+        )
+        with pytest.raises(AssertionError, match=wanted):
+            target.test_one_input(kept(len(names) + offset, value))
+
+
+def test_the_refusal_law_fails_through_the_target_where_refused_reads_the_first_model_alone(
+    target: ModuleType, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`refused` read from the first model's results alone: each seed declaration whose report holds a result
+    not accepted after a first model's all accepted fails the target at the refusal law, and there are such
+    seeds."""
+    monkeypatch.setattr(BuildReport, "refused", property(first_model_alone))
+    caught: list[str] = []
+    for choice, (_, value, _) in enumerate(target.SEEDS):
+        try:
+            target.test_one_input(target_input(choice, "", value))
+        except AssertionError as error:
+            caught.append(str(error))
+    assert caught
+    assert all(message == "refused False, where its refusals and results give True" for message in caught)
