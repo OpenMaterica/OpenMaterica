@@ -83,7 +83,8 @@ It is:
   - the OpenUSD binding, a main integration target beside plain JSON: records, overlays and layered paths
     expressed in USD scenes, optional, never required;
   - scene documents that bind materials to geometry, from a one-dimensional layered path to a USD scene;
-  - a build check of every value a simulation declares;
+  - the rest of the build check of every value a simulation declares, past the results over records (specimen
+    differences, combinations, trainable fields and watches);
   - model parameter sets that name a versioned model family and carry check points, so that a solver that
     evaluates a model in the wrong convention fails loudly instead of silently.
 
@@ -112,19 +113,22 @@ not curate. The full statement is in [`docs/regulatory/intended_use.md`](docs/re
 
 ## Status
 
-Pre-release. Development pre-releases are on [PyPI](https://pypi.org/project/openmaterica/); this is `0.1.0.dev3`.
+Pre-release. Development pre-releases are on [PyPI](https://pypi.org/project/openmaterica/); this is `0.1.0.dev4`.
 It holds strict JSON, the content hash, records, the read of a field holding a constant, an interval, a composition,
 evidence or a table (with the `extrapolation` acceptance, which under `want: value` gives a table's end value
 outside its readable range, at no declared edge and across none), or alternatives read with no pick (the one
-alternative left, or no pick among those that stay), and the schemas and vocabulary of 0.1. What later steps build,
-among it picks and overlays, raises `NotImplementedError` until then, and the schema 0.1 files may change until
-0.1.0 is released. The curated material library does not exist yet. The architecture concept is in
-[`design/ARCHITECTURE_DRAFT.md`](design/ARCHITECTURE_DRAFT.md).
+alternative left, or no pick among those that stay), the schemas and vocabulary of 0.1, and the build check over
+records: `materica.check_build` checks a declaration on its own, refusing each fault with its rule's case and a JSON
+pointer, and reads the records it lists into results, each with its status, the reasons nothing covers and its
+verdict by the declaration's acceptances. What later steps build, among it picks and overlays, the build's specimen
+differences, combinations, trainable fields and watches, and the trust of a label, raises `NotImplementedError`
+until then, and the schema 0.1 files may change until 0.1.0 is released. The curated material library does not
+exist yet. The architecture concept is in [`design/ARCHITECTURE_DRAFT.md`](design/ARCHITECTURE_DRAFT.md).
 
 ## Install
 
 ```sh
-pip install openmaterica==0.1.0.dev3
+pip install openmaterica==0.1.0.dev4
 ```
 
 It needs Python 3.11 or later. To check where a release came from, verify its PyPI attestation (PEP 740), which
@@ -136,7 +140,7 @@ there:
 ```sh
 uvx pypi-attestations verify pypi \
   --repository https://github.com/OpenMaterica/OpenMaterica \
-  pypi:openmaterica-0.1.0.dev3-py3-none-any.whl
+  pypi:openmaterica-0.1.0.dev4-py3-none-any.whl
 ```
 
 The command prints `OK` for a file built from the repository it names, and fails for any other repository.

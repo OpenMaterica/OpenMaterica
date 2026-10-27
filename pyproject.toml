@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "openmaterica"
-version = "0.1.0.dev3"
+version = "0.1.0.dev4"
 description = "Material records for simulation, and the reader of their specification"
 readme = "README.md"
 requires-python = ">=3.11"
