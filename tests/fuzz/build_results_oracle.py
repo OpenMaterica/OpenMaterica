@@ -11,9 +11,12 @@ need no model, cheap enough to check on every input, and the build's results mod
 - the refusal law: the report is refused exactly where it holds a refusal or a result not accepted (section 2
   item 5 and the report's paragraph).
 
-- the model: where the build's results model (`tests/reference/build_results_model.py`) decides, the
-  declaration's own refusals, or each result's status, reasons, verdict, `accepted_by` and `not_accepted`,
-  the acceptances unused and `refused`, are the model's.
+- the model: where the build's results model (`tests/reference/build_results_model.py`) decides and both it
+  and the build take the declaration, each result's status, reasons, verdict, `accepted_by` and
+  `not_accepted`, the acceptances unused and `refused` are the model's. The declaration's own refusals are
+  left to the relation `build_oracle.check_declaration` holds them to, with its exemptions (a refusal of the
+  model's not placed, a known divergence), which runs after these: compared here first, they would raise
+  another line than that relation's, which `build_bytes.py`'s control `declarations` is found by.
 
 `build_bytes.py` holds every report the build gives to these, the two cheap ones first; the design's control
 for it (`_covers` letting a waiver naming `condition_outside` cover it) 4.2's own law and the model both see.
@@ -109,20 +112,13 @@ def _keyed(results: Sequence[Mapping[str, object]]) -> dict[ResultKey, Compared]
 def check_against_the_model(
     declaration: bytes, sources: Sequence[bytes], claims: Collection[Suite], report: BuildReport
 ) -> None:
-    """The report against the build's results model where the model decides (the S7 design's 6.5): the
-    declaration's own refusals as a set, or each result's status, reasons, verdict, `accepted_by` and
-    `not_accepted`, and the unused acceptances; nothing where the model gives no verdict."""
+    """The report against the build's results model where the model decides (the S7 design's 6.5) and both
+    it and the build take the declaration: each result's status, reasons, verdict, `accepted_by` and
+    `not_accepted`, the unused acceptances and `refused`; nothing where the model gives no verdict, and
+    nothing where either refuses the declaration, whose refusals `build_oracle.check_declaration` holds."""
     modelled = build_results_model.check_build(declaration, sources, frozenset(claims))
-    if isinstance(modelled, NoVerdict):
+    if isinstance(modelled, NoVerdict | build_model.Refused) or report.refusals:
         return
-    if isinstance(modelled, build_model.Refused):
-        wanted = {(one.item, one.pointer) for one in modelled.refusals}
-        found = {(one.item, one.pointer) for one in report.refusals}
-        assert found == wanted, f"refusals {sorted(found)}, the model's {sorted(wanted)}"
-        return
-    assert not report.refusals, (
-        f"refused {[(one.item, one.pointer) for one in report.refusals]}, the model takes it"
-    )
     given = json.loads(json.dumps(report.to_json()))
     found_results = _keyed(given["results"])
     wanted_results = _keyed(modelled.results)
