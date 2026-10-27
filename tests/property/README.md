@@ -619,9 +619,10 @@ alternatives with its mutant searches (122 s on eight local workers at `ci`, 342
 `--shard build`, S7a's build check, the declaration's HP41 and HP42 and the build's results and verdict (HP43 to
 HP46), with their mutant searches (the S7 design's 6.1), in two parts of about equal time as the three above,
 not by piece: on CI at `ci`, run apart, HP43 to HP46's took 2.1 minutes in pytest's wall time and HP41 and HP42's
-3.2 and 4.6 in two runs (2026-10-26 and 27), so 5.3 to 6.7 together, about a third of the shard's 20-minute
-timeout, and at `deep` about 58 minutes whole by estimate, past its default 45 (`.github/workflows/ci.yml`'s
-comment); locally the shard whole took 132 s at `ci` on eight workers, 881 s of test time (2026-10-27).
+3.2 and 4.6 in two runs (2026-10-26 and 27), so 5.3 to 6.7 together, a quarter to just past a third of the
+shard's 20-minute timeout by which of HP41 and HP42's runs is taken; the split rests on `deep`, about 58 minutes
+whole by estimate, past its default 45 (`.github/workflows/ci.yml`'s comment); locally the shard whole took
+132 s at `ci` on eight workers, 881 s of test time (2026-10-27).
 S2b-1's intervals and compositions added 13%
 to `conditions` and 7% to `relations`, each timed side by side with the tests before them (475 s against 420,
 588 against 549, at loads of 15 to 25), and HP3's third part 51 s of one worker to records (172 s). S2b-2's
