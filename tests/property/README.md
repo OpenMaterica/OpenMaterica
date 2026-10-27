@@ -541,9 +541,10 @@ check's reader (the last bullet).
   models, listed records and acceptances (indexes re-mapped) permutes the results as it reorders the models and
   listed records, compared as a list, and changes no verdict; its draws hold no declaration its check refuses, so
   the law's arm of a refusal is the fuzz target's results relation's, held on every build-check case's report,
-  refused ones among them (`tests/unit/test_fuzz_build_results.py`). Each drawing part is a test parametrized by
-  strata of at most two of its ways, each drawing its way first among its own, alike, as S7a-1's HP41 and HP42
-  were split once CI measured their counts' variance; `indexes` and HP46 draw none.
+  refused ones among them (`tests/unit/test_fuzz_build_results.py`), and by `build_bytes.py` on every report it
+  gives. Each drawing part is a test parametrized by strata of at most two of its ways, each drawing its way
+  first among its own, alike, as S7a-1's HP41 and HP42 were split once CI measured their counts' variance;
+  `indexes` and HP46 draw none.
 - **The anomaly check's reader:** the YAML reader of `scripts/check_anomalies.py` and its specifier syntax
   against PyYAML's `safe_load` and `packaging` (`test_anomaly_reader_properties.py`, in the `agreement` shard).
   A document the reader reads is read as PyYAML reads it; one PyYAML refuses is refused; one inside the subset
