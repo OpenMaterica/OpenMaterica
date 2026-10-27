@@ -72,10 +72,18 @@
   unchanged (2026-10-25), so the fuzzer would find it at once and show nothing; no seed holds a third
   acceptance without either.
 
+- In the build's verdict, S7a-2's control for `build_bytes.py` (the S7 design's 6.5, `judge`): `_covers` lets
+  a waiver naming `condition_outside` and its condition cover it, where `declarations.md` section 4.2 lets no
+  waiver cover it. Nothing raises: the target's results relation of section 4.2's own law finds a result
+  accepted with `condition_outside`, which no assumption or `trainable` acceptance covers. The design's fault,
+  unnarrowed: BC-038's seed declaration holds such a waiver beside such a result, so every run finds it in
+  its first pass over the seeds, and the four other declarations whose cases read `condition_outside` hold
+  one where the first byte picks them past the seeds (`build_bytes.PLANTED`).
+
 Each of the first four raises its own message, and so does the seventh, so that CI can tell which fault a run
 found; the fifth, the sixth, the ninth and the tenth are found by the oracle's assertion that the
-implementation and the model disagree, and the eighth by the oracle's assertion that an extrapolation breaking
-its shape is refused.
+implementation and the model disagree, the eighth by the oracle's assertion that an extrapolation breaking
+its shape is refused, and the eleventh by 4.2's own law.
 
 The first three targets seed the first two faults when `MATERICA_FUZZ_SEEDED_FAULT` is set, and pytest seeds
 them when loaded as a plugin, `python -m pytest -p tests.fuzz.seeded_fault`. Only the fourth target seeds the
@@ -84,7 +92,8 @@ third, since the property targets draw conditions too and would find it before t
 `alternatives`, step 7's alone, in the fourth; set to `tables`, step 8's table fault alone, in the fourth;
 set to `table_edges`, the table value's alone, in the fourth; set to `extrapolation_method`, step 0's method
 alone, in the fifth; set to `table_alternatives`, step 7's over a table alternative alone, in the fourth; set
-to `declarations`, the declaration's check's alone, in `build_bytes.py`.
+to `declarations`, the declaration's check's alone, in `build_bytes.py`; set to `judge`, the build's verdict's
+alone, in `build_bytes.py`.
 """
 
 import dataclasses
@@ -95,12 +104,13 @@ from typing import Protocol, TypeVar
 
 import pytest
 
-from materica.core import conditions, declarations, evaluate, fields, jsonio, read
+from materica.core import acceptance, conditions, declarations, evaluate, fields, jsonio, read
 from materica.core.conditions import AxisEntry, ConditionsRead, ImpliedCondition
+from materica.core.declarations import Acceptance
 from materica.core.fields import RecordField
 from materica.core.identifiers import MaterialRef
 from materica.core.jsonio import JsonValue
-from materica.core.read import FieldRead, Standing
+from materica.core.read import FieldRead, ReadResult, Standing
 from materica.core.reasons import Reason
 from materica.core.record import RecordStore
 from materica.core.resolve import Refused, ResolvedRecord, resolve_record
@@ -115,6 +125,7 @@ TABLE_EDGES = "table_edges"
 EXTRAPOLATION_METHOD = "extrapolation_method"
 TABLE_ALTERNATIVES = "table_alternatives"
 DECLARATIONS = "declarations"
+JUDGE = "judge"
 NAMED = (
     COMPOSITION,
     ALTERNATIVES,
@@ -123,6 +134,7 @@ NAMED = (
     EXTRAPOLATION_METHOD,
     TABLE_ALTERNATIVES,
     DECLARATIONS,
+    JUDGE,
 )
 
 _parse = jsonio.parse
@@ -271,6 +283,24 @@ def faulty_reasons(declaration: JsonObject) -> list[declarations.Finding]:
     ]
 
 
+_covers = acceptance._covers  # pyright: ignore[reportPrivateUsage]
+
+
+def faulty_covers(
+    found: Acceptance, reason: Reason, read: ReadResult | None, record: MaterialRef, field: str
+) -> bool:
+    """S7a-2's control: a waiver naming `condition_outside` and its condition, at the result's record and
+    field, covers it, where section 4.2's waiver row does not list it."""
+    named = (
+        found.kind == "waiver"
+        and found.field == field
+        and acceptance.located_at(found, record)
+        and found.members.get("code") == reason.code == "condition_outside"
+        and found.members.get("condition") == reason.condition
+    )
+    return named or _covers(found, reason, read, record, field)
+
+
 def seed() -> None:
     jsonio.parse = faulty_parse
     read.resolve_record = faulty_resolve_record  # type: ignore[attr-defined]  # read's own name for it, not exported
@@ -344,6 +374,14 @@ def seed_declarations_if_asked(instrument: Instrument) -> None:
     the other targets' faults are."""
     if os.environ.get("MATERICA_FUZZ_SEEDED_FAULT") == DECLARATIONS:
         declarations._reasons = instrument(faulty_reasons)  # pyright: ignore[reportPrivateUsage]
+
+
+def seed_judge_if_asked(instrument: Instrument) -> None:
+    """S7a-2's control, which `build_bytes.py` seeds where the variable asks for it by name, instrumented as
+    the other targets' faults are."""
+    if os.environ.get("MATERICA_FUZZ_SEEDED_FAULT") == JUDGE:
+        # Its first parameter is named otherwise than `acceptance._covers`', whose name is the module's here.
+        acceptance._covers = instrument(faulty_covers)  # type: ignore[assignment]  # pyright: ignore[reportPrivateUsage]
 
 
 def pytest_configure(config: pytest.Config) -> None:

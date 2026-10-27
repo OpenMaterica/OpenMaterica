@@ -237,6 +237,29 @@ their number and length are set from the rate measured. By the S7 design's budge
 (run 39743609131, 2026-10-22, which `ci.yml`'s comment on the job cites), so the target's own weekly fuzzing
 runs in a row of its own beside the fuzz controls' job, which lands with the control's runs set from its rate.
 
+S7a-2's control, for `build_bytes.py`, is the S7 design's fault in the build's verdict (its 6.5, `judge`):
+`_covers` lets a waiver naming `condition_outside` and its condition cover it (`seeded_fault.faulty_covers`),
+where `declarations.md` section 4.2 lets no waiver cover it. `MATERICA_FUZZ_SEEDED_FAULT=judge` seeds it alone,
+in `build_bytes.py`. Nothing raises: the target's relation of section 4.2's own law finds a result accepted with
+`condition_outside`, which no assumption covers and no correct build accepts (a `trainable` entry, which could,
+the build does not read yet), and that line is the find (`CONTROLS["judge"]`, the control step's `judged`); the
+results model's relation, checked after it, sees the fault too. Its seeds, by the design's scan: BC-038's
+declaration, which holds such a waiver beside such a result, and the four other declarations whose cases give a
+result `condition_outside`, each with the waiver planted where a first byte past the seeds picks it
+(`build_bytes.PLANTED`). Under the fault, BC-038's seed and the planted BC-001 and BC-017 declarations fail at
+that law, and the planted BC-027 one, whose `label_mismatch` keeps its result refused, at the results model's
+relation alone, a line that is no find. The fault is the design's, unnarrowed: BC-038's seed shows it
+unchanged, so a run finds it in its first pass over the seeds. Ten local runs, in pairs side by side with the
+arguments CI's control step gives them, each found it after 1.0 to 1.5 s, the interpreter's start among them
+(Python 3.14, 2026-10-27), and a run of 600 s with no fault seeded found nothing in 2,584,855 inputs (S7a-1's
+smoke run before the results relations, 2,897,479). So the control shows the
+target holding every report to the results relations and the find read as CI reads it, not the fuzzer reaching
+a fault no seed holds, as S7a-1's narrowed fault does. A narrowed form exists: the same fault on a density
+alone, which no seed shows and the planted BC-001 declarations do, one change of the first byte away
+(2026-10-27); which of the two the control runs is the maintainer's to choose. CI's control step runs it in
+two runs side by side, each of up to 60 s, one and a half times the slowest find rounded up to the minute, and
+passes where either finds it.
+
 The relation to the model holds the check to the model in both directions: where the model refuses a
 declaration with every rule's refusals placed, the check gives its refusals, and where the model takes one
 (`build_oracle.TAKEN`, its own words for a declaration that passes its check), the check refuses nothing. It

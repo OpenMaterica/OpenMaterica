@@ -197,6 +197,18 @@ CONTROLS = {
         dictionary="declaration.dict",
         ci_runs=4,
     ),
+    # The relation of section 4.2's own law in build_bytes.py's results relations: a result accepted with
+    # `condition_outside`, which only a fault can accept (no correct build accepts it uncovered).
+    "judge": Control(
+        "judge",
+        "build_bytes",
+        60,
+        "^AssertionError: .* accepted with condition_outside, "
+        "which no assumption or trainable acceptance covers",
+        corpus="declarations",
+        dictionary="declaration.dict",
+        ci_runs=2,
+    ),
     # Rounds of four, another only where none of a round found it, three at most.
     "table_alternatives": Control(
         "table_alternatives",

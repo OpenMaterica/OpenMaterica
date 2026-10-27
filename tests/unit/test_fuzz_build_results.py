@@ -13,16 +13,13 @@ import pytest
 import materica
 from materica.core import acceptance
 from materica.core.build import check_build
-from materica.core.declarations import CLAIMS, Acceptance
-from materica.core.identifiers import MaterialRef
-from materica.core.read import ReadResult
-from materica.core.reasons import Reason
+from materica.core.declarations import CLAIMS
 from materica.core.report import BuildReport
 from tests.conformance import runner
 from tests.fuzz.build_results_oracle import check_against_the_model, check_results
+from tests.fuzz.seeded_fault import faulty_covers
 
 CASES = [case for case in runner.discover() if case.suite == "build_checks"]
-COVERS = acceptance._covers  # pyright: ignore[reportPrivateUsage]
 
 
 def records_of(case: runner.CaseFile) -> list[Path]:
@@ -55,20 +52,6 @@ def test_every_build_check_cases_report_keeps_the_relations() -> None:
             against_the_model(case, report)
 
 
-def waiver_covers_condition_outside(
-    found: Acceptance, reason: Reason, read: ReadResult | None, record: MaterialRef, field: str
-) -> bool:
-    """The control's fault: a waiver naming `condition_outside` and its condition covers it."""
-    named = (
-        found.kind == "waiver"
-        and found.field == field
-        and acceptance.located_at(found, record)
-        and found.members.get("code") == reason.code == "condition_outside"
-        and found.members.get("condition") == reason.condition
-    )
-    return named or COVERS(found, reason, read, record, field)
-
-
 def first_model_alone(report: BuildReport) -> bool:
     first = report.results[0].model if report.results else None
     return bool(report.refusals) or not all(
@@ -89,7 +72,7 @@ def test_4_2s_own_law_fails_where_a_waiver_covers_condition_outside(monkeypatch:
     report = report_of(case)
     assert report is not None
     check_results(report)
-    monkeypatch.setattr(acceptance, "_covers", waiver_covers_condition_outside)
+    monkeypatch.setattr(acceptance, "_covers", faulty_covers)
     broken = report_of(case)
     assert broken is not None
     with pytest.raises(AssertionError, match="accepted with condition_outside"):

@@ -245,6 +245,7 @@ def main(arguments: list[str]) -> None:
         Path(arguments[2]).write_text("\n".join(dictionary()) + "\n", encoding="utf-8")
         return
     seeded_fault.seed_declarations_if_asked(atheris.instrument_func)
+    seeded_fault.seed_judge_if_asked(atheris.instrument_func)
     atheris.Setup(arguments, test_one_input)
     atheris.Fuzz()
 
