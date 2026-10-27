@@ -12,10 +12,11 @@ reads, each drawing its way or kind first, and the monotonicity property's world
 their chance, of S3c's HP24 to HP26 and the monotonicity property over an extrapolation, each drawing its way
 first, and that property's worlds stated without origin, by their chance, of S4d's HP39, the others' outcome
 drawn first and the table's way by its chance, and HP12's part over tables among alternatives, its part drawn
-first, and of S7a-1's HP41 and HP42, each part drawing its way first: run at the `ci` profile's examples with
-a generator that stops producing one of them, each property fails its audit, on that feature alone; a
-parametrised property, on one of its parameters, by the marks that parameter carries. The controls of the
-floors held at `deep` alone, which run where `deep` runs, are in
+first, of S7a-1's HP41 and HP42, each part drawing its way first, and of S7a-2's HP43 to HP45, each part
+drawing its way first: run at the `ci` profile's examples with a generator that stops producing one of them,
+each property fails its audit, on that feature alone; a parametrised property, on one of its parameters, by
+the marks that parameter carries. The controls of the floors held at `deep` alone, which run where `deep`
+runs, are in
 `tests/property/test_model_deep_floor_controls.py` and use the run defined here. Outside `tests/property/`,
 whose audits would fail these runs too."""
 
@@ -31,6 +32,7 @@ from materica.core.jsonio import JsonValue
 from tests.conftest import EXAMPLES
 from tests.property import audits, result_strategies
 from tests.property import test_alternatives_properties as alternatives_properties
+from tests.property import test_build_properties as build_properties
 from tests.property import test_canonical_properties as canonical_properties
 from tests.property import test_condition_properties as condition_properties
 from tests.property import test_declaration_properties as declaration_properties
@@ -514,6 +516,56 @@ CONTROLS = [
         "engine",
         ("check_unbuilt",),
         (("ways", ("region_conditions", "engine")),),
+    ),
+    # S7a-2's: HP43's, HP44's and HP45's drawing parts, each drawing its way first among the two of a stratum
+    # (a stratum of one draws none; HP43's `indexes` and HP46 draw none), a control of one stratum a part.
+    Control(
+        build_properties.test_a_waiver_covers_a_reason_exactly_where_it_names_its_code_condition_record_and_field,
+        "location_differs",
+        ("check_judged",),
+        (("ways", ("condition_differs", "location_differs")),),
+    ),
+    Control(
+        build_properties.test_a_nominal_or_extrapolation_covers_its_reason_exactly_where_the_assumption_names_it,
+        "nominal_not_named",
+        ("check_judged",),
+        (("ways", ("nominal_named", "nominal_not_named")),),
+    ),
+    Control(
+        build_properties.test_a_reason_no_row_lists_for_an_acceptance_is_never_covered_by_it,
+        "unlisted_code",
+        ("check_judged",),
+        (("ways", ("label_mismatch", "unlisted_code")),),
+    ),
+    Control(
+        build_properties.test_each_results_read_is_the_read_of_the_request_the_declaration_gives,
+        "nominal",
+        ("check_reads",),
+        (("ways", ("implied", "nominal")),),
+    ),
+    Control(
+        build_properties.test_the_results_are_one_per_model_listed_record_and_field_read,
+        "absent_record",
+        ("check_reads",),
+        (("ways", ("two_models", "absent_record")),),
+    ),
+    Control(
+        build_properties.test_label_mismatch_is_given_exactly_where_the_stored_label_differs_or_is_absent,
+        "early_refusal",
+        ("check_own_reasons",),
+        (("ways", ("absent", "early_refusal")),),
+    ),
+    Control(
+        build_properties.test_not_reviewed_is_given_exactly_where_review_is_required_and_not_completed,
+        "slip",
+        ("check_own_reasons",),
+        (("ways", ("unknown_result", "slip")),),
+    ),
+    Control(
+        build_properties.test_a_waiver_naming_a_label_covers_only_where_the_label_is_stored_and_trusted,
+        "unreviewed",
+        ("check_label_waiver",),
+        (("ways", ("reviewed_and_labelled", "unreviewed")),),
     ),
 ]
 
