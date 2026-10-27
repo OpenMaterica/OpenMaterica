@@ -129,8 +129,10 @@ every family entry goes in `families/CHANGELOG.md`.
   S7c. The fuzz target `build_bytes.py` holds every report the build gives to the results relations
   (`tests/fuzz/build_results_oracle.py`: an accepted result holds no `not_met` reason that no assumption or
   `trainable` acceptance covers, the report is refused exactly where a refusal or a result not accepted is, and
-  where the build's results model decides, the report is the model's), each shown failing by
-  `tests/unit/test_fuzz_build_results.py`, and through the target by `tests/unit/test_fuzz_build_oracle.py`; a
+  where the build's results model decides and neither it nor the build refuses the declaration, the report is
+  the model's; the declaration's refusals are left to the target's relation to the build's reference model, whose
+  line S7a-1's control is found by), each assertion shown failing by `tests/unit/test_fuzz_build_results.py`, and
+  through the target by `tests/unit/test_fuzz_build_oracle.py`, with each control's fault found there; a
   first byte past its seeds picks one of the four declarations whose cases give a result `condition_outside`,
   with a waiver naming it planted. Its control `judge` (`MATERICA_FUZZ_SEEDED_FAULT=judge`, the S7 design's
   fault: `_covers` letting a waiver naming `condition_outside` cover it) is found by section 4.2's own law; it is
@@ -148,8 +150,9 @@ every family entry goes in `families/CHANGELOG.md`.
   request's change scopes one after the other, has 66 minutes (was 50), three times the four selections' longest
   recordings on CI. The `build` shard, which holds HP41 to HP46, runs in two parts of about equal time
   (`build_1of2`, `build_2of2`), as the three longest shards do: its two pieces took 5.3 to 6.7 minutes on CI at
-  `ci` together, run apart, about a third of its timeout, and about 58 at `deep` by estimate, past its default 45;
-  its parts' `deep` timeout is 65 minutes by that estimate.
+  `ci` together, run apart, a quarter to just past a third of its 20-minute timeout by which of HP41 and HP42's
+  runs is taken; the split rests on `deep`, about 58 minutes whole by estimate, past its default 45, and its
+  parts' `deep` timeout is 65 minutes by that estimate.
 - The build's reads over records (S7a-2a; `declarations.md` section 2). `check_build` reads a declaration that
   passes its own check: for each model, each record its `checked_over` lists, in the order listed, and each
   field in its `reads`, in that order, one result (`BuildResult`: the model, the record, the field and the

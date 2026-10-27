@@ -638,8 +638,9 @@ jobs:
         # and 498 s for `agreement` and 680 and 678 s for `alternatives`, where the longest single test is 185 s.
         # `build` holds both S7a pieces' properties and searches: on CI at `ci` they took 2.1 minutes (HP43 to
         # HP46's, run 40321465190) and 4.6 (HP41 and HP42's, run 40384724598; 3.2 in run 40427835712) in pytest's
-        # wall time, run apart, so 6.7 together, past a third of the shard's 20-minute timeout (5.3 by the later
-        # run), and at `deep` about 58.2 minutes whole by estimate, past its default 45 (above).
+        # wall time, run apart, so 5.3 to 6.7 together, a quarter to just past a third of the shard's 20-minute
+        # timeout by which of HP41 and HP42's runs is taken; the split rests on `deep`, about 58.2 minutes whole
+        # by estimate, past its default 45 (above).
         shard: [json, records, writer, agreement_1of2, agreement_2of2, step8_mutants, conditions, relations_1of2, relations_2of2, alternatives_1of2, alternatives_2of2, build_1of2, build_2of2]
     env:
       MATERICA_HYPOTHESIS_PROFILE: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'deep' || 'ci' }}
