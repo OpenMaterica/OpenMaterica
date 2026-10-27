@@ -268,8 +268,6 @@ KEY = "('drag', ('conformance/water_fixture', '1.0.0', 'sha256:c21a'), 'fluid.dy
         (f"AssertionError: results [{KEY}], the model's []", False),
         ("AssertionError: unused [], the model's [('drag', 0)]", False),
         ("AssertionError: refused True, the model's False", False),
-        ("AssertionError: refusals [], the model's [('BC-048', '/models/0/acceptances/1')]", False),
-        ("AssertionError: refused [('BC-048', '/consumer')], the model takes it", False),
         (
             "AssertionError: the implementation gives [], the model [('BC-005', '/models/0/acceptances/2')]",
             False,

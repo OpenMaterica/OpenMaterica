@@ -7,7 +7,7 @@ Atheris stubbed, every seed passing the target, with no fault seeded and with S7
 no seed shows, one change to a seed's pointer does, and the design's unnarrowed fault seven seeds show at
 once; the declarations a first byte past the seeds' picks, each with a waiver of `condition_outside` planted,
 passing it too; and the target holding every report to the results relations, each failing through it on a
-build broken for it."""
+build broken for it, and each control's fault failing it with that control's find."""
 
 import contextlib
 import copy
@@ -638,3 +638,54 @@ def test_the_refusal_law_fails_through_the_target_where_refused_reads_the_first_
             caught.append(str(error))
     assert caught
     assert all(message == "refused False, where its refusals and results give True" for message in caught)
+
+
+def bc005_written_a_third_time(target: ModuleType) -> list[bytes]:
+    """The inputs that show S7a-1's control: each BC-005 seed of a second acceptance without its `reason` or
+    `basis`, that acceptance written a third time at the next place, one change of a seed's pointer."""
+    inputs: list[bytes] = []
+    for index, ((name, value, _), _) in enumerate(seeds_of(target)):
+        models = value.get("models") if isinstance(value, dict) else None
+        model = models[0] if isinstance(models, list) and models else None
+        acceptances = model.get("acceptances") if isinstance(model, dict) else None
+        if name.startswith("bc005_") and isinstance(acceptances, list) and len(acceptances) >= 2:
+            inputs.append(target_input(index, "/models/0/acceptances/2", acceptances[1]))
+    return inputs
+
+
+def planted_on_a_density(target: ModuleType) -> list[bytes]:
+    """The inputs that show S7a-2's control: each planted BC-001 declaration, its own `consumer` put back."""
+    names = [name for name, _, _ in target.SEEDS]
+    return [
+        kept(len(names) + offset, value)
+        for offset, (index, value) in enumerate(target.PLANTED)
+        if names[index].startswith("bc001_")
+    ]
+
+
+CONTROL_FAULTS = {
+    "declarations": (declarations, "_reasons", faulty_reasons, bc005_written_a_third_time, 7),
+    "judge": (acceptance, "_covers", faulty_covers, planted_on_a_density, 2),
+}
+
+
+@pytest.mark.parametrize("control", sorted(CONTROL_FAULTS))
+def test_each_control_s_fault_fails_the_target_with_its_find(
+    target: ModuleType, monkeypatch: pytest.MonkeyPatch, control: str
+) -> None:
+    """Each of `build_bytes.py`'s controls, its fault seeded, through the target's own `test_one_input` on the
+    inputs that show it: each input passes with no fault and fails with it, with a line that `ci.yml`'s
+    control step and `scripts/measure.py`'s fuzz kind read as that control's find (`CONTROLS`). The results
+    relations run inside the check `check_declaration` is given, before it compares the declaration's
+    refusals with the model's: where they compared the refusals too, S7a-1's fault was found by their line,
+    which is no find of its control."""
+    module, name, fault, showing, count = CONTROL_FAULTS[control]
+    inputs = showing(target)
+    assert len(inputs) == count
+    for data in inputs:
+        target.test_one_input(data)
+    monkeypatch.setattr(module, name, fault)
+    for data in inputs:
+        with pytest.raises(AssertionError) as found:
+            target.test_one_input(data)
+        assert found_in(f"AssertionError: {found.value}", CONTROLS[control]), str(found.value)
