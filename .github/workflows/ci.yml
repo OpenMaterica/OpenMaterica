@@ -620,8 +620,8 @@ jobs:
         # searches, which were most of the records shard's time; steps 9 and 10's properties and the result's,
         # with their mutant searches; the read's relations (HP12, the agreement with the reference model,
         # HP4, HP10 and the information-monotonicity relations), with theirs; S4a's step 7 over alternatives
-        # (HP27 to HP29), with theirs; and S7a's build check (HP41 and HP42), with theirs, whose timeouts are
-        # the defaults until CI measures it.
+        # (HP27 to HP29), with theirs; and S7a's build check (HP41 to HP46), with theirs, whose timeouts are the
+        # defaults until CI measures it.
         # The three longest, `agreement`, `relations` and `alternatives`, each run as two jobs side by side,
         # `agreement_1of2` and `agreement_2of2` (`--shard`, tests/partition.py): the shard's tests in two parts of
         # about equal time, which together hold every one once (tests/unit/test_ci_workflows.py checks it on the
