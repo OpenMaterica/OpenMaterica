@@ -3153,12 +3153,12 @@ def test_the_selection_check_can_fail(fault: Callable[[Workflow], None], problem
 # interrupt is to its shards' (`MEASURED_ON_CI`).
 FUZZ_SLOWEST_ON_CI = 126.7
 # The minutes the job's steps may add to that run, by estimate, until a run on CI measures them: the two
-# rounds of S4d's control it did not run, 15 at most each (four runs of up to 900 s side by side), and S7a-1's
-# control of `build_bytes.py`, 15 at most (four runs of up to 900 s side by side). Counting one round run, not
-# two, is the larger estimate. The 55 minutes estimated after the run of 2026-10-21 for S4d's control and the
-# replay of its property modules came to 15.3 measured in that run (the control step 13.0 longer, the replay
-# 2.3).
-FUZZ_ADDED_SINCE = 45.0
+# rounds of S4d's control it did not run, 15 at most each (four runs of up to 900 s side by side), S7a-1's
+# control of `build_bytes.py`, 15 at most (four runs of up to 900 s side by side), and S7a-2's, 1 at most (two
+# runs of up to 60 s side by side). Counting one round run, not two, is the larger estimate. The 55 minutes
+# estimated after the run of 2026-10-21 for S4d's control and the replay of its property modules came to 15.3
+# measured in that run (the control step 13.0 longer, the replay 2.3).
+FUZZ_ADDED_SINCE = 46.0
 
 
 def fuzz_margin_problems(ci: Workflow) -> list[str]:
@@ -3177,12 +3177,12 @@ def test_the_fuzz_job_has_twice_its_slowest_run_on_ci() -> None:
     assert fuzz_margin_problems(workflow("ci.yml")) == []
 
 
-@pytest.mark.parametrize("minutes", [65, 100, 119, 136, 167, 195, 222, 223, 313, 343])
+@pytest.mark.parametrize("minutes", [65, 100, 119, 136, 167, 195, 222, 223, 313, 343, 345])
 def test_the_fuzz_margin_check_can_fail(minutes: int) -> None:
     ci = copy.deepcopy(workflow("ci.yml"))
     ci["jobs"]["fuzz"]["timeout-minutes"] = minutes
     found = fuzz_margin_problems(ci)
-    expected = f"fuzz times out at {minutes} minutes, less than twice its 126.7 on CI and the 45 added since"
+    expected = f"fuzz times out at {minutes} minutes, less than twice its 126.7 on CI and the 46 added since"
     assert found == [expected], found
 
 
@@ -8183,7 +8183,8 @@ TABLES_CASES = (
 # `STUB_METHOD_FINDING` and `STUB_METHOD_FINDS`; on a run of the table alternatives' fault (S4d), likewise
 # for the three others, `STUB_ALTERNATIVES_FINDING` and `STUB_ALTERNATIVES_FINDS`; and on a run of
 # `build_bytes.py`'s fault (S7a-1), likewise for the three others, `STUB_DECLARATIONS_FINDING` and
-# `STUB_DECLARATIONS_FINDS`. A fuzz run lasts
+# `STUB_DECLARATIONS_FINDS`; and on a run of its fault in the build's verdict (S7a-2), likewise for the other,
+# `STUB_JUDGE_FINDING` and `STUB_JUDGE_FINDS`. A fuzz run lasts
 # `STUB_RUN_SECONDS` (none by default), then reports as libFuzzer does at the end of a run, with or without a
 # finding.
 FUZZ_CONTROL_UV = """
@@ -8210,12 +8211,14 @@ elif module == "pytest":
     print("IndexError: the seeded fault in the read")
     print("  - during reuse phase (0.00 seconds):")
     print("    - 0 passing examples, 1 failing examples, 0 invalid examples")
-elif fault in ("tables", "table_edges", "extrapolation_method", "table_alternatives", "declarations"):
+elif fault in (
+    "tables", "table_edges", "extrapolation_method", "table_alternatives", "declarations", "judge"
+):
     corpus = Path(given[0]).name
     started = Path(os.environ["RUNNER_TEMP"], "started", fault)
     started.mkdir(parents=True, exist_ok=True)
     (started / corpus).touch()
-    others = {"tables": 1, "table_edges": 3, "table_alternatives": 3, "declarations": 3}
+    others = {"tables": 1, "table_edges": 3, "table_alternatives": 3, "declarations": 3, "judge": 1}
     wanted = others[fault] if fault in others else int(os.environ["STUB_METHOD_OTHERS"])
     deadline = time.monotonic() + float(os.environ["STUB_PARTNER_WAIT"])
     while (
@@ -8233,6 +8236,7 @@ elif fault in ("tables", "table_edges", "extrapolation_method", "table_alternati
         "extrapolation_method": "STUB_METHOD_",
         "table_alternatives": "STUB_ALTERNATIVES_",
         "declarations": "STUB_DECLARATIONS_",
+        "judge": "STUB_JUDGE_",
     }[fault]
     if corpus in os.environ[stub + "FINDS"].split():
         print(os.environ[stub + "FINDING"])
@@ -8303,6 +8307,7 @@ def tables_control_problems(ci: Workflow, directory: Path) -> list[str]:
             **METHOD_FOUND,
             **ALTERNATIVES_FOUND,
             **DECLARATIONS_FOUND,
+            **JUDGE_FOUND,
             "STUB_PARTNER_WAIT": "5" if index == 0 else "0",
         }
         status, _, printed = run_step(control_step(ci), {}, where / "work", base=environment, scratch=where)
@@ -8457,6 +8462,7 @@ def table_edges_control_problems(ci: Workflow, directory: Path) -> list[str]:
             **METHOD_FOUND,
             **ALTERNATIVES_FOUND,
             **DECLARATIONS_FOUND,
+            **JUDGE_FOUND,
             "STUB_PARTNER_WAIT": "5" if index == 0 else "0",
         }
         status, _, printed = run_step(control_step(ci), {}, where / "work", base=environment, scratch=where)
@@ -8654,6 +8660,7 @@ def method_control_problems(ci: Workflow, directory: Path) -> list[str]:
             "STUB_METHOD_OTHERS": str(METHOD_RUNS - 1),
             **ALTERNATIVES_FOUND,
             **DECLARATIONS_FOUND,
+            **JUDGE_FOUND,
             "STUB_PARTNER_WAIT": "5" if index == 0 else "0",
         }
         status, _, printed = run_step(control_step(ci), {}, where / "work", base=environment, scratch=where)
@@ -8859,6 +8866,7 @@ def alternatives_control_problems(ci: Workflow, directory: Path) -> list[str]:
             "STUB_ALTERNATIVES_FINDS": finds,
             "STUB_ALTERNATIVES_FINDING": finding,
             **DECLARATIONS_FOUND,
+            **JUDGE_FOUND,
             "STUB_PARTNER_WAIT": "5" if index == 0 else "0",
         }
         status, _, printed = run_step(control_step(ci), {}, where / "work", base=environment, scratch=where)
@@ -9093,6 +9101,7 @@ def declarations_control_problems(ci: Workflow, directory: Path) -> list[str]:
             **ALTERNATIVES_FOUND,
             "STUB_DECLARATIONS_FINDS": finds,
             "STUB_DECLARATIONS_FINDING": finding,
+            **JUDGE_FOUND,
             "STUB_PARTNER_WAIT": "5" if index == 0 else "0",
         }
         status, _, printed = run_step(control_step(ci), {}, where / "work", base=environment, scratch=where)
@@ -9231,6 +9240,193 @@ def test_the_declaration_control_check_can_fail(
     assert any(problem in line for line in problems), problems
 
 
+# `build_bytes.py`'s control of the build's verdict (S7a-2; `MATERICA_FUZZ_SEEDED_FAULT=judge`,
+# `tests/fuzz/seeded_fault.py`, the S7 design's fault): `_covers` letting a waiver naming `condition_outside`
+# cover it, which the target's relation of section 4.2's own law finds, a result accepted with it. BC-038's
+# seed declaration holds such a waiver beside such a result, so ten local runs, in pairs side by side, each
+# found it after 1.0 to 1.5 s (2026-10-27): two runs side by side, each of up to 60 s, one and a half times
+# the slowest find, rounded up to the minute. The step passes where either finds it.
+JUDGE = "judge"
+JUDGE_RUNS = 2
+JUDGE_RUN_SECONDS = 60
+JUDGE_ERROR = "::error::the judge runs did not find the fault seeded in the build's verdict"
+# The fault as the target's relation of 4.2's own law words it, on BC-038's seed; and that law's line for
+# another code, which is not that fault's.
+JUDGE_FINDING = (
+    "AssertionError: drag conformance/water_fixture fluid.dynamic_viscosity accepted with condition_outside, "
+    "which no assumption or trainable acceptance covers"
+)
+ANOTHER_JUDGE_FINDING = (
+    "AssertionError: drag conformance/water_fixture fluid.dynamic_viscosity accepted with outside_range, "
+    "which no assumption or trainable acceptance covers"
+)
+# The stub's environment where every case of another fault's control finds this fault in its first run.
+JUDGE_FOUND = {"STUB_JUDGE_FINDS": "judge-1", "STUB_JUDGE_FINDING": JUDGE_FINDING}
+# Each case: the corpora of the runs that report a finding, the finding, and whether the step passes.
+EVERY_JUDGE_RUN = " ".join(f"judge-{run}" for run in range(1, JUDGE_RUNS + 1))
+JUDGE_CASES = (
+    ("judge-1", JUDGE_FINDING, True),
+    (f"judge-{JUDGE_RUNS}", JUDGE_FINDING, True),
+    ("", JUDGE_FINDING, False),
+    (EVERY_JUDGE_RUN, ANOTHER_JUDGE_FINDING, False),
+)
+
+
+def judge_runs_problems(runs: list[dict[str, Any]], dictionary: str | None) -> list[str]:
+    """Where `build_bytes.py`'s fault in the verdict is not run `JUDGE_RUNS` times, on as many corpora, side
+    by side, each `JUDGE_RUN_SECONDS`, with the dictionary the step writes for the target (`dictionary`), as
+    measure.py's fuzz kind runs it."""
+    problems = (
+        [] if len(runs) == JUDGE_RUNS else [f"{len(runs)} runs of the verdict's fault, not {JUDGE_RUNS}"]
+    )
+    if len({run["arguments"][0] for run in runs}) != len(runs):
+        problems.append("the verdict's runs share a corpus")
+    for run in runs:
+        seconds = [word.partition("=")[2] for word in run["arguments"] if word.startswith("-max_total_time=")]
+        if seconds != [str(JUDGE_RUN_SECONDS)]:
+            lasting = " and ".join(seconds) or "unlimited"
+            problems.append(f"a run of the verdict's fault for {lasting} s, not {JUDGE_RUN_SECONDS}")
+        if run["beside"] < JUDGE_RUNS - 1:
+            problems.append(f"a run of the verdict's fault beside {run['beside']} others, not side by side")
+        if dictionary is None or dictionaries(run) != [dictionary]:
+            problems.append(
+                f"a run of the verdict's fault with the dictionaries {dictionaries(run)}, not the step's"
+            )
+    return problems
+
+
+def judge_control_problems(ci: Workflow, directory: Path) -> list[str]:
+    """The control step run as written with `FUZZ_CONTROL_UV`, in each of `JUDGE_CASES`: where its runs of
+    `build_bytes.py`'s fault in the verdict are not as `judge_runs_problems` holds them, or where it passes or
+    fails otherwise than the case says, failing at that fault's check."""
+    problems: list[str] = []
+    for index, (finds, finding, passes) in enumerate(JUDGE_CASES):
+        where = directory / str(index)
+        (where / "work").mkdir(parents=True)
+        environment = runner(where, FUZZ_CONTROL_UV) | {
+            "STUB_FINDS": "tables-1",
+            "STUB_FINDING": TABLES_FINDING,
+            "STUB_EDGE_FINDS": "table-edges-1",
+            "STUB_EDGE_FINDING": TABLE_EDGES_FINDING,
+            **METHOD_FOUND,
+            **ALTERNATIVES_FOUND,
+            **DECLARATIONS_FOUND,
+            "STUB_JUDGE_FINDS": finds,
+            "STUB_JUDGE_FINDING": finding,
+            "STUB_PARTNER_WAIT": "5" if index == 0 else "0",
+        }
+        status, _, printed = run_step(control_step(ci), {}, where / "work", base=environment, scratch=where)
+        recorded = where / "calls.jsonl"
+        calls = (
+            [json.loads(line) for line in recorded.read_text("utf-8").splitlines()]
+            if recorded.exists()
+            else []
+        )
+        runs = [call for call in calls if (call["module"], call["fault"]) == (TARGET_BUILD, JUDGE)]
+        if index == 0:
+            problems += judge_runs_problems(runs, control_dictionary(calls, TARGET_BUILD))
+        found = "the finding" if finding == JUDGE_FINDING else "another finding"
+        case = f"{finds or 'no run'} reporting {found}"
+        if passes and status != 0:
+            problems.append(f"the step fails where {case}")
+        if not passes and (status == 0 or JUDGE_ERROR not in printed):
+            problems.append(f"the step does not fail at the verdict's check where {case}")
+    return problems
+
+
+def test_the_control_step_runs_build_bytes_s_verdict_fault_and_sees_its_finding(tmp_path: Path) -> None:
+    assert judge_control_problems(workflow("ci.yml"), tmp_path) == []
+
+
+# Parts of the control step's script, as YAML gives it, without the block's indentation.
+JUDGE_LOOP = f"""\
+for worker in {" ".join(str(run) for run in range(1, JUDGE_RUNS + 1))}; do
+  cp -r "$control/declarations" "$control/judge-$worker"
+"""
+JUDGE_RUN_END = f"""\
+    > "$control/judge-$worker.log" 2>&1 &
+done
+wait || true
+cat "$control"/judge-[1-{JUDGE_RUNS}].log > "$control/judge.log"
+"""
+JUDGE_CHECK = 'if ! grep -q "$judged" "$control/judge.log"; then\n'
+JUDGE_DICTIONARY = (
+    f'"$control/judge-$worker" -dict="$control/declaration.dict" -max_total_time={JUDGE_RUN_SECONDS}'
+)
+
+
+def without_the_verdict_s_runs(text: str) -> str:
+    start = text.index(JUDGE_LOOP)
+    end = text.index(JUDGE_RUN_END) + len(JUDGE_RUN_END)
+    return text[:start] + text[end:]
+
+
+def without_the_verdict_s_check(text: str) -> str:
+    start = text.index(JUDGE_CHECK)
+    return text[:start] + text[text.index("\nfi\n", start) + len("\nfi\n") :]
+
+
+def with_one_verdict_run_fewer(text: str) -> str:
+    fewer = " ".join(str(run) for run in range(1, JUDGE_RUNS))
+    return text.replace(JUDGE_LOOP, JUDGE_LOOP.replace(f"in {fewer} {JUDGE_RUNS};", f"in {fewer};"))
+
+
+def with_shorter_verdict_runs(text: str) -> str:
+    start = text.index(JUDGE_LOOP)
+    return text[:start] + text[start:].replace(
+        f"-max_total_time={JUDGE_RUN_SECONDS}", f"-max_total_time={JUDGE_RUN_SECONDS - 30}", 1
+    )
+
+
+def with_the_verdict_s_runs_one_after_the_other(text: str) -> str:
+    return text.replace(JUDGE_RUN_END, JUDGE_RUN_END.replace("2>&1 &", "2>&1"))
+
+
+def with_the_verdict_s_find_for_any_code(text: str) -> str:
+    return text.replace("accepted with condition_outside, which", "accepted with .*, which", 1)
+
+
+def with_the_verdict_s_runs_without_the_dictionary(text: str) -> str:
+    return text.replace(JUDGE_DICTIONARY, f'"$control/judge-$worker" -max_total_time={JUDGE_RUN_SECONDS}')
+
+
+@pytest.mark.parametrize(
+    ("fault", "problem"),
+    [
+        (without_the_verdict_s_runs, f"0 runs of the verdict's fault, not {JUDGE_RUNS}"),
+        (with_one_verdict_run_fewer, f"{JUDGE_RUNS - 1} runs of the verdict's fault, not {JUDGE_RUNS}"),
+        (with_shorter_verdict_runs, f"for {JUDGE_RUN_SECONDS - 30} s, not {JUDGE_RUN_SECONDS}"),
+        (with_the_verdict_s_runs_one_after_the_other, "beside 0 others, not side by side"),
+        (without_the_verdict_s_check, "the step does not fail at the verdict's check where no run reporting"),
+        (with_the_verdict_s_runs_without_the_dictionary, "verdict's fault with the dictionaries [], not"),
+        (
+            with_the_verdict_s_find_for_any_code,
+            f"the step does not fail at the verdict's check where {EVERY_JUDGE_RUN} reporting another "
+            "finding",
+        ),
+    ],
+    ids=[
+        "runs-removed",
+        "one-run-fewer",
+        "shorter",
+        "one-after-the-other",
+        "check-removed",
+        "no-dictionary",
+        "find-for-any-code",
+    ],
+)
+def test_the_verdict_control_check_can_fail(
+    tmp_path: Path, fault: Callable[[str], str], problem: str
+) -> None:
+    ci = copy.deepcopy(workflow("ci.yml"))
+    found = control_step(ci)
+    changed = fault(found["run"])
+    assert changed != found["run"]
+    found["run"] = changed
+    problems = judge_control_problems(ci, tmp_path)
+    assert any(problem in line for line in problems), problems
+
+
 # --- the control step's find times -------------------------------------------------------------------------
 # The maintainer's ruling of 2026-10-23: the control step prints each run's find time, so that CI's runs
 # measure the rates the fuzz controls' bar is judged by. The step prints, for every control, a line a run,
@@ -9249,6 +9445,7 @@ FIND_TIME_CONTROLS = {
     "extrapolation_method": (METHOD_RUNS, METHOD_RUNS),
     "table_alternatives": (8, ALTERNATIVES_SIDE_BY_SIDE),
     "declarations": (DECLARATIONS_RUNS, DECLARATIONS_RUNS),
+    "judge": (JUDGE_RUNS, JUDGE_RUNS),
 }
 FIND_TIME_LINE = re.compile(
     r"^fuzz-control (\w+) round=(\d+) run=(\d+) found=(yes|no) seconds=(\d+\.\d)$", re.MULTILINE
@@ -9280,6 +9477,7 @@ FIND_TIME_CASES: tuple[tuple[dict[str, str], dict[str, set[int]]], ...] = (
             "STUB_ALTERNATIVES_FINDS": "table-alternatives-5",
             "STUB_ALTERNATIVES_FINDING": ALTERNATIVES_FINDING,
             **DECLARATIONS_FOUND,
+            **JUDGE_FOUND,
             "STUB_RUN_SECONDS": str(FIND_TIME_RUN_SECONDS),
         },
         {
@@ -9292,6 +9490,7 @@ FIND_TIME_CASES: tuple[tuple[dict[str, str], dict[str, set[int]]], ...] = (
             "extrapolation_method": {1},
             "table_alternatives": {5},
             "declarations": {1},
+            "judge": {1},
         },
     ),
     (
@@ -9304,6 +9503,7 @@ FIND_TIME_CASES: tuple[tuple[dict[str, str], dict[str, set[int]]], ...] = (
             "STUB_ALTERNATIVES_FINDS": EVERY_ALTERNATIVES_RUN,
             "STUB_ALTERNATIVES_FINDING": ANOTHER_ALTERNATIVES_FINDING,
             **DECLARATIONS_FOUND,
+            **JUDGE_FOUND,
         },
         {
             "bytes": {1},
@@ -9315,6 +9515,7 @@ FIND_TIME_CASES: tuple[tuple[dict[str, str], dict[str, set[int]]], ...] = (
             "extrapolation_method": {1},
             "table_alternatives": set(),
             "declarations": {1},
+            "judge": {1},
         },
     ),
 )

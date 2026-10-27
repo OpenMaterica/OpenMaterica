@@ -41,11 +41,11 @@ from tests.fuzz.build_oracle import (
     resolves,
     tokens_of,
 )
-from tests.fuzz.seeded_fault import faulty_reasons
+from tests.fuzz.seeded_fault import faulty_covers, faulty_reasons
 from tests.reference import build_model
 from tests.reference.direct import BUILD
 from tests.reference.read_model import NoVerdict
-from tests.unit.test_fuzz_build_results import first_model_alone, waiver_covers_condition_outside
+from tests.unit.test_fuzz_build_results import first_model_alone
 
 BUILD_CHECKS = Path(materica.__file__).parent / "data" / "conformance" / "build_checks"
 # A declaration the check takes: BC-016's, one model over water with one waiver.
@@ -600,22 +600,27 @@ def test_4_2s_own_law_fails_through_the_target_where_a_waiver_covers_condition_o
     target: ModuleType, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """`_covers` letting a waiver naming `condition_outside` cover it (the design's fault for the control
-    `judge`): BC-038's seed fails the target at 4.2's own law, unchanged, and so does each planted choice
-    whose result holds no other reason a waiver cannot cover; BC-027's, whose `label_mismatch` keeps its
-    result refused, fails at the results model's relation alone, the verdict's `accepted_by` and
-    `not_accepted`."""
+    `judge`, seeded): BC-038's seed fails the target at 4.2's own law, unchanged, and so does each planted
+    choice whose result holds no other reason a waiver cannot cover, each with a line that `ci.yml`'s control
+    step and `scripts/measure.py`'s fuzz kind read as the control's find (`CONTROLS["judge"]`); BC-027's,
+    whose `label_mismatch` keeps its result refused, fails at the results model's relation alone, the
+    verdict's `accepted_by` and `not_accepted`, with a line that is no find of it."""
     names = [name for name, _, _ in target.SEEDS]
-    monkeypatch.setattr(acceptance, "_covers", waiver_covers_condition_outside)
+    monkeypatch.setattr(acceptance, "_covers", faulty_covers)
     seed = names.index(WAIVED_ALREADY)
-    with pytest.raises(AssertionError, match=LAW):
+    with pytest.raises(AssertionError, match=LAW) as found:
         target.test_one_input(kept(seed, target.SEEDS[seed][1]))
+    assert found_in(f"AssertionError: {found.value}", CONTROLS["judge"]), str(found.value)
     for offset, (index, value) in enumerate(target.PLANTED):
         modelled = names[index].startswith("bc027_")
         wanted = (
             r"^\('drag', .*\): \('not_met', .*, False, .*\), the model's \('not_met', " if modelled else LAW
         )
-        with pytest.raises(AssertionError, match=wanted):
+        with pytest.raises(AssertionError, match=wanted) as found:
             target.test_one_input(kept(len(names) + offset, value))
+        assert bool(found_in(f"AssertionError: {found.value}", CONTROLS["judge"])) != modelled, str(
+            found.value
+        )
 
 
 def test_the_refusal_law_fails_through_the_target_where_refused_reads_the_first_model_alone(

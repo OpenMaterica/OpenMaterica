@@ -244,6 +244,50 @@ def test_the_declarations_find_is_the_model_s_bc_005_after_a_model_s_second_acce
     assert bool(measure.found_in(line, CONTROLS["declarations"])) == found
 
 
+RESULT = "drag conformance/water_fixture fluid.dynamic_viscosity"
+LAW = "which no assumption or trainable acceptance covers"
+KEY = "('drag', ('conformance/water_fixture', '1.0.0', 'sha256:c21a'), 'fluid.dynamic_viscosity')"
+
+
+@pytest.mark.parametrize(
+    ("line", "found"),
+    [
+        # The fault's, BC-038's seed under it: section 4.2's own law, a result accepted with the code.
+        (f"AssertionError: {RESULT} accepted with condition_outside, {LAW}", True),
+        # The law for another code; the law's line in the traceback, not the exception's; and every other
+        # message the target can raise, the relations to the models among them where they hold the code.
+        (f"AssertionError: {RESULT} accepted with outside_range, {LAW}", False),
+        (f"    AssertionError: {RESULT} accepted with condition_outside, {LAW}", False),
+        ("AssertionError: refused False, where its refusals and results give True", False),
+        (
+            f"AssertionError: {KEY}: ('not_met', (('condition_outside', 'temperature', None),), False, "
+            "(1,), ()), the model's ('not_met', (('condition_outside', 'temperature', None),), False, (1,), "
+            "(('condition_outside', 'temperature', None),))",
+            False,
+        ),
+        (f"AssertionError: results [{KEY}], the model's []", False),
+        ("AssertionError: unused [], the model's [('drag', 0)]", False),
+        ("AssertionError: refused True, the model's False", False),
+        ("AssertionError: refusals [], the model's [('BC-048', '/models/0/acceptances/1')]", False),
+        ("AssertionError: refused [('BC-048', '/consumer')], the model takes it", False),
+        (
+            "AssertionError: the implementation gives [], the model [('BC-005', '/models/0/acceptances/2')]",
+            False,
+        ),
+        ("AssertionError: a refusal of BC-038, which no rule of the declaration's names", False),
+        ("AssertionError: a refusal at '/models/9', which names no member", False),
+        ("AssertionError: NotImplementedError of no piece: condition_outside", False),
+    ],
+)
+def test_the_judge_find_is_4_2s_own_law_on_a_result_accepted_with_condition_outside(
+    line: str, found: bool
+) -> None:
+    """The control's fault lets a waiver cover `condition_outside`, which no correct build accepts uncovered
+    (no assumption covers it, and a `trainable` entry, which could, the build does not read yet): its find is
+    the line of section 4.2's own law for that code, and no other line the target raises."""
+    assert bool(measure.found_in(line, CONTROLS["judge"])) == found
+
+
 def control_step() -> str:
     """ci.yml's fuzz control step, its continued lines joined and its variables of one value written out."""
     start = CI.index("      - name: Control, the faults seeded")

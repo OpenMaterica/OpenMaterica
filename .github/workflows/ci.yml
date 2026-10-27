@@ -991,15 +991,15 @@ jobs:
     # Five targets at the default 300 s, the control (at most 3 minutes for each of the first three targets, 15
     # for the fourth's fault of step 10, 8 for its fault in a table, 15 for its fault in a table's value, 8 for
     # the fifth's fault of an extrapolation's method, 45 for the fourth's fault over a table alternative, 16
-    # on average, and 15 for build_bytes.py's fault in the declaration's check, then a replay of six property
-    # modules) and the replay of the property tests. The slowest run on CI took 126.7 minutes (run 39743609131
-    # of 2026-10-22, dispatched on S4d's draft, every step here among them but the declaration's: 64.1 for the
-    # control, one round of the fourth's fault over a table alternative among it, by its timing, 25.4 for the
-    # targets, 36.8 for the replay); the two rounds it did not run and the declaration's control add 45
-    # minutes at most (`FUZZ_ADDED_SINCE`). The timeout is twice their sum, as the Hypothesis job's is of its
-    # shards' slowest runs, and `tests/unit/test_ci_workflows.py` holds it there. A manual run of S seconds a
-    # target adds 5 (S - 300) / 60 minutes to the targets.
-    timeout-minutes: 344
+    # on average, 15 for build_bytes.py's fault in the declaration's check and 1 for its fault in the build's
+    # verdict, then a replay of six property modules) and the replay of the property tests. The slowest run on
+    # CI took 126.7 minutes (run 39743609131 of 2026-10-22, dispatched on S4d's draft, every step here among
+    # them but build_bytes.py's: 64.1 for the control, one round of the fourth's fault over a table alternative
+    # among it, by its timing, 25.4 for the targets, 36.8 for the replay); the two rounds it did not run and
+    # build_bytes.py's two controls add 46 minutes at most (`FUZZ_ADDED_SINCE`). The timeout is twice their
+    # sum, as the Hypothesis job's is of its shards' slowest runs, and `tests/unit/test_ci_workflows.py` holds
+    # it there. A manual run of S seconds a target adds 5 (S - 300) / 60 minutes to the targets.
+    timeout-minutes: 346
     env:
       FUZZ_SECONDS: ${{ inputs.fuzz_seconds || 300 }}
       # The fuzzing and its replay run under one profile: the properties' sizes come from it, and a failure
@@ -1022,9 +1022,9 @@ jobs:
       # fault seeded in `parse`, the third one seeded in the read, the fourth one seeded in step 10 and, in
       # runs of its own, one seeded in a table, one in a table's value and one in step 7 over a table
       # alternative, the fifth one seeded in step 0's check of an extrapolation, and build_bytes.py one seeded
-      # in the declaration's check (tests/fuzz/seeded_fault.py); the replay must find what the property targets
-      # saved again and shrink it.
-      - name: Control, the faults seeded in parse, the read, step 10, a table, a table's value, an extrapolation's method, a table alternative and the declaration's check are found, replayed and shrunk
+      # in the declaration's check and one in the build's verdict (tests/fuzz/seeded_fault.py); the replay must
+      # find what the property targets saved again and shrink it.
+      - name: Control, the faults seeded in parse, the read, step 10, a table, a table's value, an extrapolation's method, a table alternative, the declaration's check and the build's verdict are found, replayed and shrunk
         env:
           MATERICA_FUZZ_SEEDED_FAULT: "1"
         run: |
@@ -1163,6 +1163,23 @@ jobs:
           declared="^AssertionError: the implementation gives .*, the model .*'BC-005', '/models/[0-9]*/acceptances/[0-9]*'"
           # The fault skips acceptances 2 and after alone: the model's BC-005 at 0 or 1 is not its find.
           declared_early="the model .*'BC-005', '/models/[0-9]*/acceptances/[01]'"
+          # S7a-2's control for build_bytes.py (`MATERICA_FUZZ_SEEDED_FAULT=judge`, the S7 design's fault):
+          # `_covers` letting a waiver naming `condition_outside` and its condition cover it, which section 4.2
+          # lets no waiver cover, found by the target's relation of 4.2's own law, a result accepted with it. BC-038's
+          # seed declaration holds such a waiver beside such a result, so a run finds it in its first pass over
+          # the seeds: ten local runs, in pairs side by side, each found it after 1.0 to 1.5 s, the interpreter's
+          # start among them (Python 3.14, 2026-10-27). Two runs side by side, each of up to 60 s, one and a half
+          # times the slowest find, rounded up to the minute; the control passes where either finds it.
+          for worker in 1 2; do
+            cp -r "$control/declarations" "$control/judge-$worker"
+            MATERICA_FUZZ_SEEDED_FAULT=judge uv run python -m tests.fuzz.build_bytes \
+              "$control/judge-$worker" -dict="$control/declaration.dict" -max_total_time=60 \
+              -artifact_prefix="$control/findings/" \
+              > "$control/judge-$worker.log" 2>&1 &
+          done
+          wait || true
+          cat "$control"/judge-[1-2].log > "$control/judge.log"
+          judged="^AssertionError: .* accepted with condition_outside, which no assumption or trainable acceptance covers"
           # What each run found and when, one line a run, printed before any check below can end the step:
           # `fuzz-control <name> round=<r> run=<i> found=<yes|no> seconds=<s>`, then a line a control,
           # `fuzz-control-summary <name> runs=<n> found=<k> seconds=<total> rate=<finds a second>`. A run's seconds
@@ -1216,6 +1233,7 @@ jobs:
           mapfile -t alternatives < <(ls -v "$control"/table-alternatives-*.log 2>/dev/null)
           fuzz_runs table_alternatives 4 "$found" "the model .*'outside_range'" "${alternatives[@]}"
           fuzz_runs declarations 4 "$declared" "$declared_early" "$control"/declarations-[1-4].log
+          fuzz_runs judge 2 "$judged" "" "$control"/judge-[1-2].log
           uv run python -m pytest -p tests.fuzz.seeded_fault -q --hypothesis-show-statistics \
             tests/property/test_jsonio_properties.py tests/property/test_canonical_properties.py \
             tests/property/test_hashing_properties.py tests/property/test_read_properties.py \
@@ -1267,6 +1285,13 @@ jobs:
           if ! grep -qv "$declared_early" <(grep "$declared" "$control/declarations.log"); then
             tail -40 "$control/declarations.log"
             echo "::error::the declarations runs did not find the fault seeded in the declaration's check, so they could not find a real one"
+            exit 1
+          fi
+          # The verdict's fault raises nothing: the target's relation of section 4.2's own law finds a result
+          # accepted with `condition_outside`, which no assumption or trainable acceptance covers.
+          if ! grep -q "$judged" "$control/judge.log"; then
+            tail -40 "$control/judge.log"
+            echo "::error::the judge runs did not find the fault seeded in the build's verdict, so they could not find a real one"
             exit 1
           fi
           # Only a stored example can fail in the reuse phase: the replay found what the fuzzing saved. Each
