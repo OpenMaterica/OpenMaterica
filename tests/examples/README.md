@@ -8,8 +8,9 @@
 The record, source and note checks have controls that must fail: a record given a token the writer refuses, a
 structure the reader refuses, a value changed without its hash, a reserved namespace, a malformed identifier
 or version, a required condition, a label or a review dropped, a label on a field whose row names none, a
-label's basis dropped (on a water alternative, and on the plasma's field, which holds no alternatives) and a
-label's basis that breaks its shape; a number changed in each record, a number with
+label's basis dropped (on a water alternative, and on the plasma's field, which holds no alternatives), a
+label's basis that breaks its shape, and a labelled table along shear rate, the label's own condition (beside
+it, a labelled table along temperature must pass); a number changed in each record, a number with
 no source, a statement in words dropped, a sourced member removed; each document with its note's lines
 removed; and the quickstart with one shown output changed, four times, and with a line of it skipped. The read
 outcomes are pinned as exact values, with no control of their own in the suite, so a pin is as sharp as its

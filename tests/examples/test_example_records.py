@@ -135,6 +135,27 @@ DENSITY_0: Path_ = ("body", "sections", "bulk", "fields", "density", "alternativ
 VISCOSITY_1: Path_ = ("body", "sections", "fluid", "fields", "dynamic_viscosity", "alternatives", 1)
 
 
+def tabled(axis: str, unit: str) -> Callable[[JsonObject], None]:
+    """The second viscosity alternative made a table along `axis`, its label kept: the row lets the label go
+    on a table whose axis is not `shear_rate` and on no other (`record_format.md` section 4.1)."""
+
+    def made(record: JsonObject) -> None:
+        field = an_object(at(record, VISCOSITY_1))
+        del field["value"]
+        field["form"] = "table"
+        field["table"] = {
+            "axis": axis,
+            "axis_unit": unit,
+            "x": [300.0, 320.0],
+            "y": [0.00085, 0.00058],
+            "scheme": "linear",
+            "edges": [],
+        }
+        an_object(field["conditions"])[axis] = {"status": "not_applicable"}
+
+    return made
+
+
 @pytest.mark.parametrize(
     ("fault", "rehash", "found"),
     [
@@ -156,6 +177,11 @@ VISCOSITY_1: Path_ = ("body", "sections", "fluid", "fields", "dynamic_viscosity"
             True,
             "fluid.dynamic_viscosity: label 'materica.fluid.newtonian.v1' without label_basis",
         ),
+        (
+            tabled("shear_rate", "1/s"),
+            True,
+            "fluid.dynamic_viscosity: label 'materica.fluid.newtonian.v1', not None",
+        ),
         (change((*VISCOSITY_1, "label_basis"), {"basis": "inferred"}), True, "writer schema"),
         (
             change((*VISCOSITY_1, "provenance", "review"), {"status": "not_checked_yet"}),
@@ -174,6 +200,7 @@ VISCOSITY_1: Path_ = ("body", "sections", "fluid", "fields", "dynamic_viscosity"
         "label",
         "label-not-named",
         "label-basis",
+        "label-on-its-axis",
         "label-basis-shape",
         "review",
     ],
@@ -183,6 +210,16 @@ def test_the_record_check_can_fail(fault: Callable[[JsonObject], None], rehash: 
     fault(record)
     problems = record_problems(rehashed(record) if rehash else record)
     assert any(found in problem for problem in problems), problems
+
+
+def test_the_label_check_takes_a_table_on_another_axis() -> None:
+    """The control `label-on-its-axis` beside its counterpart: a labelled table along temperature passes the
+    label check, so a check that took the label on constants alone would fail here."""
+    record = copy.deepcopy(example("water.json"))
+    tabled("temperature", "K")(record)
+    problems = record_problems(rehashed(record))
+    assert not any(problem.startswith(("reader schema", "envelope")) for problem in problems), problems
+    assert not any(problem.startswith("fluid.dynamic_viscosity: label") for problem in problems), problems
 
 
 def test_the_label_check_reaches_a_field_without_alternatives() -> None:

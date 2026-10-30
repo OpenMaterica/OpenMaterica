@@ -32,7 +32,8 @@ every family entry goes in `families/CHANGELOG.md`.
   other (a table whose axis is the label's condition takes none), and a `label_basis` beside it, whose shape
   the writer schema checks. Before, it checked only that a constant held its row's label. New controls: a
   label on a field whose row names none, a label's basis dropped from a water alternative and from the
-  plasma's field, which holds no alternatives, and a label's basis that breaks its shape.
+  plasma's field, which holds no alternatives, a label's basis that breaks its shape, and a labelled table
+  along shear rate, the label's own condition, beside a labelled table along temperature that must pass.
 
 ## [0.1.0.dev4] - 2026-10-27
 
