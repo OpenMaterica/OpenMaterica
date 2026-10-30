@@ -22,7 +22,7 @@ from materica.core.jsonio import JsonValue
 from materica.core.read import ReadResult
 from materica.core.reasons import Reason
 from materica.core.record import RecordStore
-from materica.core.value_shapes import JsonObject, a_list, an_object
+from materica.core.value_shapes import JsonObject, a_list, an_object, label_allowed
 from materica.core.vocabulary import VOCABULARY
 from tests.spec_sync.schemas import validator
 
@@ -74,7 +74,8 @@ def value_fields(record: JsonObject) -> Iterator[tuple[str, JsonObject]]:
 def record_problems(record: JsonObject) -> list[str]:
     """What the writer and reader schemas, the envelope checks and the content hash refuse in `record`, and
     the record checks it can be given alone that a reader of this release can make without `materica check`:
-    its namespace (`example`), each field's required conditions (RC-006) and a constant's label (RC-122),
+    its namespace (`example`), each field's required conditions (RC-006), its label (RC-122: the label its
+    row names for its form and no other, and beside it a `label_basis`, whose shape the writer schema checks),
     and every review unset, as an example's is. A structure the reader schema refuses is walked no further.
     Left to `materica check`, and so not made here: RC-020, RC-037, RC-043, RC-045, RC-051, RC-052 and
     RC-058 (the plasma record breaks RC-058, open point 7 of the pull request).
@@ -95,8 +96,11 @@ def record_problems(record: JsonObject) -> list[str]:
         spec = VOCABULARY.fields[name]
         conditions = an_object(field["conditions"])
         problems += [f"{name}: no {condition}" for condition in spec.requires if condition not in conditions]
-        if spec.label is not None and field["form"] == "constant" and field.get("label") != spec.label:
-            problems.append(f"{name}: label {field.get('label')!r}, not {spec.label!r}")
+        named = spec.label if label_allowed(spec, str(field["form"]), field) else None
+        if field.get("label") != named:
+            problems.append(f"{name}: label {field.get('label')!r}, not {named!r}")
+        elif named is not None and "label_basis" not in field:
+            problems.append(f"{name}: label {named!r} without label_basis")
         review = an_object(an_object(field["provenance"])["review"])
         if review.get("status") != "not_checked":
             problems.append(f"{name}: review {review}")
@@ -143,18 +147,51 @@ VISCOSITY_1: Path_ = ("body", "sections", "fluid", "fields", "dynamic_viscosity"
         (drop((*DENSITY_0, "conditions", "density_kind")), True, "bulk.density: no density_kind"),
         (drop((*VISCOSITY_1, "label")), True, "fluid.dynamic_viscosity: label None"),
         (
+            change((*DENSITY_0, "label"), "materica.fluid.newtonian.v1"),
+            True,
+            "bulk.density: label 'materica.fluid.newtonian.v1', not None",
+        ),
+        (
+            drop((*VISCOSITY_1, "label_basis")),
+            True,
+            "fluid.dynamic_viscosity: label 'materica.fluid.newtonian.v1' without label_basis",
+        ),
+        (change((*VISCOSITY_1, "label_basis"), {"basis": "inferred"}), True, "writer schema"),
+        (
             change((*VISCOSITY_1, "provenance", "review"), {"status": "not_checked_yet"}),
             True,
             "fluid.dynamic_viscosity: review",
         ),
     ],
-    ids=["writer", "reader", "hash", "namespace", "id", "version", "required-condition", "label", "review"],
+    ids=[
+        "writer",
+        "reader",
+        "hash",
+        "namespace",
+        "id",
+        "version",
+        "required-condition",
+        "label",
+        "label-not-named",
+        "label-basis",
+        "label-basis-shape",
+        "review",
+    ],
 )
 def test_the_record_check_can_fail(fault: Callable[[JsonObject], None], rehash: bool, found: str) -> None:
     record = copy.deepcopy(example("water.json"))
     fault(record)
     problems = record_problems(rehashed(record) if rehash else record)
     assert any(found in problem for problem in problems), problems
+
+
+def test_the_label_check_reaches_a_field_without_alternatives() -> None:
+    record = copy.deepcopy(example("human_plasma.json"))
+    drop(("body", "sections", "fluid", "fields", "dynamic_viscosity", "label_basis"))(record)
+    problems = record_problems(rehashed(record))
+    assert "fluid.dynamic_viscosity: label 'materica.fluid.newtonian.v1' without label_basis" in problems, (
+        problems
+    )
 
 
 # ── Each number is its source's ────────────────────────────────────────────────────────────────────────

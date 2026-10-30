@@ -2,13 +2,13 @@
   "schema_version": "0.1.0",
   "record_type": "material",
   "id": "example/human_plasma",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "name": "Human blood plasma (example, not reviewed library data)",
   "licence": {
     "values": "CC0-1.0",
     "evidence": "excluded"
   },
-  "content_hash": "sha256:b0a199424a7bc7d0645d649b816ba518922cf2a67a3e34eed5e0dfa4c12495e1",
+  "content_hash": "sha256:b88575aa41e569b70bc03ebda0c471c4f4e45544d8977635189543ba495bcd90",
   "card": "Example, not reviewed library data. This record is not yet fully human-reviewed and may change in a later commit.\n\nThe dynamic viscosity of human blood plasma at 37 °C, 1.33 mPa·s, from Marcinkowska-Gapinska A. and Nawrocka-Bogusz H. (2013), 'Analysis of the Magnetic Field Influence on the Rheological Properties of Healthy Persons Blood', BioMed Research International 2013, article 490410, doi:10.1155/2013/490410 (PMC3775424; CC BY 3.0). The paper tests a magnetic field applied to blood samples; this record holds only the column 'Before magnetic field' of its Table 1, the untreated samples.\n\nThe table gives '1.33 ± 0.03' and does not say whether ± is a standard deviation or a standard error, nor which statistic 1.33 is; the paper writes the hematocrit the same way and calls it 'mean value in the group', so 1.33 is recorded as a mean. The ± is recorded in words, its kind unstated.\n\nWhat the paper states of the donors and the test (section 2, 'Material and Methods'): 25 healthy nonsmoking donors, aged 21 to 51 (mean 31), 19 men and 6 women, free of chronic disease, who passed the standard tests for blood donors; blood in lithium heparin, plasma by centrifugation at 4000 rpm for 10 minutes, measured within 4 hours of collection; a Contraves LS40 rotary-oscillating rheometer, its Couette cell of 1.8 mL used in rotary mode, at 37 °C; viscosity from a regression of shear stress on shear rate over 10 to 100 per second. The paper states that plasma is a Newtonian liquid, citing others. The donor ages are converted to seconds with the Julian year, 31 557 600 s. The record holds no density: the paper reports none.",
   "body": {
     "sections": {
@@ -163,7 +163,10 @@
                 "reason": "Example, not reviewed library data: not yet fully human-reviewed, and may change in a later commit."
               }
             },
-            "label": "materica.fluid.newtonian.v1"
+            "label": "materica.fluid.newtonian.v1",
+            "label_basis": {
+              "basis": "stated"
+            }
           }
         }
       }

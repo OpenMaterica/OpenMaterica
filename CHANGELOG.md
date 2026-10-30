@@ -14,6 +14,26 @@ every family entry goes in `families/CHANGELOG.md`.
 
 ## [Unreleased]
 
+### Data
+- The example records' Newtonian labels each carry the `label_basis` RC-122 requires beside a label
+  (`record_format.md` section 4.1); before, none did. `example/water`'s two viscosity values hold `inferred`:
+  IAPWS R12-08 gives the shear viscosity from temperature and density alone and states no shear rate, so the
+  label is inferred from the formulation, and their `shear_rate` stays `unstated`. `example/human_plasma`'s
+  holds `stated`: its paper says plasma "is a Newtonian liquid" and takes the viscosity from a regression of
+  shear stress on shear rate over 10 to 100 s⁻¹. No value, condition or label changes, so each version moves
+  by a patch (`record_format.md` section 8 item 3): `example/water` is `1.0.1`, content hash
+  `sha256:bafb89c2805a1cb7b042f62a3973f3d16778fb5f6d7bfac641a054ccc510c914`, and `example/human_plasma` is
+  `0.1.1`, content hash `sha256:b88575aa41e569b70bc03ebda0c471c4f4e45544d8977635189543ba495bcd90`. A read
+  of either returns the same status and reasons as before, since a reader neither checks a `label_basis`'s
+  shape nor returns it; a pin of either record must take the new version and hash.
+
+### Verification
+- The example records' check holds each field to RC-122 in full: the label its row names for its form and no
+  other (a table whose axis is the label's condition takes none), and a `label_basis` beside it, whose shape
+  the writer schema checks. Before, it checked only that a constant held its row's label. New controls: a
+  label on a field whose row names none, a label's basis dropped from a water alternative and from the
+  plasma's field, which holds no alternatives, and a label's basis that breaks its shape.
+
 ## [0.1.0.dev4] - 2026-10-27
 
 A development pre-release. It holds the build check over records, up to the build's verdict: S7a-1, a declaration
